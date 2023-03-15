@@ -8,8 +8,16 @@
 import Foundation
 import lib0
 
-public class DSDecoderV1 {
-    let restDecoder: Lib0Decoder
+public protocol DSDecoder {
+    var restDecoder: Lib0Decoder { get }
+
+    func resetDsCurVal()
+    func readDsClock() throws -> UInt
+    func readDsLen() throws -> UInt
+}
+
+public class DSDecoderV1: DSDecoder {
+    public let restDecoder: Lib0Decoder
 
     public init(_ decoder: Lib0Decoder) {
         self.restDecoder = decoder
@@ -26,19 +34,30 @@ public class DSDecoderV1 {
     }
 }
 
-public class UpdateDecoderV1: DSDecoderV1 {
+public protocol UpdateDecoder: DSDecoder {
+    func readLeftID() throws -> ID
+    func readRightID() throws -> ID
+    func readClient() throws -> UInt
+    func readInfo() throws -> UInt8
+    func readString() throws -> String
+    func readParentInfo() throws -> Bool
+    func readTypeRef() throws -> UInt
+    func readLen() throws -> UInt
+    func readAny() throws -> Any
+    func readBuf() throws -> Data
+    func readKey() throws -> String
+    func readJSON() throws -> Any
+}
+
+public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
     public func readLeftID() throws -> ID {
-        return try ID(self.restDecoder.readUInt(), self.restDecoder.readUInt())
+        return try ID(client: self.restDecoder.readUInt(), clock: self.restDecoder.readUInt())
     }
 
     public func readRightID() throws -> ID {
-        return ID(self.restDecoder.readUInt(), self.restDecoder.readUInt())
+        return try ID(client: self.restDecoder.readUInt(), clock: self.restDecoder.readUInt())
     }
 
-    /**
-     * Read the next client id.
-     * Use this in favor of readID whenever possible to reduce the Int of objects created.
-     */
     public func readClient() throws -> UInt {
         return try self.restDecoder.readUInt()
     }
@@ -75,11 +94,15 @@ public class UpdateDecoderV1: DSDecoderV1 {
     public func readKey() throws -> String {
         return try self.restDecoder.readString()
     }
+    
+    public func readJSON() throws -> Any {
+        return try JSONSerialization.jsonObject(with: self.restDecoder.readVarData())
+    }
 }
 
-public class DSDecoderV2 {
+public class DSDecoderV2: DSDecoder {
     private var dsCurrVal: UInt = 0
-    fileprivate let restDecoder: Lib0Decoder
+    public let restDecoder: Lib0Decoder
 
     public init(_ decoder: Lib0Decoder) throws {
         self.restDecoder = decoder
@@ -99,7 +122,7 @@ public class DSDecoderV2 {
     }
 }
 
-public class UpdateDecoderV2: DSDecoderV2 {
+public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
     private var keys: [String] = []
     
     private let keyClockDecoder: Lib0IntDiffOptRleDecoder
@@ -113,8 +136,6 @@ public class UpdateDecoderV2: DSDecoderV2 {
     private let lenDecoder: Lib0UintOptRleDecoder
 
     public override init(_ decoder: Lib0Decoder) throws {
-        try super.init(decoder)
-
         _ = try decoder.readUInt() // read feature flag - currently unused
         self.keyClockDecoder = Lib0IntDiffOptRleDecoder(data: try decoder.readVarData())
         self.clientDecoder = Lib0UintOptRleDecoder(data: try decoder.readVarData())
@@ -125,17 +146,25 @@ public class UpdateDecoderV2: DSDecoderV2 {
         self.parentInfoDecoder = Lib0RleDecoder(data: try decoder.readVarData())
         self.typeRefDecoder = Lib0UintOptRleDecoder(data: try decoder.readVarData())
         self.lenDecoder = Lib0UintOptRleDecoder(data: try decoder.readVarData())
+        
+        try super.init(decoder)
     }
 
     public func readLeftID() throws -> ID {
-        return try ID(self.clientDecoder.read(), self.leftClockDecoder.read())
+        return try ID(
+            client: self.clientDecoder.read(),
+            clock: UInt(self.leftClockDecoder.read())
+        )
     }
 
     public func readRightID() throws -> ID {
-        return try ID(self.clientDecoder.read(), self.rightClockDecoder.read())
+        return try ID(
+            client: self.clientDecoder.read(),
+            clock: UInt(self.rightClockDecoder.read())
+        )
     }
 
-    public func readClient() throws -> Int {
+    public func readClient() throws -> UInt {
         return try self.clientDecoder.read()
     }
 
@@ -151,11 +180,11 @@ public class UpdateDecoderV2: DSDecoderV2 {
         return try self.parentInfoDecoder.read() == 1
     }
 
-    public func readTypeRef() throws -> Int {
+    public func readTypeRef() throws -> UInt {
         return try self.typeRefDecoder.read()
     }
 
-     public func readLen() throws -> Int {
+     public func readLen() throws -> UInt {
         return try self.lenDecoder.read()
     }
 
@@ -176,6 +205,10 @@ public class UpdateDecoderV2: DSDecoderV2 {
             self.keys.append(key)
             return key
         }
+    }
+    
+    public func readJSON() throws -> Any {
+        return try self.restDecoder.readAny()
     }
 }
 

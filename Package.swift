@@ -9,11 +9,13 @@ let package = Package(
         .library(name: "yswift", targets: ["yswift"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ObuchiYuki/lib0-swift.git", branch: "main")
+        .package(url: "https://github.com/ObuchiYuki/lib0-swift.git", branch: "main"),
+        .package(url: "https://github.com/ObuchiYuki/Promise.git", from: "1.0.0")
     ],
     targets: [
         .target(name: "yswift", dependencies: [
-            .product(name: "lib0", package: "lib0-swift")
+            .product(name: "lib0", package: "lib0-swift"),
+            .product(name: "Promise", package: "Promise")
         ]),
         .testTarget(name: "yswiftTests", dependencies: ["yswift"]),
     ]
