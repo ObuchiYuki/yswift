@@ -18,9 +18,9 @@ public class Struct {
 
     public func merge(with right: Struct) -> Bool { return false }
 
-    public func write(encoder: any UpdateEncoder, offset: Int, encodingRef: Int) { fatalError() }
+    public func write(encoder: any UpdateEncoder, offset: UInt, encodingRef: Int) throws { fatalError() }
 
-    public func integrate(transaction: Transaction, offset: Int) -> Void { fatalError() }
+    public func integrate(transaction: Transaction, offset: UInt) throws -> Void { fatalError() }
 
     static public func tryMerge(withLeft structs: [Struct], pos: Int) {
         var structs = structs
@@ -34,7 +34,7 @@ public class Struct {
                     && (right as! Item).parentSub != nil
                     && ((right as! Item).parent as! AbstractType)._map[(right as! Item).parentSub!] === right
                 {
-                    (right.parent as! AbstractType)._map[(right as! Item).parentSub!] = left as! Item
+                    ((right as! Item).parent as! AbstractType)._map[(right as! Item).parentSub!] = (left as! Item)
                 }
             }
         }

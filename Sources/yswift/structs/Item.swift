@@ -12,6 +12,12 @@ extension AbstractType: AbstractType_or_ID_or_String {}
 extension ID: AbstractType_or_ID_or_String {}
 extension String: AbstractType_or_ID_or_String {}
 
+public protocol GC_or_Item: Struct {
+//    func write(_ encoder: UpdateEncoder, offset: UInt) throws
+}
+extension Item: GC_or_Item {}
+extension GC: GC_or_Item {}
+
 /// Abstract public class that represents any content.
 public class Item: Struct, JSHashable {
     // =========================================================================== //
@@ -108,7 +114,7 @@ public class Item: Struct, JSHashable {
         guard let snapshot = snapshot else {
             return !self.deleted
         }
-        return snapshot.sv.has(self.id.client)
+        return snapshot.sv[self.id.client] != nil
             && (snapshot.sv[self.id.client] ?? 0) > self.id.clock
             && !snapshot.ds.isDeleted(self.id)
     }
@@ -127,7 +133,7 @@ public class Item: Struct, JSHashable {
             rightOrigin: self.rightOrigin,
             parent: self.parent,
             parentSub: self.parentSub,
-            content: self.content.splice(offset: diff)
+            content: self.content.splice(diff)
         )
         if self.deleted {
             rightItem.markDeleted()
@@ -155,7 +161,7 @@ public class Item: Struct, JSHashable {
 
 
     /** Redoes the effect of this operation. */
-    public func redo(_ transaction: Transaction, redoitems: Set<Item>, itemsToDelete: DeleteSet, ignoreRemoteMapChanges: Bool) -> Item? {
+    public func redo(_ transaction: Transaction, redoitems: Set<Item>, itemsToDelete: DeleteSet, ignoreRemoteMapChanges: Bool) throws -> Item? {
         let doc = transaction.doc
         let store = doc.store
         let ownClientID = doc.clientID
@@ -169,7 +175,7 @@ public class Item: Struct, JSHashable {
         // make sure that parent is redone
         if parentItem != nil && parentItem!.deleted == true {
             // try to undo parent if it will be undone anyway
-            if parentItem!.redone == nil && (!redoitems.contains(parentItem!) || parentItem!
+            if try parentItem!.redone == nil && (!redoitems.contains(parentItem!) || parentItem!
                 .redo(transaction, redoitems: redoitems, itemsToDelete: itemsToDelete, ignoreRemoteMapChanges: ignoreRemoteMapChanges) == nil)
             {
                 return nil
@@ -178,7 +184,7 @@ public class Item: Struct, JSHashable {
                 parentItem = StructStore.getItemCleanStart(transaction, id: parentItem!.redone!)
             }
         }
-        let parentType = parentItem == nil ? (self.parent as! AbstractType) : (parentItem.content as! ContentType).type
+        let parentType = parentItem == nil ? (self.parent as! AbstractType) : (parentItem!.content as! ContentType).type
 
         if self.parentSub == nil {
             // Is an array item. Insert at the old position
@@ -227,7 +233,7 @@ public class Item: Struct, JSHashable {
                     return nil
                 }
             } else {
-                left = parentType._map.get(self.parentSub) ?? nil
+                left = parentType._map[self.parentSub!]
             }
         }
         let nextClock = store.getState(ownClientID)
@@ -244,7 +250,7 @@ public class Item: Struct, JSHashable {
         )
         self.redone = nextId
         Item.keepRecursive(redoneItem, keep: true)
-        redoneItem.integrate(transaction, 0)
+        try redoneItem.integrate(transaction: transaction, offset: 0)
         return redoneItem
     }
     
@@ -269,7 +275,7 @@ public class Item: Struct, JSHashable {
             self.right = StructStore.getItemCleanStart(transaction, id: self.rightOrigin!)
             self.rightOrigin = self.right!.id
         }
-        if (self.left && self.left is GC) || (self.right && self.right is GC) {
+        if (self.left != nil && self.left is GC) || (self.right != nil && self.right is GC) {
             self.parent = nil
         }
         // only set parent if this shouldn't be garbage collected
@@ -283,17 +289,17 @@ public class Item: Struct, JSHashable {
                 self.parentSub = self.right!.parentSub
             }
         } else if self.parent is ID {
-            let parentItem = store.getItem(self.parent as! ID)
+            let parentItem = store.find(self.parent as! ID)
             if parentItem is GC {
                 self.parent = nil
             } else {
-                self.parent = (parentItem.content as! ContentType).type
+                self.parent = ((parentItem as! Item).content as! ContentType).type
             }
         }
         return nil
     }
 
-    public func integrate(_ transaction: Transaction, offset: UInt) throws {
+    public override func integrate(transaction: Transaction, offset: UInt) throws {
         if offset > 0 {
             self.id.clock += offset
             self.left = transaction.doc.store.getItemCleanEnd(
@@ -301,7 +307,7 @@ public class Item: Struct, JSHashable {
                 id: ID(client: self.id.client, clock: self.id.clock - 1)
             )
             self.origin = self.left!.lastID
-            self.content = self.content.splice(offset: offset)
+            self.content = self.content.splice(offset)
             self.length -= offset
         }
 
@@ -389,7 +395,7 @@ public class Item: Struct, JSHashable {
                 (self.parent as! AbstractType)._length += self.length
             }
             try transaction.doc.store.addStruct(self)
-            self.content.integrate(transaction: transaction, item: self)
+            try self.content.integrate(transaction, item: self)
             // add parent to transaction.changed
             transaction.addChangedType((self.parent as! AbstractType), parentSub: self.parentSub)
             if ((self.parent as! AbstractType)._item != nil && (self.parent as! AbstractType)._item!.deleted)
@@ -400,7 +406,7 @@ public class Item: Struct, JSHashable {
             }
         } else {
             // parent is not defined. Integrate GC struct instead
-            GC(self.id, self.length).integrate(transaction, 0)
+            try GC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
         }
     }
 
@@ -440,7 +446,7 @@ public class Item: Struct, JSHashable {
             self.redone == nil &&
             right.redone == nil &&
             type(of: self.content) == type(of: right.content) &&
-            self.content.mergeWith(right: right.content)
+            self.content.mergeWith(right.content)
         ) {
             let searchMarker = (self.parent as! AbstractType)._searchMarker
             if searchMarker != nil {
@@ -472,7 +478,7 @@ public class Item: Struct, JSHashable {
             self.markDeleted()
             transaction.deleteSet.add(client: self.id.client, clock: self.id.clock, length: self.length)
             transaction.addChangedType(parent, parentSub: self.parentSub)
-            self.content.delete(transaction: transaction)
+            self.content.delete(transaction)
         }
     }
 
@@ -480,9 +486,9 @@ public class Item: Struct, JSHashable {
         if !self.deleted {
             throw YSwiftError.unexpectedCase
         }
-        self.content.gc(store: store)
+        try self.content.gc(store)
         if parentGCd {
-            store.replaceStruct(self, GC(self.id, self.length))
+            store.replaceStruct(self, newStruct: GC(id: self.id, length: self.length))
         } else {
             self.content = ContentDeleted(self.length)
         }
@@ -494,7 +500,7 @@ public class Item: Struct, JSHashable {
      *
      * This is called when this Item is sent to a remote peer.
      */
-    public func write(_ encoder: UpdateEncoder, offset: UInt) throws {
+    public override func write(encoder: UpdateEncoder, offset: UInt, encodingRef: Int) throws {
         let origin = offset > 0 ? ID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
         let rightOrigin = self.rightOrigin
         let parentSub = self.parentSub
@@ -537,17 +543,17 @@ public class Item: Struct, JSHashable {
             }
         }
         
-        try self.content.write(encoder: encoder, offset: offset)
+        try self.content.write(encoder, offset: offset)
     }
 }
 
-func readItemContent(decoder: UpdateDecoder, info: UInt8) -> any Content {
-    return contentDecoders_[info & 0b0001_1111](decoder)
+func readItemContent(decoder: UpdateDecoder, info: UInt8) throws -> any Content {
+    return try contentDecoders_[Int(info & 0b0001_1111)](decoder)
 }
 
 /** A lookup map for reading Item content. */
-let contentDecoders_: [YContentDecoder] = [
-    () -> { throw Lib0UnexpectedCaseError() }, // GC is not ItemContent
+fileprivate let contentDecoders_: [(UpdateDecoder) throws -> any Content] = [
+    {_ in throw YSwiftError.unexpectedCase }, // GC is not ItemContent
     readContentDeleted, // 1
     readContentJSON, // 2
     readContentBinary, // 3
@@ -557,6 +563,6 @@ let contentDecoders_: [YContentDecoder] = [
     readContentType, // 7
     readContentAny, // 8
     readContentDoc, // 9
-    () -> { throw Lib0UnexpectedCaseError() } // 10 - Skip is not ItemContent
+    {_ in throw YSwiftError.unexpectedCase }, // 10 - Skip is not ItemContent
 ]
 

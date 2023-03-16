@@ -117,7 +117,7 @@ public final class Lib0Encoder {
         }
     }
 
-    public func writeAny(_ data: Any) {
+    public func writeAny(_ data: Any?) {
         switch (data) {
         case let data as String:
             self.writeUInt8(119)
@@ -321,29 +321,38 @@ public class Lib0IntDiffOptRleEncoder {
 }
 
 public class Lib0StringEncoder {
-    private var sarr: [JSString] = []
-    private var s = JSString()
+    private var sarr: [NSString] = []
+    private var s = NSMutableString()
     private var lensE = Lib0UintOptRleEncoder()
 
     public init() {}
 
-    public func write(_ string: JSString) {
-        self.s = self.s + string
-        if self.s.count > 19 {
+    public func write(_ string: String) {
+        let nsstring = string as NSString
+        self.s.append(string)
+        if self.s.length > 19 {
             self.sarr.append(self.s)
-            self.s = JSString()
+            self.s = NSMutableString()
         }
-        self.lensE.write(UInt(string.count))
+        self.lensE.write(UInt(nsstring.length))
     }
 
     public var data: Data {
         let encoder = Lib0Encoder()
         self.sarr.append(self.s)
-        self.s = JSString()
-        
-//        encoder.writeString(self.sarr.reduce(JSString(), +))
-        
+        self.s = NSMutableString()
+        encoder.writeString(self.sarr.joined() as String)
         encoder.writeData(self.lensE.data)
         return encoder.data
+    }
+}
+
+extension Array where Element == NSString {
+    fileprivate func joined() -> NSString {
+        let base = NSMutableString()
+        for str in self {
+            base.append(str as String)
+        }
+        return base
     }
 }

@@ -8,15 +8,15 @@
 import Foundation
 
 final public class ContentAny: Content {
-    public var array: [Any]
+    public var array: [Any?]
     
-    public init(_ array: [Any]) {
+    public init(_ array: [Any?]) {
         self.array = array
     }
 
     public func getLength() -> UInt { return UInt(self.array.count) }
 
-    public func getContent() -> [Any] { return self.array }
+    public func getContent() -> [Any] { return self.array as [Any] }
 
     public func isCountable() -> Bool { return true }
 

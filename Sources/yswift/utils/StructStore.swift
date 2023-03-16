@@ -76,6 +76,7 @@ public class StructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
+    @discardableResult
     static public func getItemCleanStart(_ transaction: Transaction, id: ID) -> Item {
         let structs = transaction.doc.store.clients[id.client] as! [Item]
         return structs[self.findIndexCleanStart(transaction, structs, id.clock)]

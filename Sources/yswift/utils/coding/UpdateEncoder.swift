@@ -46,9 +46,9 @@ public protocol UpdateEncoder: DSEncoder {
     func writeInfo(_ info: UInt8)
     func writeString(_ s: String)
     func writeParentInfo(_ isYKey: Bool)
-    func writeTypeRef(_ info: UInt)
+    func writeTypeRef(_ info: UInt8)
     func writeLen(_ len: UInt)
-    func writeAny(_ any: Any)
+    func writeAny(_ any: Any?)
     func writeBuf(_ buf: Data)
     func writeJSON(_ embed: Any) throws
     func writeKey(_ key: String)
@@ -82,15 +82,15 @@ public class UpdateEncoderV1: DSEncoderV1, UpdateEncoder {
         self.restEncoder.writeUInt(isYKey ? 1 : 0)
     }
 
-    public func writeTypeRef(_ info: UInt) {
-        self.restEncoder.writeUInt(info)
+    public func writeTypeRef(_ info: UInt8) {
+        self.restEncoder.writeUInt(UInt(info))
     }
 
     public func writeLen(_ len: UInt) {
         self.restEncoder.writeUInt(len)
     }
 
-    public func writeAny(_ any: Any) {
+    public func writeAny(_ any: Any?) {
         self.restEncoder.writeAny(any)
     }
 
@@ -201,8 +201,8 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
         self.parentInfoEncoder.write(isYKey ? 1 : 0)
     }
 
-    public func writeTypeRef(_ info: UInt) {
-        self.typeRefEncoder.write(info)
+    public func writeTypeRef(_ info: UInt8) {
+        self.typeRefEncoder.write(UInt(info))
     }
 
     /// Write len of a struct - well suited for Opt RLE encoder.
@@ -210,7 +210,7 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
         self.lenEncoder.write(len)
     }
 
-    public func writeAny(_ any: Any) {
+    public func writeAny(_ any: Any?) {
         self.restEncoder.writeAny(any)
     }
 

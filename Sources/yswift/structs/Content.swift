@@ -20,11 +20,11 @@ public protocol Content {
 
     func mergeWith(_ right: any Content) -> Bool
 
-    func integrate(_ transaction: Transaction, item: Item) -> Void
+    func integrate(_ transaction: Transaction, item: Item) throws -> Void
 
     func delete(_ transaction: Transaction) -> Void
 
-    func gc(_ store: StructStore) -> Void
+    func gc(_ store: StructStore) throws -> Void
 
     func write(_ encoder: UpdateEncoder, offset: UInt) throws -> Void
     

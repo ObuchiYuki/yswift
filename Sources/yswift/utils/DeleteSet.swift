@@ -7,11 +7,6 @@
 
 import Foundation
 
-public protocol GC_or_Item: Struct {
-    func write(_ encoder: UpdateEncoder, offset: UInt) throws
-}
-extension Item: GC_or_Item {}
-
 public class DeleteItem {
     public let clock: UInt
     public var len: UInt

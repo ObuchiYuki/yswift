@@ -7,15 +7,6 @@
 
 import Foundation
  
-public protocol Contentable {}
-extension Int: Contentable {}
-extension String: Contentable {}
-extension Dictionary: Contentable {}
-extension Array: Contentable {}
-extension Bool: Contentable {}
-extension Data: Contentable {}
-extension AbstractType: Contentable {}
-
 public class AbstractType: JSHashable {
     
     public typealias EventType = YEvent
@@ -48,7 +39,7 @@ public class AbstractType: JSHashable {
     // =========================================================================== //
     // MARK: - Abstract Methods -
 
-    public func clone() -> AbstractType { fatalError() }
+    public func clone() throws -> AbstractType { fatalError() }
 
     public func _copy() -> AbstractType { fatalError() }
 
@@ -89,11 +80,11 @@ public class AbstractType: JSHashable {
         changedType._eH.callListeners(event, transaction)
     }
 
-    public func listSlice(_ start: UInt, end: UInt) -> [Any] {
+    public func listSlice(_ start: Int, end: Int) -> [Any] {
         var start = start, end = end
         
-        if start < 0 { start = self._length + start }
-        if end < 0 { end = self._length + end }
+        if start < 0 { start = Int(self._length) + start }
+        if end < 0 { end = Int(self._length) + end }
         var len = end - start
         var cs: [Any] = []
         var n = self._start
@@ -101,7 +92,7 @@ public class AbstractType: JSHashable {
             if n!.countable && !n!.deleted {
                 let c = n!.content.getContent()
                 if c.count <= start {
-                    start -= UInt(c.count)
+                    start -= c.count
                 } else {
                     var i = Int(start); while i < c.count && len > 0 {
                         cs.append(c[i])
@@ -162,10 +153,10 @@ public class AbstractType: JSHashable {
         }
     }
 
-    public func listMap<C, R>(body: (C, Int) -> R) -> [R] {
+    public func listMap<R>(body: (Any, Int) -> R) -> [R] {
         var result: [R] = []
         self.listForEach{ element, index in
-            result.append(body(element as! C, index))
+            result.append(body(element, index))
         }
         return result
     }
@@ -212,7 +203,7 @@ public class AbstractType: JSHashable {
         }
     }
 
-    public func listGet(_ index: UInt) -> Any {
+    public func listGet(_ index: UInt) -> Any? {
         var index = index
         let marker = ArraySearchMarker.find(self, index: index)
         var item = self._start
@@ -230,10 +221,12 @@ public class AbstractType: JSHashable {
             
             item = item!.right
         }
+        
+        return nil
     }
 
     // this -> parent
-    public func listInsertGenericsAfter(_ transaction: Transaction, referenceItem: Item?, contents: [Contentable]) throws {
+    public func listInsertGenericsAfter(_ transaction: Transaction, referenceItem: Item?, contents: [Any?]) throws {
         var left = referenceItem
         let doc = transaction.doc
         let ownClientId = doc.clientID
@@ -242,46 +235,46 @@ public class AbstractType: JSHashable {
 
 //        type JsonContent = { [s: String]: JsonContent } | JsonContent[] | Int? | String
 
-        var jsonContent: [Any] = []
+        var jsonContent: [Any?] = []
 
-        func packJsonContent() {
+        func packJsonContent() throws {
             if (jsonContent.count <= 0) { return }
             let id = ID(client: ownClientId, clock: store.getState(ownClientId))
             let content = ContentAny(jsonContent)
             left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: content)
-            left!.integrate(transaction: transaction, offset: 0)
+            try left!.integrate(transaction: transaction, offset: 0)
             jsonContent = []
         }
 
-        contents.forEach{ content in
+        try contents.forEach{ content in
             if content == nil {
-                jsonContent.push(content)
+                jsonContent.append(content)
             } else {
                 if (
                     content is Int ||
                     content is Dictionary<AnyHashable, Any> ||
-                    content is Boolean ||
+                    content is Bool ||
                     content is Array<Any> ||
                     content is String
                 ) {
                     jsonContent.append(content)
                 } else {
-                    packJsonContent()
+                    try packJsonContent()
                     if (content is Data) {
-                        let id = ID(ownClientId, store.getState(ownClientId))
+                        let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                         let icontent = ContentBinary(content as! Data)
-                        left = Item(id, left, left?.lastID, right, right?.id, self, nil, icontent)
-                        left.integrate(transaction, 0)
-                    } else if content.constructor == Doc {
-                        let id = ID(ownClientId, store.getState(ownClientId))
+                        left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                        try left!.integrate(transaction: transaction, offset: 0)
+                    } else if content is Doc {
+                        let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                         let icontent = ContentDoc(content as! Doc)
-                        left = Item(id, left, left?.lastID, right, right?.id, self, nil, icontent)
-                        left.integrate(transaction, 0)
+                        left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                        try left!.integrate(transaction: transaction, offset: 0)
                     } else if type(of: content) == AbstractType.self {
-                        let id = ID(ownClientId, store.getState(ownClientId))
-                        let icontent = ContentType(content)
-                        left = Item(id, left, left?.lastID, right, right?.id, self, nil, icontent)
-                        left.integrate(transaction, 0)
+                        let id = ID(client: ownClientId, clock: store.getState(ownClientId))
+                        let icontent = ContentType(content as! AbstractType)
+                        left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                        try left!.integrate(transaction: transaction, offset: 0)
                     } else {
                         throw YSwiftError.unexpectedContentType
                     }
@@ -289,17 +282,17 @@ public class AbstractType: JSHashable {
             }
         }
         
-        packJsonContent()
+        try packJsonContent()
     }
 
     // this -> parent
-    public func listInsertGenerics(_ transaction: Transaction, index: UInt, contents: [Contentable]) throws {
+    public func listInsertGenerics(_ transaction: Transaction, index: UInt, contents: [Any]) throws {
         var index = index
         if index > self._length { throw YSwiftError.lengthExceeded }
 
         if index == 0 {
             if self._searchMarker != nil {
-                ArraySearchMarker.updateChanges(&self._searchMarker!, index: index, len: contents.length)
+                ArraySearchMarker.updateChanges(&self._searchMarker!, index: index, len: UInt(contents.count))
             }
             return try self.listInsertGenericsAfter(transaction, referenceItem: nil, contents: contents)
         }
@@ -335,7 +328,7 @@ public class AbstractType: JSHashable {
         return try self.listInsertGenericsAfter(transaction, referenceItem: n, contents: contents)
     }
     
-    public func listPushGenerics(_ transaction: Transaction, contents: [Contentable]) throws {
+    public func listPushGenerics(_ transaction: Transaction, contents: [Any]) throws {
         
         let marker = (self._searchMarker ?? [])
             .reduce(ArraySearchMarker(item: self._start, index: 0)) { maxMarker, currMarker in
@@ -403,30 +396,30 @@ public class AbstractType: JSHashable {
     }
 
     // this -> parent
-    public func mapSet(_ transaction: Transaction, key: String, value: Contentable?) throws {
+    public func mapSet(_ transaction: Transaction, key: String, value: Any?) throws {
         let left = self._map[key]
         let doc = transaction.doc
         let ownClientId = doc.clientID
         var content: (any Content)!
         if value == nil {
-            content = ContentAny([value])
+            content = ContentAny([value as Any])
         } else {
             if value! is Int || value! is [AnyHashable: Any] || value! is Bool || value! is [Any] || value! is String {
-                content = ContentAny([value])
+                content = ContentAny([value as Any])
             } else if value! is Data {
                 content = ContentBinary(value as! Data)
             } else if value! is Doc {
                 content = ContentDoc(value as! Doc)
             } else {
                 if value! is AbstractType {
-                    content = ContentType(value)
+                    content = ContentType(value as! AbstractType)
                 } else {
                     throw YSwiftError.unexpectedContentType
                 }
             }
         }
         let id = ID(client: ownClientId, clock: doc.store.getState(ownClientId))
-        Item(id: id, left: left, origin: left?.lastID, right: nil, rightOrigin: nil, parent: self, parentSub: key, content: content)
+        try Item(id: id, left: left, origin: left?.lastID, right: nil, rightOrigin: nil, parent: self, parentSub: key, content: content)
             .integrate(transaction: transaction, offset: 0)
     }
 
@@ -437,11 +430,11 @@ public class AbstractType: JSHashable {
     }
 
     // this -> parent
-    public func mapGetAll() -> [String: any Contentable] {
-        var res: [String: any Contentable] = [:]
+    public func mapGetAll() -> [String: Any?] {
+        var res: [String: Any?] = [:]
         self._map.forEach({ key, value in
             if !value.deleted {
-                res[key] = value.content.getContent()[value.length - 1]
+                res[key] = value.content.getContent()[Int(value.length) - 1]
             }
         })
         return res
@@ -456,7 +449,7 @@ public class AbstractType: JSHashable {
     // this -> parent
     public func mapGetSnapshot(_ key: String, snapshot: Snapshot) -> Any? {
         var v = self._map[key]
-        while (v != nil && (!snapshot.sv[v!.id.client] != nil || v!.id.clock >= (snapshot.sv[v!.id.client] ?? 0))) {
+        while (v != nil && (snapshot.sv[v!.id.client] == nil || v!.id.clock >= (snapshot.sv[v!.id.client] ?? 0))) {
             v = v!.left
         }
         return v != nil && v!.isVisible(snapshot) ? v!.content.getContent()[Int(v!.length) - 1] : nil
@@ -465,7 +458,7 @@ public class AbstractType: JSHashable {
     // =========================================================================== //
     // MARK: - Private Methods (Temporally public) -
     
-    public func _integrate(_ y: Doc, item: Item?) {
+    public func _integrate(_ y: Doc, item: Item?) throws {
         self.doc = y
         self._item = item
     }

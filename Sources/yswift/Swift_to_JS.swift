@@ -7,36 +7,13 @@
 
 import Foundation
 
-extension Array where Element == UInt8 {
-    var uint16Array: [UInt16] {
-        
-    }
-}
-
-final public class JSString {
-    public let data: [UInt16]
-    
-    public var count: Int { data.count }
-    
-    public var swiftString: String {
-        
+extension NSRange {
+    public init(from: Int, to: Int) {
+        self.init(location: from, length: to-from)
     }
     
-    public init() { self.data = [] }
-    public init(_ data: [UInt16]) { self.data = data }
-    
-    public func charCodeAt(_ index: UInt) -> UInt16 { data[Int(index)] }
-    
-    public static func + (lhs: JSString, rhs: JSString) -> JSString {
-        return JSString(lhs.data + rhs.data)
-    }
-    
-    public func slice(_ start: UInt, _ end: UInt? = nil) -> JSString {
-        if let end = end {
-            return JSString(data[Int(start)..<Int(end)].map{ $0 })
-        } else {
-            return JSString(data[Int(start)...].map{ $0 })
-        }
+    public init(_ range: Range<Int>) {
+        self.init(from: range.lowerBound, to: range.upperBound)
     }
 }
 

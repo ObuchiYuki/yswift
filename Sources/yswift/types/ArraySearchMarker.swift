@@ -8,9 +8,9 @@
 import Foundation
 
 public protocol YText_or_YArray {
-    var count: Int { get }
+    var length: UInt { get }
 }
-extension YText: YText_or_YArray {}
+//extension YText: YText_or_YArray {}
 extension YArray: YText_or_YArray {}
 
 public class ArraySearchMarker {
@@ -96,10 +96,8 @@ public class ArraySearchMarker {
 
         if (item == nil) { return nil }
         
-        if (
-            marker != nil &&
-            abs(Int(marker!.index) - Int(pindex)) < (item!.parent as! YText_or_YArray).count / ArraySearchMarker.maxSearchMarker
-        ) {
+        let len = Int((item!.parent as! YText_or_YArray).length) / ArraySearchMarker.maxSearchMarker
+        if marker != nil && abs(Int(marker!.index) - Int(pindex)) < len {
             // adjust existing marker
             marker!.overwrite(item!, index: pindex)
             return marker!
