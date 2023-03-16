@@ -21,6 +21,8 @@ public class Struct {
     public func write(encoder: any UpdateEncoder, offset: UInt) throws { fatalError() }
 
     public func integrate(transaction: Transaction, offset: UInt) throws -> Void { fatalError() }
+    
+    public func getMissing(_ transaction: Transaction, store: StructStore) throws -> UInt? { fatalError() }
 
     static public func tryMerge(withLeft structs: [Struct], pos: Int) {
         var structs = structs
@@ -40,5 +42,4 @@ public class Struct {
         }
     }
     
-    public func getMissing(_ transaction: Transaction, store: StructStore) -> UInt? { fatalError() }
 }

@@ -30,7 +30,7 @@ public class Snapshot: JSHashable {
 
     public func encodeV2(_ encoder: DSEncoder = DSEncoderV2()) throws -> Data {
         try self.ds.encode(encoder)
-        try writeStateVector(encoder: encoder, sv: self.sv.toIntInt())
+        _ = try writeStateVector(encoder: encoder, sv: self.sv.toIntInt())
         return encoder.toData()
     }
     
@@ -47,7 +47,7 @@ public class Snapshot: JSHashable {
         return try Snapshot.decodeV2(buf, decoder: DSDecoderV1(Lib0Decoder(data: buf)))
     }
    
-    public func splitAffectedStructs(_ transaction: Transaction) {
+    public func splitAffectedStructs(_ transaction: Transaction) throws {
         enum __ { static let marker = UUID() }
         
         var meta = transaction.meta.setIfUndefined(__.marker, Set<AnyHashable>()) as! Set<AnyHashable>
@@ -55,12 +55,12 @@ public class Snapshot: JSHashable {
         let store = transaction.doc.store
         // check if we already split for this snapshot
         if !meta.contains(self) {
-            self.sv.forEach({ client, clock in
+            try self.sv.forEach({ client, clock in
                 if clock < store.getState(client) {
-                    _ = StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
+                    _ = try StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
                 }
             })
-            self.ds.iterate(transaction, body: {_ in })
+            try self.ds.iterate(transaction, body: {_ in })
             _ = meta.insert(self)
         }
         
@@ -87,7 +87,7 @@ public class Snapshot: JSHashable {
             for (client, clock) in self.sv {
                 if clock == 0 { continue }
                 if clock < originDoc.store.getState(client) {
-                    _ = StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
+                    _ = try StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
                 }
                 let structs = originDoc.store.clients[client] ?? []
                 let lastStructIndex = try StructStore.findIndexSS(structs: structs, clock: clock - 1)

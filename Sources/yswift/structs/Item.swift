@@ -167,7 +167,7 @@ public class Item: Struct, JSHashable {
         let ownClientID = doc.clientID
         let redone = self.redone
         if redone != nil {
-            return StructStore.getItemCleanStart(transaction, id: redone!)
+            return try StructStore.getItemCleanStart(transaction, id: redone!)
         }
         var parentItem = (self.parent as! AbstractType)._item
         var left: Item? = nil
@@ -181,7 +181,7 @@ public class Item: Struct, JSHashable {
                 return nil
             }
             while parentItem!.redone != nil {
-                parentItem = StructStore.getItemCleanStart(transaction, id: parentItem!.redone!)
+                parentItem = try StructStore.getItemCleanStart(transaction, id: parentItem!.redone!)
             }
         }
         let parentType = parentItem == nil ? (self.parent as! AbstractType) : (parentItem!.content as! ContentType).type
@@ -195,7 +195,7 @@ public class Item: Struct, JSHashable {
                 var leftTrace = left
                 // trace redone until parent matches
                 while (leftTrace != nil && (leftTrace!.parent as! AbstractType)._item != parentItem) {
-                    leftTrace = leftTrace!.redone == nil ? nil : StructStore.getItemCleanStart(transaction, id: leftTrace!.redone!)
+                    leftTrace = try leftTrace!.redone == nil ? nil : StructStore.getItemCleanStart(transaction, id: leftTrace!.redone!)
                 }
                 if leftTrace != nil && (leftTrace!.parent as! AbstractType)._item == parentItem {
                     left = leftTrace
@@ -208,7 +208,7 @@ public class Item: Struct, JSHashable {
                 var rightTrace = right
                 // trace redone until parent matches
                 while(rightTrace != nil && (rightTrace!.parent as! AbstractType)._item !== parentItem) {
-                    rightTrace = rightTrace!.redone == nil ? nil : StructStore.getItemCleanStart(transaction, id: rightTrace!.redone!)
+                    rightTrace = try rightTrace!.redone == nil ? nil : StructStore.getItemCleanStart(transaction, id: rightTrace!.redone!)
                 }
                 if rightTrace != nil && (rightTrace!.parent as! AbstractType)._item == parentItem {
                     right = rightTrace
@@ -227,7 +227,7 @@ public class Item: Struct, JSHashable {
                 }
                 
                 while left != nil && left!.redone != nil {
-                    left = StructStore.getItemCleanStart(transaction, id: left!.redone!)
+                    left = try StructStore.getItemCleanStart(transaction, id: left!.redone!)
                 }
                 if left != nil && left!.right != nil {
                     return nil
@@ -255,7 +255,7 @@ public class Item: Struct, JSHashable {
     }
     
     /** Return the creator clientID of the missing op or define missing items and return nil. */
-    public override func getMissing(_ transaction: Transaction, store: StructStore) -> UInt? {
+    public override func getMissing(_ transaction: Transaction, store: StructStore) throws -> UInt? {
         if self.origin != nil && self.origin!.client != self.id.client && self.origin!.clock >= store.getState(self.origin!.client) {
             return self.origin!.client
         }
@@ -268,11 +268,11 @@ public class Item: Struct, JSHashable {
 
         // We have all missing ids, now find the items
         if self.origin != nil {
-            self.left = store.getItemCleanEnd(transaction, id: self.origin!)
+            self.left = try store.getItemCleanEnd(transaction, id: self.origin!)
             self.origin = self.left!.lastID
         }
         if self.rightOrigin != nil {
-            self.right = StructStore.getItemCleanStart(transaction, id: self.rightOrigin!)
+            self.right = try StructStore.getItemCleanStart(transaction, id: self.rightOrigin!)
             self.rightOrigin = self.right!.id
         }
         if (self.left != nil && self.left is GC) || (self.right != nil && self.right is GC) {
@@ -289,7 +289,7 @@ public class Item: Struct, JSHashable {
                 self.parentSub = self.right!.parentSub
             }
         } else if self.parent is ID {
-            let parentItem = store.find(self.parent as! ID)
+            let parentItem = try store.find(self.parent as! ID)
             if parentItem is GC {
                 self.parent = nil
             } else {
@@ -302,7 +302,7 @@ public class Item: Struct, JSHashable {
     public override func integrate(transaction: Transaction, offset: UInt) throws {
         if offset > 0 {
             self.id.clock += offset
-            self.left = transaction.doc.store.getItemCleanEnd(
+            self.left = try transaction.doc.store.getItemCleanEnd(
                 transaction,
                 id: ID(client: self.id.client, clock: self.id.clock - 1)
             )
@@ -348,10 +348,10 @@ public class Item: Struct, JSHashable {
                             // Since this is to the left of o, we can break here
                             break
                         } // else, o might be integrated before an item that this conflicts with. If so, we will find it in the next iterations
-                    } else if item!.origin !== nil && itemsBeforeOrigin.contains(transaction.doc.store.getItem(item!.origin!)) {
+                    } else if try item!.origin !== nil && itemsBeforeOrigin.contains(transaction.doc.store.getItem(item!.origin!)) {
                         // use getItem instead of getItemCleanEnd because we don't want / need to split items.
                         // case 2
-                        if !conflictingItems.contains(transaction.doc.store.getItem(item!.origin!)) {
+                        if !conflictingItems.contains(try transaction.doc.store.getItem(item!.origin!)) {
                             left = item
                             conflictingItems.removeAll()
                         }
@@ -488,7 +488,7 @@ public class Item: Struct, JSHashable {
         }
         try self.content.gc(store)
         if parentGCd {
-            store.replaceStruct(self, newStruct: GC(id: self.id, length: self.length))
+            try store.replaceStruct(self, newStruct: GC(id: self.id, length: self.length))
         } else {
             self.content = ContentDeleted(self.length)
         }

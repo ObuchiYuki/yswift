@@ -314,7 +314,7 @@ public class AbstractType: JSHashable {
                 if index <= n!.length {
                     if index < n!.length {
                         let id = ID(client: n!.id.client, clock: n!.id.clock + index)
-                        StructStore.getItemCleanStart(transaction, id: id)
+                        try StructStore.getItemCleanStart(transaction, id: id)
                     }
                     break
                 }
@@ -359,7 +359,7 @@ public class AbstractType: JSHashable {
             if !item!.deleted && item!.countable {
                 if index < item!.length {
                     let id = ID(client: item!.id.client, clock: item!.id.clock + index)
-                    StructStore.getItemCleanStart(transaction, id: id)
+                    _ = try StructStore.getItemCleanStart(transaction, id: id)
                 }
                 index -= item!.length
             }
@@ -371,7 +371,7 @@ public class AbstractType: JSHashable {
             if !item!.deleted {
                 if length < item!.length {
                     let id = ID(client: item!.id.client, clock: item!.id.clock + length)
-                    StructStore.getItemCleanStart(transaction, id: id)
+                    _ = try StructStore.getItemCleanStart(transaction, id: id)
                 }
                 item!.delete(transaction)
                 length -= item!.length

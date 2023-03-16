@@ -132,38 +132,42 @@ public class Doc: Lib0Observable, JSHashable {
         try Transaction.transact(self, body: body, origin: origin, local: local)
     }
 
-//    get_<T: AbstractType>(name: String, TypeConstructor: T.Type = AbstractType.self) -> T {
-//        let type = self.share[name] ?? {
-//            let t = TypeConstructor()
-//            t._integrate(this, nil)
-//            self.share[name] = t
-//            return t
-//        }()
-//
-//        let Constr = type.constructor
-//        if TypeConstructor != AbstractType && Constr != TypeConstructor {
-//            if Constr == AbstractType_ {
-//                let t = TypeConstructor()
-//                t._map = type._map
-//                type._map.forEach((n: Item?) -> {
-//                    public func for(_ ; n != nil; n = n.left) {
-//                        n.parent = t
-//                    }
-//                })
-//                t._start = type._start
-//                public func for(_ var n = t._start; n != nil; n = n.right) {
-//                    n.parent = t
-//                }
-//                t._length = type._length
-//                self.share.set(name, t)
-//                t._integrate(this, nil)
-//                return t
-//            } else {
-//                throw Error(`Type with the name ${name} has already been defined with a different constructor`)
-//            }
-//        }
-//        return type
-//    }
+    // JS実装では TypeConstructor なしで呼び出すとAbstractTypeを作った
+    public func get<T: AbstractType>(name: String, TypeConstructor: () -> T) throws -> T {
+        let type_ = try self.share.setIfUndefined(name, {
+            let t = TypeConstructor()
+            try t._integrate(self, item: nil)
+            return t
+        }())
+        
+        if T.self != AbstractType.self && !(type_ is T) {
+            if type(of: type_) == AbstractType.self {
+                let t = TypeConstructor()
+                t._map = type_._map
+                type_._map.forEach({ _, n in
+                    var n: Item? = n
+                    while n != nil {
+                        n!.parent = t
+                        n = n!.left
+                    }
+                    
+                })
+                t._start = type_._start
+                var n = t._start; while n != nil {
+                    n!.parent = t
+                    n = n!.right
+                }
+                t._length = type_._length
+                self.share[name] = t
+                try t._integrate(self, item: nil)
+                return t
+            } else {
+                // TODO: throw
+                fatalError("Type with the name \(name) has already been defined with a different constructor")
+            }
+        }
+        return type_ as! T
+    }
 
 //    getMap<T: Contentable_>(name: String = '') -> YMap<T> { return self.get(name, YMap) }
 //

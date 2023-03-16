@@ -37,9 +37,9 @@ extension Dictionary {
         }
     }
     
-    public mutating func setIfUndefined(_ key: Key, _ make: @autoclosure () -> Value) -> Value {
+    public mutating func setIfUndefined(_ key: Key, _ make: @autoclosure () throws -> Value) rethrows -> Value {
         if let value = self[key] { return value }
-        let newValue = make()
+        let newValue = try make()
         self[key] = newValue
         return newValue
     }

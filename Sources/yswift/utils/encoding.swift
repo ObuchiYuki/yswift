@@ -75,7 +75,7 @@ public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [I
     var clientRefs = [Int: StructRef]()
     let numOfStateUpdates = try decoder.restDecoder.readUInt()
     
-    for i in 0..<numOfStateUpdates {
+    for _ in 0..<numOfStateUpdates {
         let numberOfStructs = try decoder.restDecoder.readUInt()
         let refs: GC_or_Item_RefArray = Ref(value: Array(repeating: nil, count: Int(numberOfStructs)))
         let client = try decoder.readClient()
@@ -97,13 +97,17 @@ public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [I
                 break
             default:
                 let cantCopyParentInfo = (info & (0b0100_0000 | 0b1000_0000)) == 0
-                let struct_ = Item(
+                let struct_ = try Item(
                     id: ID(client: client, clock: clock),
                     left: nil,
                     origin: (info & 0b1000_0000) == 0b1000_0000 ? decoder.readLeftID() : nil, // origin
                     right: nil,
                     rightOrigin: (info & 0b0100_0000) == 0b0100_0000 ? decoder.readRightID() : nil, // right origin
-                    parent: cantCopyParentInfo ? (decoder.readParentInfo() ? doc.get(decoder.readString()) : decoder.readLeftID()) : nil, // parent
+                    parent: cantCopyParentInfo
+                    ? (decoder.readParentInfo()
+                       ? doc.get(name: decoder.readString(), TypeConstructor: AbstractType.init) as (any AbstractType_or_ID_or_String)
+                       : decoder.readLeftID() as any AbstractType_or_ID_or_String)
+                    : nil, // parent
                     parentSub: cantCopyParentInfo && (info & 0b0010_0000) == 0b0010_0000 ? decoder.readString() : nil, // parentSub
                     content: readItemContent(decoder: decoder, info: info) // item content
                 )
@@ -194,7 +198,7 @@ public func integrateStructs(
                 // hid a dead wall, add all items from stack to restSS
                 addStackToRestSS()
             } else {
-                let missing = (stackHead as! Item).getMissing(transaction, store: store)
+                let missing = try (stackHead as! Item).getMissing(transaction, store: store)
                 if missing != nil {
                     stack.append(stackHead)
                     

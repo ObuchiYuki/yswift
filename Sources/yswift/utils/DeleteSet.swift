@@ -40,14 +40,16 @@ public class DeleteItem {
 public class DeleteSet {
     public var clients: [UInt: [DeleteItem]] = [:]
 
-    public func iterate(_ transaction: Transaction, body: (GC_or_Item) -> Void) {
+    public func iterate(_ transaction: Transaction, body: (GC_or_Item) -> Void) throws {
         
-        return self.clients.forEach{ clientid, deletes in
-            let structs = transaction.doc.store.clients[clientid]!
-            
+        return try self.clients.forEach{ clientid, deletes in
             for i in 0..<deletes.count {
                 let del = deletes[i]
-                StructStore.iterateStructs(transaction: transaction, structs: structs, clockStart: del.clock, len: del.len, f: body)
+                try StructStore.iterateStructs(
+                    transaction: transaction,
+                    structs: &transaction.doc.store.clients[clientid]!,
+                    clockStart: del.clock, len: del.len, f: body
+                )
             }
         }
     }
