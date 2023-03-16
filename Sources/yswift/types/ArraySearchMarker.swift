@@ -16,18 +16,20 @@ extension YArray: YText_or_YArray {}
 public class ArraySearchMarker {
     public var timestamp: Int
     public var item: Item?
-    public var index: Int
+    public var index: UInt
     
     private static var globalSearchMarkerTimestamp = 0
     private static let maxSearchMarker = 80
 
-    init(item: Item?, index: Int) {
+    init(item: Item?, index: UInt) {
+        self.item = item
+        self.index = index
         if item != nil { item!.marker = true }
         self.timestamp = ArraySearchMarker.globalSearchMarkerTimestamp
         ArraySearchMarker.globalSearchMarkerTimestamp += 1
     }
 
-    static public func markPosition(_ markers: inout [ArraySearchMarker], item: Item, index: Int) -> ArraySearchMarker {
+    static public func markPosition(_ markers: inout [ArraySearchMarker], item: Item, index: UInt) -> ArraySearchMarker {
         if markers.count >= ArraySearchMarker.maxSearchMarker {
             // override oldest marker (we don't want to create more objects)
             let marker = markers.min(by: { $0.timestamp < $1.timestamp })!
@@ -47,23 +49,23 @@ public class ArraySearchMarker {
      * A maximum of `maxSearchMarker` objects are created.
      * This function always returns a refreshed marker (updated timestamp)
      */
-    static public func find(_ yarray: AbstractType, index: Int) -> ArraySearchMarker? {
+    static public func find(_ yarray: AbstractType, index: UInt) -> ArraySearchMarker? {
         if yarray._start == nil || index == 0 || yarray._searchMarker == nil {
             return nil
         }
         
-        let marker = yarray._searchMarker.length == 0
+        let marker: ArraySearchMarker? = yarray._searchMarker!.count == 0
             ? nil
-            : yarray._searchMarker.reduce((a, b) -> abs(index - a.index) < abs(index - b.index) ? a : b)
-        
-        
+            : yarray._searchMarker!.jsReduce{ a, b in
+                abs(Int(index) - Int(a.index)) < abs(Int(index) - Int(b.index)) ? a : b
+            }
         
         var item: Item? = yarray._start
         var pindex: UInt = 0
         if marker != nil {
-            item = marker.item
-            pindex = marker.index
-            marker.refreshTimestamp() // we used it, we might need to use it again
+            item = marker!.item
+            pindex = marker!.index
+            marker!.refreshTimestamp() // we used it, we might need to use it again
         }
         // iterate to right if possible
         while (item?.right != nil && pindex < index) {
@@ -92,22 +94,22 @@ public class ArraySearchMarker {
             }
         }
 
-        if (item == nil) { return }
+        if (item == nil) { return nil }
         
         if (
             marker != nil &&
-            abs(marker.index - pindex) < (item.parent as! YText_or_YArray).count / ArraySearchMarker.maxSearchMarker
+            abs(Int(marker!.index) - Int(pindex)) < (item!.parent as! YText_or_YArray).count / ArraySearchMarker.maxSearchMarker
         ) {
             // adjust existing marker
-            marker.overwrite(item, pindex)
-            return marker
+            marker!.overwrite(item!, index: pindex)
+            return marker!
         } else {
             // create marker
-            return ArraySearchMarker.markPosition(&yarray._searchMarker, item: item!, index: Int(pindex))
+            return ArraySearchMarker.markPosition(&yarray._searchMarker!, item: item!, index: pindex)
         }
     }
 
-    static public func updateChanges(_ markers: inout [ArraySearchMarker], index: Int, len: Int) {
+    static public func updateChanges(_ markers: inout [ArraySearchMarker], index: UInt, len: UInt) {
         for i in (0..<markers.count).reversed() {
             let marker = markers[i]
             
@@ -121,7 +123,7 @@ public class ArraySearchMarker {
                     item = item!.left
                     if item != nil && !item!.deleted && item!.countable {
                         // adjust position. the loop should break now
-                        marker.index -= Int(item!.length)
+                        marker.index -= item!.length
                     }
                 }
                 if item == nil || item!.marker == true {
@@ -145,7 +147,7 @@ public class ArraySearchMarker {
     }
         
     /** This is rather complex so this function is the only thing that should overwrite a marker */
-    public func overwrite(_ item: Item, index: Int) {
+    public func overwrite(_ item: Item, index: UInt) {
         if (self.item != nil) { self.item!.marker = false }
         self.item = item
         item.marker = true

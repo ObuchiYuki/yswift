@@ -7,12 +7,10 @@
 
 import lib0
 
-public protocol ItemParent: AnyObject {
-    var client: UInt { get }
-    var clock: UInt { get }
-}
-extension AbstractType: ItemParent {}
-extension ID: ItemParent {}
+public protocol AbstractType_or_ID_or_String: Equatable {}
+extension AbstractType: AbstractType_or_ID_or_String {}
+extension ID: AbstractType_or_ID_or_String {}
+extension String: AbstractType_or_ID_or_String {}
 
 /// Abstract public class that represents any content.
 public class Item: Struct, JSHashable {
@@ -31,7 +29,7 @@ public class Item: Struct, JSHashable {
     /// The item that was originally to the right of this item. */
     public var rightOrigin: ID?
     
-    public var parent: ItemParent?
+    public var parent: (any AbstractType_or_ID_or_String)?
     
     public var parentSub: String?
     
@@ -78,7 +76,7 @@ public class Item: Struct, JSHashable {
         origin: ID?,
         right: Item?,
         rightOrigin: ID?,
-        parent: ItemParent?,
+        parent: (any AbstractType_or_ID_or_String)?,
         parentSub: String?,
         content: any Content
     ) {
@@ -101,7 +99,7 @@ public class Item: Struct, JSHashable {
     static public func keepRecursive(_ item: Item?, keep: Bool) {
         while var item = item, item.keep != keep {
            item.keep = keep
-           item = (item.parent as! AbstractType)._item
+           item = (item.parent as! AbstractType)._item!
         }
     }
     
@@ -122,14 +120,14 @@ public class Item: Struct, JSHashable {
         let client = self.id.client, clock = self.id.clock
         
         let rightItem = Item(
-            ID(client: client, clock: clock + diff),
-            self,
-            ID(client: client, clock: clock + diff - 1),
-            self.right,
-            self.rightOrigin,
-            self.parent,
-            self.parentSub,
-            self.content.splice(Int(diff))
+            id: ID(client: client, clock: clock + diff),
+            left: self,
+            origin: ID(client: client, clock: clock + diff - 1),
+            right: self.right,
+            rightOrigin: self.rightOrigin,
+            parent: self.parent,
+            parentSub: self.parentSub,
+            content: self.content.splice(offset: diff)
         )
         if self.deleted {
             rightItem.markDeleted()
@@ -143,13 +141,13 @@ public class Item: Struct, JSHashable {
         self.right = rightItem
         // update right
         if rightItem.right !== nil {
-            rightItem.right.left = rightItem
+            rightItem.right!.left = rightItem
         }
         // right is more specific.
-        transaction._mergeStructs.push(rightItem)
+        transaction._mergeStructs.append(rightItem)
         // update parent._map
-        if rightItem.parentSub !== nil && rightItem.right == nil {
-            (rightItem.parent as AbstractType)._map.set(rightItem.parentSub, rightItem)
+        if rightItem.parentSub != nil && rightItem.right == nil {
+            (rightItem.parent as! AbstractType)._map[rightItem.parentSub!] = rightItem
         }
         self.length = diff
         return rightItem
@@ -162,20 +160,22 @@ public class Item: Struct, JSHashable {
         let store = doc.store
         let ownClientID = doc.clientID
         let redone = self.redone
-        if redone !== nil {
-            return StructStore.getItemCleanStart(transaction, redone)
+        if redone != nil {
+            return StructStore.getItemCleanStart(transaction, id: redone!)
         }
-        var parentItem = (self.parent as AbstractType)._item
+        var parentItem = (self.parent as! AbstractType)._item
         var left: Item? = nil
         var right: Item? = nil
         // make sure that parent is redone
-        if parentItem !== nil && parentItem.deleted == true {
+        if parentItem != nil && parentItem!.deleted == true {
             // try to undo parent if it will be undone anyway
-            if parentItem.redone == nil && (redoitems[parentItem] == nil || parentItem.redo(transaction, redoitems, itemsToDelete, ignoreRemoteMapChanges) == nil) {
+            if parentItem!.redone == nil && (!redoitems.contains(parentItem!) || parentItem!
+                .redo(transaction, redoitems: redoitems, itemsToDelete: itemsToDelete, ignoreRemoteMapChanges: ignoreRemoteMapChanges) == nil)
+            {
                 return nil
             }
-            while(parentItem.redone !== nil) {
-                parentItem = StructStore.getItemCleanStart(transaction, parentItem.redone)
+            while parentItem!.redone != nil {
+                parentItem = StructStore.getItemCleanStart(transaction, id: parentItem!.redone!)
             }
         }
         let parentType = parentItem == nil ? (self.parent as! AbstractType) : (parentItem.content as! ContentType).type
@@ -185,32 +185,30 @@ public class Item: Struct, JSHashable {
             left = self.left
             right = self
             // find next cloned_redo items
-            while let nonnilLeft = left {
-
-                var leftTrace = nonnilLeft
+            while left != nil {
+                var leftTrace = left
                 // trace redone until parent matches
-                while(leftTrace !== nil && (leftTrace.parent as AbstractType)._item !== parentItem) {
-                    leftTrace = leftTrace.redone == nil ? nil : StructStore.getItemCleanStart(transaction, leftTrace.redone)
+                while (leftTrace != nil && (leftTrace!.parent as! AbstractType)._item != parentItem) {
+                    leftTrace = leftTrace!.redone == nil ? nil : StructStore.getItemCleanStart(transaction, id: leftTrace!.redone!)
                 }
-                if leftTrace !== nil && (leftTrace.parent as AbstractType)._item == parentItem {
+                if leftTrace != nil && (leftTrace!.parent as! AbstractType)._item == parentItem {
                     left = leftTrace
                     break
                 }
-                left = nonnilLeft.left
+                left = left!.left
             }
             
-            while let nonnilRight = right {
-
-                var rightTrace = nonnilRight
+            while right != nil {
+                var rightTrace = right
                 // trace redone until parent matches
-                while(rightTrace !== nil && (rightTrace.parent as AbstractType)._item !== parentItem) {
-                    rightTrace = rightTrace.redone == nil ? nil : StructStore.getItemCleanStart(transaction, rightTrace.redone)
+                while(rightTrace != nil && (rightTrace!.parent as! AbstractType)._item !== parentItem) {
+                    rightTrace = rightTrace!.redone == nil ? nil : StructStore.getItemCleanStart(transaction, id: rightTrace!.redone!)
                 }
-                if rightTrace !== nil && (rightTrace.parent as AbstractType)._item == parentItem {
+                if rightTrace != nil && (rightTrace!.parent as! AbstractType)._item == parentItem {
                     right = rightTrace
                     break
                 }
-                right = nonnilRight.right
+                right = right!.right
             }
         } else {
             right = nil
@@ -223,7 +221,7 @@ public class Item: Struct, JSHashable {
                 }
                 
                 while left != nil && left!.redone != nil {
-                    left = StructStore.getItemCleanStart(transaction, left!.redone!)
+                    left = StructStore.getItemCleanStart(transaction, id: left!.redone!)
                 }
                 if left != nil && left!.right != nil {
                     return nil
@@ -235,16 +233,14 @@ public class Item: Struct, JSHashable {
         let nextClock = store.getState(ownClientID)
         let nextId = ID(client: ownClientID, clock: nextClock)
         let redoneItem = Item(
-            nextId,
-            left,
-            left != nil,
-//            left && left.lastID,
-            right,
-            right != nil,
-//            right && right.id,
-            parentType,
-            self.parentSub,
-            self.content.copy()
+            id: nextId,
+            left: left,
+            origin: left?.lastID,
+            right: right,
+            rightOrigin: right?.id,
+            parent: parentType,
+            parentSub: self.parentSub,
+            content: self.content.copy()
         )
         self.redone = nextId
         Item.keepRecursive(redoneItem, keep: true)
@@ -260,17 +256,17 @@ public class Item: Struct, JSHashable {
         if self.rightOrigin != nil && self.rightOrigin!.client != self.id.client && self.rightOrigin!.clock >= store.getState(self.rightOrigin!.client) {
             return self.rightOrigin!.client
         }
-        if self.parent != nil && self.parent is ID && self.id.client != self.parent!.client && self.parent!.clock >= store.getState(self.parent!.client) {
-            return self.parent!.client
+        if self.parent != nil && self.parent is ID && self.id.client != (self.parent as! ID).client && (self.parent as! ID).clock >= store.getState((self.parent as! ID).client) {
+            return (self.parent as! ID).client
         }
 
         // We have all missing ids, now find the items
         if self.origin != nil {
-            self.left = store.getItemCleanEnd(transaction, self.origin!)
+            self.left = store.getItemCleanEnd(transaction, id: self.origin!)
             self.origin = self.left!.lastID
         }
         if self.rightOrigin != nil {
-            self.right = StructStore.getItemCleanStart(transaction, self.rightOrigin!)
+            self.right = StructStore.getItemCleanStart(transaction, id: self.rightOrigin!)
             self.rightOrigin = self.right!.id
         }
         if (self.left && self.left is GC) || (self.right && self.right is GC) {
@@ -287,25 +283,25 @@ public class Item: Struct, JSHashable {
                 self.parentSub = self.right!.parentSub
             }
         } else if self.parent is ID {
-            let parentItem = store.getItem(self.parent)
+            let parentItem = store.getItem(self.parent as! ID)
             if parentItem is GC {
                 self.parent = nil
             } else {
-                self.parent = (parentItem.content as ContentType).type
+                self.parent = (parentItem.content as! ContentType).type
             }
         }
         return nil
     }
 
-    public func integrate(_ transaction: Transaction, offset: UInt) {
+    public func integrate(_ transaction: Transaction, offset: UInt) throws {
         if offset > 0 {
             self.id.clock += offset
             self.left = transaction.doc.store.getItemCleanEnd(
                 transaction,
-                ID(client: self.id.client, clock: self.id.clock - 1)
+                id: ID(client: self.id.client, clock: self.id.clock - 1)
             )
             self.origin = self.left!.lastID
-            self.content = self.content.splice(offset)
+            self.content = self.content.splice(offset: offset)
             self.length -= offset
         }
 
@@ -320,12 +316,12 @@ public class Item: Struct, JSHashable {
                 if left != nil {
                     item = left!.right
                 } else if self.parentSub != nil {
-                    item = (self.parent as AbstractType)._map[self.parentSub] || nil
-                    while(item !== nil && item!.left !== nil) {
+                    item = (self.parent as! AbstractType)._map[self.parentSub!]
+                    while(item != nil && item!.left != nil) {
                         item = item!.left
                     }
                 } else {
-                    item = (self.parent as AbstractType)._start
+                    item = (self.parent as! AbstractType)._start
                 }
                 
                 var conflictingItems = Set<Item>()
@@ -333,9 +329,9 @@ public class Item: Struct, JSHashable {
                 // Let c in conflictingItems, b in itemsBeforeOrigin
                 // ***{origin}bbbb{this}{c,b}{c,b}{o}***
                 // Note that conflictingItems is a subset of itemsBeforeOrigin
-                while(item !== nil && item !== self.right) {
-                    itemsBeforeOrigin.insert(item)
-                    conflictingItems.insert(item)
+                while(item != nil && item !== self.right) {
+                    itemsBeforeOrigin.insert(item!)
+                    conflictingItems.insert(item!)
                     if self.origin == item!.origin {
                         // case 1
                         if item!.id.client < self.id.client {
@@ -346,10 +342,10 @@ public class Item: Struct, JSHashable {
                             // Since this is to the left of o, we can break here
                             break
                         } // else, o might be integrated before an item that this conflicts with. If so, we will find it in the next iterations
-                    } else if item!.origin !== nil && itemsBeforeOrigin[transaction.doc.store.getItem(item!.origin)] != nil {
+                    } else if item!.origin !== nil && itemsBeforeOrigin.contains(transaction.doc.store.getItem(item!.origin!)) {
                         // use getItem instead of getItemCleanEnd because we don't want / need to split items.
                         // case 2
-                        if conflictingItems[transaction.doc.store.getItem(item.origin)] == nil {
+                        if !conflictingItems.contains(transaction.doc.store.getItem(item!.origin!)) {
                             left = item
                             conflictingItems.removeAll()
                         }
@@ -368,7 +364,7 @@ public class Item: Struct, JSHashable {
             } else {
                 var r: Item?
                 if self.parentSub != nil {
-                    r = (self.parent as AbstractType)._map[parentSub]
+                    r = (self.parent as! AbstractType)._map[parentSub!]
                     while r != nil && r!.left !== nil {
                         r = r!.left
                     }
@@ -382,7 +378,7 @@ public class Item: Struct, JSHashable {
                 self.right!.left = self
             } else if self.parentSub != nil {
                 // set as current parent value if right == nil and this is parentSub
-                (self.parent as! AbstractType)._map[self.parentSub] = self
+                (self.parent as! AbstractType)._map[self.parentSub!] = self
                 if self.left != nil {
                     // this is the current attribute value of parent. delete right
                     self.left!.delete(transaction)
@@ -392,11 +388,11 @@ public class Item: Struct, JSHashable {
             if self.parentSub == nil && self.countable && !self.deleted {
                 (self.parent as! AbstractType)._length += self.length
             }
-            transaction.doc.store.addStruct(self)
-            self.content.integrate(transaction, self)
+            try transaction.doc.store.addStruct(self)
+            self.content.integrate(transaction: transaction, item: self)
             // add parent to transaction.changed
-            transaction.addChangedType((self.parent as! AbstractType), self.parentSub)
-            if ((self.parent as AbstractType)._item != nil && (self.parent as! AbstractType)._item!.deleted)
+            transaction.addChangedType((self.parent as! AbstractType), parentSub: self.parentSub)
+            if ((self.parent as! AbstractType)._item != nil && (self.parent as! AbstractType)._item!.deleted)
                 || (self.parentSub != nil && self.right != nil)
             {
                 // delete if parent is deleted or if this is not the current attribute value of parent
@@ -443,12 +439,12 @@ public class Item: Struct, JSHashable {
             self.deleted == right.deleted &&
             self.redone == nil &&
             right.redone == nil &&
-            self.content.constructor == right.content.constructor &&
-            self.content.merge(with: right.content)
+            type(of: self.content) == type(of: right.content) &&
+            self.content.mergeWith(right: right.content)
         ) {
-            let searchMarker = (self.parent as AbstractType)._searchMarker
+            let searchMarker = (self.parent as! AbstractType)._searchMarker
             if searchMarker != nil {
-                searchMarker.forEach({ marker in
+                searchMarker!.forEach({ marker in
                     if marker.item == right {
                         marker.item = self
                         if !self.deleted && self.countable { marker.index -= self.length }
@@ -475,7 +471,7 @@ public class Item: Struct, JSHashable {
             }
             self.markDeleted()
             transaction.deleteSet.add(client: self.id.client, clock: self.id.clock, length: self.length)
-            transaction.addChangedType(parent, self.parentSub)
+            transaction.addChangedType(parent, parentSub: self.parentSub)
             self.content.delete(transaction: transaction)
         }
     }
@@ -484,7 +480,7 @@ public class Item: Struct, JSHashable {
         if !self.deleted {
             throw YSwiftError.unexpectedCase
         }
-        self.content.gc(store)
+        self.content.gc(store: store)
         if parentGCd {
             store.replaceStruct(self, GC(self.id, self.length))
         } else {
@@ -515,9 +511,8 @@ public class Item: Struct, JSHashable {
             encoder.writeRightID(rightOrigin!)
         }
         if origin == nil && rightOrigin == nil {
-            let parent = (self.parent as AbstractType)
-            if parent._item != nil {
-                let parentItem = parent._item
+            if (self.parent as! AbstractType)._item != nil {
+                let parentItem = (self.parent as! AbstractType)._item
                 if parentItem == nil {
                     // parent type on y._map
                     // find the correct key
@@ -526,14 +521,14 @@ public class Item: Struct, JSHashable {
                     encoder.writeString(ykey)
                 } else {
                     encoder.writeParentInfo(false) // write parent id
-                    encoder.writeLeftID(parentItem.id)
+                    encoder.writeLeftID(parentItem!.id)
                 }
-            } else if parent.constructor == String { // this edge case was added by differential updates
+            } else if self.parent! is String { // this edge case was added by differential updates
                 encoder.writeParentInfo(true) // write parentYKey
-                encoder.writeString(parent)
-            } else if parent.constructor == ID {
+                encoder.writeString(parent as! String)
+            } else if self.parent! is ID {
                 encoder.writeParentInfo(false) // write parent id
-                encoder.writeLeftID(parent)
+                encoder.writeLeftID(parent as! ID)
             } else {
                 throw YSwiftError.unexpectedCase
             }
@@ -542,7 +537,7 @@ public class Item: Struct, JSHashable {
             }
         }
         
-        self.content.write(encoder, offset)
+        try self.content.write(encoder: encoder, offset: offset)
     }
 }
 

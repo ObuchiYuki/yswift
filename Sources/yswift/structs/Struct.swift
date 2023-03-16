@@ -31,10 +31,10 @@ public class Struct {
             if left.merge(with: right) {
                 structs.remove(at: pos)
                 if right is Item
-                    && right.parentSub != nil
-                    && (right.parent as! AbstractType)._map.get(right.parentSub) == right
+                    && (right as! Item).parentSub != nil
+                    && ((right as! Item).parent as! AbstractType)._map[(right as! Item).parentSub!] === right
                 {
-                    (right.parent as! AbstractType)._map.set(right.parentSub, left as! Item)
+                    (right.parent as! AbstractType)._map[(right as! Item).parentSub!] = left as! Item
                 }
             }
         }

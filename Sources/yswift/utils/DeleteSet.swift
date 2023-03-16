@@ -7,8 +7,10 @@
 
 import Foundation
 
-public protocol GC_or_Item {}
-extension Item: GC_or_Item{}
+public protocol GC_or_Item: Struct {
+    func write(_ encoder: UpdateEncoder, offset: UInt) throws
+}
+extension Item: GC_or_Item {}
 
 public class DeleteItem {
     public let clock: UInt
@@ -19,7 +21,7 @@ public class DeleteItem {
         self.len = len
     }
 
-    static public func findIndex(_ dis: Ref<[DeleteItem]>, clock: UInt) -> Int? {
+    static public func findIndex(_ dis: [DeleteItem], clock: UInt) -> Int? {
         var left = 0
         var right = dis.count - 1
         
@@ -40,10 +42,8 @@ public class DeleteItem {
     }
 }
 
-
-
 public class DeleteSet {
-    public var clients: [UInt: Ref<[DeleteItem]>] = [:]
+    public var clients: [UInt: [DeleteItem]] = [:]
 
     public func iterate(_ transaction: Transaction, body: (GC_or_Item) -> Void) {
         
@@ -52,7 +52,7 @@ public class DeleteSet {
             
             for i in 0..<deletes.count {
                 let del = deletes[i]
-                StructStore.iterateStructs(transaction, structs, del.clock, del.len, body)
+                StructStore.iterateStructs(transaction: transaction, structs: structs, clockStart: del.clock, len: del.len, f: body)
             }
         }
     }
@@ -83,19 +83,18 @@ public class DeleteSet {
     }
 
     public func add(client: UInt, clock: UInt, length: UInt) {
-        (
-            self.clients[client] ?? Ref<[DeleteItem]>([]) => {
-                self.clients[client] = $0
-            }
-        )
-        .append(DeleteItem(clock: clock, len: length))
+        if self.clients[client] == nil {
+            self.clients[client] = []
+        }
+        
+        self.clients[client]!.append(DeleteItem(clock: clock, len: length))
     }
     
-    public func encode(_ encoder: any DSEncoder) {
+    public func encode(_ encoder: any DSEncoder) throws {
         encoder.restEncoder.writeUInt(UInt(self.clients.count))
     
         // Ensure that the delete set is written in a deterministic order
-        self.clients
+        try self.clients
             .sorted(by: { $0.key < $1.key })
             .forEach({ client, dsitems in
                 encoder.resetDsCurVal()
@@ -105,28 +104,29 @@ public class DeleteSet {
                 for i in 0..<len {
                     let item = dsitems[i]
                     encoder.writeDsClock(item.clock)
-                    encoder.writeDsLen(item.len)
+                    try encoder.writeDsLen(item.len)
                 }
             })
     }
 
-    public func tryGCDeleteSet(_ store: StructStore, gcFilter: (Item) -> Bool) {
+    public func tryGCDeleteSet(_ store: StructStore, gcFilter: (Item) -> Bool) throws {
         for (client, deleteItems) in self.clients {
-            let structs = store.clients[client] as! GC_or_Item[]
+            let structs = store.clients[client]!
             
             for di in (0..<deleteItems.count).reversed() {
                 let deleteItem = deleteItems[di]
                 let endDeleteItemClock = deleteItem.clock + deleteItem.len
                 
-                var si = StructStore.findIndexSS(structs, deleteItem.clock), struct_ = structs[si];
+                var si = try StructStore.findIndexSS(structs: structs, clock: deleteItem.clock)
+                var struct_ = structs[si];
                 
-                while si < structs.length && struct_.id.clock < endDeleteItemClock {
-                    let struct_ = structs[si]
-                    if deleteItem.clock + deleteItem.len <= struct_.id.clock {
+                while si < structs.count && struct_.id.clock < endDeleteItemClock {
+                    let struct__ = structs[si]
+                    if deleteItem.clock + deleteItem.len <= struct__.id.clock {
                         break
                     }
-                    if type(of: struct_) == Item.self && struct_.deleted && !struct_.keep && gcFilter(struct_) {
-                        struct_.gc(store, false)
+                    if type(of: struct__) == Item.self && struct__.deleted && !(struct__ as! Item).keep && gcFilter(struct__ as! Item) {
+                        try (struct__ as! Item).gc(store, parentGCd: false)
                     }
                     
                     si += 1
@@ -136,21 +136,21 @@ public class DeleteSet {
         }
     }
 
-    public func tryMerge(_ store: StructStore) {
-        self.clients.forEach({ client, deleteItems in
-            let structs = store.clients[client] as! GC_or_Item[]
+    public func tryMerge(_ store: StructStore) throws {
+        try self.clients.forEach({ client, deleteItems in
+            let structs = store.clients[client]!
             
             for di in (0..<deleteItems.count).reversed() {
                 let deleteItem = deleteItems[di]
                 // start with merging the item next to the last deleted item
                 let mostRightIndexToCheck = min(
-                    structs.length - 1,
-                    1 + StructStore.findIndexSS(structs, deleteItem.clock + deleteItem.len - 1)
+                    structs.count - 1,
+                    try 1 + StructStore.findIndexSS(structs: structs, clock: deleteItem.clock + deleteItem.len - 1)
                 )
                 var si = mostRightIndexToCheck, struct_ = structs[si];
                 
                 while si > 0 && struct_.id.clock >= deleteItem.clock {
-                    Struct.tryMergeWithLeft(structs, si)
+                    Struct.tryMerge(withLeft: structs, pos: si)
                     si -= 1
                     struct_ = structs[si]
                 }
@@ -158,22 +158,21 @@ public class DeleteSet {
         })
     }
 
-    public func tryGC(_ store: StructStore, gcFilter: (Item) -> Bool) {
-        self.tryGCDeleteSet(store, gcFilter)
-        self.tryMerge(store)
+    public func tryGC(_ store: StructStore, gcFilter: (Item) -> Bool) throws {
+        try self.tryGCDeleteSet(store, gcFilter: gcFilter)
+        try self.tryMerge(store)
     }
     
     public static func mergeAll(_ dss: [DeleteSet]) -> DeleteSet {
         let merged = DeleteSet()
         
         for dssI in 0..<dss.count {
-            dss[dssI].clients.forEach({ client, delsLeft in
+            dss[dssI].clients.forEachMutating({ client, delsLeft in
                 if merged.clients[client] == nil {
-                    var dels: [DeleteItem] = delsLeft.value
                     for i in dssI+1..<dss.count {
-                        dels += dss[i].clients[client] ?? Ref([])
+                        delsLeft += dss[i].clients[client] ?? []
                     }
-                    merged.clients[client] = Ref(dels)
+                    merged.clients[client] = delsLeft
                 }
             })
         }
@@ -190,12 +189,10 @@ public class DeleteSet {
             let client = try decoder.restDecoder.readUInt()
             let IntOfDeletes = try decoder.restDecoder.readUInt()
             if IntOfDeletes > 0 {
-                let dsField = ds.clients[client] ?? Ref<[DeleteItem]>([]) => {
-                    ds.clients[client] = $0
-                }
+                if ds.clients[client] == nil { ds.clients[client] = [] }
                 
                 for _ in 0..<IntOfDeletes {
-                    dsField.append(DeleteItem(
+                    ds.clients[client]!.append(DeleteItem(
                         clock: try decoder.readDsClock(),
                         len: try decoder.readDsLen()
                     ))
@@ -209,16 +206,17 @@ public class DeleteSet {
         let ds = DeleteSet()
         
         for (client, structs) in ss.clients {
-            let dsitems: [DeleteItem] = []
-            for i in 0..<structs.count {
+            var dsitems: [DeleteItem] = []
+            
+            var i = 0; while i < structs.count {
                 let struct_ = structs[i]
                 if struct_.deleted {
                     let clock = struct_.id.clock
                     var len = struct_.length
-                    if i + 1 < structs.length {
+                    if i + 1 < structs.count {
                         var next = structs[i + 1]
                         
-                        while i + 1 < structs.length && next.deleted {
+                        while i + 1 < structs.count && next.deleted {
                             len += next.length
                             i += 1
                             next = structs[i + 1]
@@ -227,8 +225,9 @@ public class DeleteSet {
                     
                     dsitems.append(DeleteItem(clock: clock, len: len))
                 }
+                i += 1
             }
-            if dsitems.length > 0 {
+            if dsitems.count > 0 {
                 ds.clients[client] = dsitems
             }
         }
@@ -236,37 +235,38 @@ public class DeleteSet {
         return ds
     }
 
-    static public func decodeAndApply(_ decoder: DSDecoder, transaction: Transaction, store: StructStore) -> Data? {
+    static public func decodeAndApply(_ decoder: DSDecoder, transaction: Transaction, store: StructStore) throws -> Data? {
         let unappliedDS = DeleteSet()
-        let numClients = decoder.restDecoder.readUInt()
+        let numClients = try decoder.restDecoder.readUInt()
         
         for _ in 0..<numClients {
             decoder.resetDsCurVal()
-            let client = decoder.restDecoder.readUInt()
-            let IntOfDeletes = decoder.restDecoder.readUInt()
-            let structs = store.clients.get(client) || []
+            let client = try decoder.restDecoder.readUInt()
+            let IntOfDeletes = try decoder.restDecoder.readUInt()
+            var structs = store.clients[client] ?? []
             let state = store.getState(client)
             
             for _ in 0..<IntOfDeletes {
-                let clock = decoder.readDsClock()
-                let clockEnd = clock + decoder.readDsLen()
+                let clock = try decoder.readDsClock()
+                let clockEnd = try clock + decoder.readDsLen()
                 if clock < state {
                     if state < clockEnd {
-                        unappliedDS.add(client, state, clockEnd - state)
+                        unappliedDS.add(client: client, clock: state, length: clockEnd - state)
                     }
-                    var index = StructStore.findIndexSS(structs, clock)
+                    var index = try StructStore.findIndexSS(structs: structs, clock: clock)
                     var struct_: Item = structs[index] as! Item
                     // split the first item if necessary
                     if !struct_.deleted && struct_.id.clock < clock {
-                        structs.splice(index + 1, 0, struct_.split(transaction, clock - struct_.id.clock))
-                        index++ // increase we now want to use the next struct
+                        structs.insert(struct_.split(transaction, diff: clock - struct_.id.clock), at: index + 1)
+                        index += 1 // increase we now want to use the next struct
                     }
-                    while (index < structs.length) {
-                        struct_ = structs[index++] as Item
+                    while (index < structs.count) {
+                        struct_ = structs[index] as! Item
+                        index += 1
                         if struct_.id.clock < clockEnd {
                             if !struct_.deleted {
                                 if clockEnd < struct_.id.clock + struct_.length {
-                                    structs.splice(index, 0, struct_.split(transaction, clockEnd - struct_.id.clock))
+                                    structs.insert(struct_.split(transaction, diff: clockEnd - struct_.id.clock), at: index)
                                 }
                                 struct_.delete(transaction)
                             }
@@ -275,15 +275,15 @@ public class DeleteSet {
                         }
                     }
                 } else {
-                    unappliedDS.add(client, clock, clockEnd - clock)
+                    unappliedDS.add(client: client, clock: clock, length: clockEnd - clock)
                 }
             }
         }
-        if unappliedDS.clients.size > 0 {
+        if unappliedDS.clients.count > 0 {
             let ds = UpdateEncoderV2()
             ds.restEncoder.writeUInt(0) // encode 0 structs
-            unappliedDS.encode(ds)
-            return ds.data
+            try unappliedDS.encode(ds)
+            return ds.toData()
         }
         return nil
     }

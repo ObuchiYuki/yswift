@@ -40,12 +40,12 @@ public class Doc: Lib0Observable, JSHashable {
     public var subdocs: Set<Doc>
     public var shouldLoad: Bool
     public var autoLoad: Bool
-    public var meta: any
+    public var meta: Any?
     public var isLoaded: Bool
     public var isSynced: Bool
     
-    public var whenLoaded: Promise<Void, Never>
-    public var whenSynced: Promise<Void, Never>
+    public var whenLoaded: Promise<Void, Never>!
+    public var whenSynced: Promise<Void, Never>!
     
     public var _item: Item?
     public var _transaction: Transaction?
@@ -53,11 +53,10 @@ public class Doc: Lib0Observable, JSHashable {
     
 
     public init(opts: DocOpts = .init()) {
-        super.init()
         
         self.gc = opts.gc
         self.gcFilter = opts.gcFilter
-        self.clientID = UInt(UInt32.random(in: UInt32.min...UInt32.max))
+        self.clientID = generateNewClientID()
         self.guid = opts.guid
         self.collectionid = opts.collectionid
         self.share = [:]
@@ -71,6 +70,9 @@ public class Doc: Lib0Observable, JSHashable {
         self.meta = opts.meta
         self.isLoaded = false
         self.isSynced = false
+        
+        super.init()
+        
         self.whenLoaded = Promise{ resolve, _ in
             self.on(Event.load) {
                 self.isLoaded = true
@@ -112,9 +114,9 @@ public class Doc: Lib0Observable, JSHashable {
     public func load() {
         let item = self._item
         if item != nil && !self.shouldLoad {
-            (item.parent as! AbstractType).doc?.transact({ transaction in
-                transaction.subdocsLoaded.add(self)
-            }, nil)
+            (item!.parent as! AbstractType).doc?.transact({ transaction in
+                transaction.subdocsLoaded.insert(self)
+            }, origin: nil)
         }
         self.shouldLoad = true
     }
@@ -126,8 +128,8 @@ public class Doc: Lib0Observable, JSHashable {
         
     }
 
-    public func transact(_ body: (Transaction) -> Void, origin: Any? = nil, local: Bool = true) {
-        Transaction.transact(self, body: body, origin: origin, local: local)
+    public func transact(_ body: (Transaction) throws -> Void, origin: Any? = nil, local: Bool = true) rethrows {
+        try Transaction.transact(self, body: body, origin: origin, local: local)
     }
 
 //    get_<T: AbstractType>(name: String, TypeConstructor: T.Type = AbstractType.self) -> T {
@@ -201,20 +203,22 @@ extension Doc {
         public static let destroy = Doc.EventName<Void>("destroy")
         public static let destroyed = Doc.EventName<Bool>("destroyed")
         
-        public static let update = Doc.EventName<(Data, Any, Transaction)>("update")
-        public static let updateV2 = Doc.EventName<(Data, Any, Transaction)>("updateV2")
+        public static let update = Doc.EventName<(Data, Any?, Transaction)>("update")
+        public static let updateV2 = Doc.EventName<(Data, Any?, Transaction)>("updateV2")
+        
+        public static let subdocs = Doc.EventName<(SubDocEvent, Transaction)>("subdocs")
         
         public static let beforeObserverCalls = Doc.EventName<Transaction>("beforeObserverCalls")
         
         public static let beforeTransaction = Doc.EventName<Transaction>("beforeTransaction")
         public static let afterTransaction = Doc.EventName<Transaction>("afterTransaction")
+                        
+        public static let beforeAllTransactions = Doc.EventName<Void>("beforeAllTransactions")
+        public static let afterAllTransactions = Doc.EventName<[Transaction]>("afterAllTransactions")
         
         public static let afterTransactionCleanup = Doc.EventName<Transaction>("afterTransactionCleanup")
-                
-        public static let beforeAllTransactions = Doc.EventName<Bool>("beforeAllTransactions")
-        public static let afterAllTransactions = Doc.EventName<Bool>("afterAllTransactions")
-        public static let subdocs = Doc.EventName<(SubDocEvent, Transaction)>("sync")
-        
+    
+
         public struct SubDocEvent {
             public let loaded: Set<Doc>
             public let added: Set<Doc>

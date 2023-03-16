@@ -7,15 +7,16 @@
 
 import Foundation
 
+
 public class Transaction {
 
     public var doc: Doc
     
     public var deleteSet: DeleteSet = DeleteSet()
     
-    public var beforeState: [Int: Int]
+    public var beforeState: [UInt: UInt] = [:]
 
-    public var afterState: [Int: Int] = [:]
+    public var afterState: [UInt: UInt] = [:]
 
     public var changed: [AbstractType: Set<String?>] = [:] // Map<AbstractType_<YEvent<any>>, Set<String?>>
 
@@ -31,22 +32,22 @@ public class Transaction {
 
     public var _mergeStructs: [Struct] = []
 
-    public var origin: Any
+    public var origin: Any?
 
-    public init(_ doc: Doc, origin: Any, local: Bool) {
+    public init(_ doc: Doc, origin: Any?, local: Bool) {
         self.doc = doc
         self.beforeState = doc.store.getStateVector()
         self.origin = origin
         self.local = local
     }
 
-    public func encodeUpdateMessage(_ encoder: UpdateEncoder) -> Bool {
-        if self.deleteSet.clients.size == 0 && !Lib0any(self.afterState, (clock, client) -> self.beforeState.get(client) != clock) {
+    public func encodeUpdateMessage(_ encoder: UpdateEncoder) throws -> Bool {
+        if self.deleteSet.clients.count == 0 && !self.afterState.allSatisfy({ client, clock in self.beforeState[client] != clock }) {
             return false
         }
         self.deleteSet.sortAndMerge()
         writeStructsFromTransaction(encoder, self)
-        self.deleteSet.encode(encoder)
+        try self.deleteSet.encode(encoder)
         return true
     }
 
@@ -57,16 +58,16 @@ public class Transaction {
 
     public func addChangedType(_ type: AbstractType, parentSub: String?) {
         let item = type._item
-        if item == nil || (item.id.clock < (self.beforeState[item.id.client] ?? 0) && !item.deleted) {
+        if item == nil || (item!.id.clock < (self.beforeState[item!.id.client] ?? 0) && !item!.deleted) {
             var changed = self.changed[type] ?? Set<String?>() => {
                 self.changed[type] = $0
             }
             changed.insert(parentSub)
-            self.changed = changed
+            self.changed[type] = changed
         }
     }
 
-    static public func cleanup(_ transactions: [Transaction], i: Int) {
+    static public func cleanup(_ transactions: [Transaction], i: Int) throws {
         if i < transactions.count {
             let transaction = transactions[i]
             let doc = transaction.doc
@@ -78,12 +79,12 @@ public class Transaction {
                 transaction.afterState = transaction.doc.store.getStateVector()
                 doc.emit(Doc.Event.beforeObserverCalls, transaction)
                 
-                let fs: [() -> Void] = []
+                var fs: [() -> Void] = []
                 
-                transaction.changed.forEach{ itemtype, subs in
+                transaction.changed.forEach{ (itemtype: AbstractType, subs: Set<String?>) in
                     fs.append({ () -> Void in
-                        if itemtype._item == nil || !itemtype._item.deleted {
-                            itemtype._callObserver(transaction, subs)
+                        if itemtype._item == nil || !itemtype._item!.deleted {
+                            itemtype._callObserver(transaction, _parentSubs: subs)
                         }
                     })
                 }
@@ -95,9 +96,9 @@ public class Transaction {
                         fs.append{ () -> Void in
                             // We need to think about the possibility that the user transforms the
                             // Y.Doc in the event.
-                            if type._item == nil || !type._item.deleted {
+                            if type._item == nil || !type._item!.deleted {
                                 events = events
-                                    .filter{ event in event.target._item == nil || !event.target._item.deleted }
+                                    .filter{ event in event.target._item == nil || !event.target._item!.deleted }
                                 events
                                     .forEach{ event in event.currentTarget = type }
                                 
@@ -124,32 +125,32 @@ public class Transaction {
             // Replace deleted items with ItemDeleted / GC.
             // This is where content is actually remove from the Yjs Doc.
             if doc.gc {
-                ds.tryGCDeleteSet(store, doc.gcFilter)
+                try ds.tryGCDeleteSet(store, gcFilter: doc.gcFilter)
             }
-            ds.tryMerge(store)
+            try ds.tryMerge(store)
 
             // on all affected store.clients props, try to merge
-            transaction.afterState.forEach({ client, clock in
+            try transaction.afterState.forEach({ client, clock in
                 let beforeClock = transaction.beforeState[client] ?? 0
                 if beforeClock != clock {
-                    let structs = store.clients[client] as! (GC|Item)[]
+                    let structs = store.clients[client]!
                     // we iterate from right to left so we can safely remove entries
-                    let firstChangePos = max(StructStore.findIndexSS(structs, beforeClock), 1)
+                    let firstChangePos = try max(StructStore.findIndexSS(structs: structs, clock: beforeClock), 1)
                     for i in (firstChangePos..<structs.count).reversed() {
-                        Struct.tryMergeWithLeft(structs, i)
+                        Struct.tryMerge(withLeft: structs, pos: i)
                     }
                 }
             })
             
             for _ in 0..<mergeStructs.count {
                 let client = mergeStructs[i].id.client, clock = mergeStructs[i].id.clock
-                let structs = store.clients[client] as! (GC|Item)[]
-                let replacedStructPos = StructStore.findIndexSS(structs, clock)
-                if replacedStructPos + 1 < structs.length {
-                    Struct_.tryMergeWithLeft(structs, replacedStructPos + 1)
+                let structs = store.clients[client]!
+                let replacedStructPos = try StructStore.findIndexSS(structs: structs, clock: clock)
+                if replacedStructPos + 1 < structs.count {
+                    Struct.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
                 }
                 if replacedStructPos > 0 {
-                    Struct_.tryMergeWithLeft(structs, replacedStructPos)
+                    Struct.tryMerge(withLeft: structs, pos: replacedStructPos)
                 }
             }
             if !transaction.local && transaction.afterState[doc.clientID] != transaction.beforeState[doc.clientID] {
@@ -159,17 +160,17 @@ public class Transaction {
             doc.emit(Doc.Event.afterTransactionCleanup, transaction)
             if doc.isObserving(Doc.Event.update) {
                 let encoder = UpdateEncoderV1()
-                let hasContent = transaction.encodeUpdateMessage(encoder)
+                let hasContent = try transaction.encodeUpdateMessage(encoder)
                 if hasContent {
-                    doc.emit(Doc.Event.update, (encoder.data, transaction.origin, transaction))
+                    doc.emit(Doc.Event.update, (encoder.toData(), transaction.origin, transaction))
                 }
             }
             if doc.isObserving(Doc.Event.updateV2) {
                 let encoder = UpdateEncoderV2()
-                let hasContent = transaction.encodeUpdateMessage(encoder)
+                let hasContent = try transaction.encodeUpdateMessage(encoder)
                 if hasContent {
                     doc.emit(Doc.Event.updateV2, (
-                        encoder.data, transaction.origin, transaction
+                        encoder.toData(), transaction.origin, transaction
                     ))
                 }
             }
@@ -178,7 +179,7 @@ public class Transaction {
             let subdocsLoaded = transaction.subdocsLoaded
             let subdocsRemoved = transaction.subdocsRemoved
             
-            if subdocsAdded.size > 0 || subdocsRemoved.size > 0 || subdocsLoaded.size > 0 {
+            if subdocsAdded.count > 0 || subdocsRemoved.count > 0 || subdocsLoaded.count > 0 {
                 subdocsAdded.forEach({ subdoc in
                     subdoc.clientID = doc.clientID
                     if subdoc.collectionid == nil {
@@ -186,7 +187,7 @@ public class Transaction {
                     }
                     doc.subdocs.insert(subdoc)
                 })
-                subdocsRemoved.forEach{ doc.subdocs.delete(subdoc) }
+                subdocsRemoved.forEach{ doc.subdocs.remove($0) }
                 let subdocevent = Doc.Event.SubDocEvent(
                     loaded: subdocsLoaded, added: subdocsAdded, removed: subdocsRemoved
                 )
@@ -194,51 +195,40 @@ public class Transaction {
                 subdocsRemoved.forEach{ $0.destroy() }
             }
 
-            if transactions.length <= i + 1 {
+            if transactions.count <= i + 1 {
                 doc._transactionCleanups = []
                 doc.emit(Doc.Event.afterAllTransactions, transactions)
             } else {
-                Transaction.cleanup(transactions, i + 1)
+                try Transaction.cleanup(transactions, i: i + 1)
             }
         }
     }
     
 
     /** Implements the functionality of `y.transact(()->{..})` */
-    static public func transact(_ doc: Doc, body: (transaction: Transaction) -> Void, origin: Any? = nil, local: Bool = true) {
-        let transactionCleanups = doc._transactionCleanups
+    static public func transact(_ doc: Doc, body: (Transaction) throws -> Void, origin: Any? = nil, local: Bool = true) rethrows {
         var initialCall = false
         if doc._transaction == nil {
             initialCall = true
-            doc._transaction = Transaction(doc, origin, local)
-            transactionCleanups.push(doc._transaction)
-            if transactionCleanups.length == 1 {
+            doc._transaction = Transaction(doc, origin: origin, local: local)
+            doc._transactionCleanups.append(doc._transaction!)
+            if doc._transactionCleanups.count == 1 {
                 doc.emit(Doc.Event.beforeAllTransactions, ())
             }
-            doc.emit(Doc.Event.beforeTransaction, doc._transaction)
+            doc.emit(Doc.Event.beforeTransaction, doc._transaction!)
         }
-        try {
-            body(doc._transaction)
-        } finally {
+        
+        defer {
             if initialCall {
-                let finishCleanup = doc._transaction == transactionCleanups[0]
+                let finishCleanup = doc._transaction === doc._transactionCleanups[0]
                 doc._transaction = nil
-                if finishCleanup { Transaction.cleanup(transactionCleanups, 0) }
+                if finishCleanup { try? Transaction.cleanup(doc._transactionCleanups, i: 0) }
             }
         }
+        
+        try body(doc._transaction!)
     }
 
 
 }
 
-
-public protocol JSHashable: AnyObject, Hashable, Equatable {}
-
-extension JSHashable {
-    public static == (lhs: Self, rhs: Self) -> Bool {
-        ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
-    }
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(ObjectIdentifier(self))
-    }
-}

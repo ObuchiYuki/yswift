@@ -26,7 +26,7 @@ public enum YEventAction: String {
 
 public struct YEventKey {
     public var action: YEventAction
-    public var oldValue: Any
+    public var oldValue: Any?
     public var newValue: Any?
 }
 
@@ -118,7 +118,7 @@ public class YEvent {
      * In contrast to change.deleted, this method also returns true if the struct was added and then deleted.
      */
     public func adds(_ struct_: Struct) -> Bool {
-        return struct_.id.clock >= (self.transaction.beforeState[Int(struct_.id.client)] ?? 0)
+        return struct_.id.clock >= (self.transaction.beforeState[struct_.id.client] ?? 0)
     }
 
     public var changes: YEventChange {
