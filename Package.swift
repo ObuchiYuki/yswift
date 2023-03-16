@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "yswift",
+    platforms: [.macOS(.v10_15), .iOS(.v15)],
     products: [
         .library(name: "yswift", targets: ["yswift"]),
     ],

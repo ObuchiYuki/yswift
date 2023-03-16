@@ -9,7 +9,7 @@ import Foundation
 import lib0
 
 public class DSEncoderV1: DSEncoder {
-    public let restEncoder = Lib0Encoder()
+    public var restEncoder = Lib0Encoder()
 
     public init() {}
 
@@ -31,7 +31,7 @@ public class DSEncoderV1: DSEncoder {
 }
 
 public protocol DSEncoder {
-    var restEncoder: Lib0Encoder { get }
+    var restEncoder: Lib0Encoder { get set }
     
     func resetDsCurVal()
     func writeDsClock(_ clock: UInt)
@@ -111,7 +111,7 @@ public class UpdateEncoderV1: DSEncoderV1, UpdateEncoder {
 
 public class DSEncoderV2: DSEncoder {
     
-    public let restEncoder = Lib0Encoder()
+    public var restEncoder = Lib0Encoder()
     private var dsCurrVal: UInt = 0
 
     public init() {}

@@ -20,149 +20,124 @@ import Foundation
  * 7: Item with Type
  */
 
-public func writeStructs(encoder: UpdateEncoder, structs: [GC_or_Item], client: UInt, clock: UInt) {
+public func writeStructs(encoder: UpdateEncoder, structs: [GC_or_Item], client: UInt, clock: UInt) throws {
     // write first id
     let clock = max(clock, structs[0].id.clock) // make sure the first id exists
-    let startNewStructs = StructStore.findIndexSS(structs, clock)
+    let startNewStructs = try StructStore.findIndexSS(structs: structs, clock: clock)
     // write # encoded structs
-    encoder.restEncoder.writeUInt(structs.length - startNewStructs)
+    encoder.restEncoder.writeUInt(UInt(structs.count - startNewStructs))
     encoder.writeClient(client)
     encoder.restEncoder.writeUInt(clock)
     let firstStruct = structs[startNewStructs]
     // write first struct with an offset
-    firstStruct.write(encoder, clock - firstStruct.id.clock)
-    public func for(_ var i = startNewStructs + 1; i < structs.length; i++) {
-        structs[i].write(encoder, 0)
+    try firstStruct.write(encoder: encoder, offset: clock - firstStruct.id.clock)
+    for i in (startNewStructs + 1)..<structs.count {
+        try structs[i].write(encoder: encoder, offset: 0)
     }
 }
 
-public func writeClientsStructs(encoder: UpdateEncoderV1 | UpdateEncoderV2, store: StructStore, _sm: [Int: Int]) {
+public func writeClientsStructs(encoder: UpdateEncoder, store: StructStore, _sm: [Int: Int]) throws {
     // we filter all valid _sm entries into sm
-    let sm = [:]
-    _sm.forEach((clock, client) -> {
+    var sm = [Int: Int]()
+    _sm.forEach({ client, clock in
         // only write if structs are available
-        if store.getState(client) > clock {
-            sm.set(client, clock)
+        if store.getState(UInt(client)) > clock {
+            sm[client] = clock
         }
     })
-    store.getStateVector().forEach((clock, client) -> {
-        if !_sm.has(client) {
-            sm.set(client, 0)
+    store.getStateVector().forEach({ client, clock in
+        if _sm[Int(client)] == nil {
+            sm[Int(client)] = 0
         }
     })
     // write # states that were updated
-    encoder.restEncoder.writeUInt(sm.size)
-    // Write items with higher client ids first
-    // This heavily improves the conflict algorithm.
-    Array.from(sm.entries()).sort((a, b) -> b[0] - a[0]).forEach(([client, clock]) -> {
-        writeStructs(encoder, store.clients.get(client) ?? [], client, clock)
-    })
+    encoder.restEncoder.writeUInt(UInt(sm.count))
+    
+    try sm.sorted(by: { $0.key > $1.key }).forEach{ clock, client in
+        try writeStructs(
+            encoder: encoder, structs: store.clients[UInt(client)] ?? [], client: UInt(client), clock: UInt(clock)
+        )
+    }
 }
 
-public func readClientsStructRefs(decoder: UpdateDecoderAny_, doc: Doc) -> Map<Int, { i: Int; refs: Array<Item | GC> }> {
-    let clientRefs = Map<Int, { i: Int; refs: Array<Item | GC> }>()
-    let numOfStateUpdates = decoder.restDecoder.readUInt()
-    public func for(_ var i = 0; i < numOfStateUpdates; i++) {
-        let IntOfStructs = decoder.restDecoder.readUInt()
-        /**
-         * @type {Array<GC|Item>}
-         */
-        let refs: Array<GC | Item> = Array(IntOfStructs)
-        let client = decoder.readClient()
-        var clock = decoder.restDecoder.readUInt()
+public class StructRef {
+    public var i: Int
+    public var refs: GC_or_Item_RefArray
+    
+    init(i: Int, refs: GC_or_Item_RefArray) {
+        self.i = i
+        self.refs = refs
+    }
+}
+public typealias GC_or_Item_RefArray = Ref<[Struct?]>
+
+public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [Int: StructRef] {
+    var clientRefs = [Int: StructRef]()
+    let numOfStateUpdates = try decoder.restDecoder.readUInt()
+    
+    for i in 0..<numOfStateUpdates {
+        let numberOfStructs = try decoder.restDecoder.readUInt()
+        let refs: GC_or_Item_RefArray = Ref(value: Array(repeating: nil, count: Int(numberOfStructs)))
+        let client = try decoder.readClient()
+        var clock = try decoder.restDecoder.readUInt()
         // let start = performance.now()
-        clientRefs.set(client, { i: 0, refs })
-        public func for(_ var i = 0; i < IntOfStructs; i++) {
-            let info = decoder.readInfo()
-            public func switch(_ Lib0Bits.n5 & info) {
-                case 0: { // GC
-                    let len = decoder.readLen()
-                    refs[i] = GC(ID(client, clock), len)
-                    clock += len
-                    break
-                }
-                case 10: { // Skip Struct (nothing to apply)
-                    // @todo we could reduce the amount of checks by adding Skip struct to clientRefs so we know that something is missing.
-                    let len = decoder.restDecoder.readUInt()
-                    refs[i] = Skip(ID(client, clock), len)
-                    clock += len
-                    break
-                }
-                default: { // Item with content
-                    /**
-                     * The optimized implementation doesn't use any variables because inlining variables is faster.
-                     * Below a non-optimized version is shown that implements the basic algorithm with
-                     * a few comments
-                     */
-                    let cantCopyParentInfo = (info & (Lib0Bit.n7 | Lib0Bit.n8)) == 0
-                    // If parent = nil and neither left nor right are defined, then we know that `parent` is child of `y`
-                    // and we read the next String as parentYKey.
-                    // It indicates how we store/retrieve parent from `y.share`
-                    // @type {String?}
-                    let struct = Item(
-                        ID(client, clock),
-                        nil, // leftd
-                        (info & Lib0Bit.n8) == Lib0Bit.n8 ? decoder.readLeftID() : nil, // origin
-                        nil, // right
-                        (info & Lib0Bit.n7) == Lib0Bit.n7 ? decoder.readRightID() : nil, // right origin
-                        cantCopyParentInfo ? (decoder.readParentInfo() ? doc.get(decoder.readString()) : decoder.readLeftID()) : nil, // parent
-                        cantCopyParentInfo && (info & Lib0Bit.n6) == Lib0Bit.n6 ? decoder.readString() : nil, // parentSub
-                        readItemContent(decoder, info) // item content
-                    )
-                    /* A non-optimized implementation of the above algorithm:
-
-                    // The item that was originally to the left of this item.
-                    let origin = (info & binary.BIT8) == binary.BIT8 ? decoder.readLeftID() : nil
-                    // The item that was originally to the right of this item.
-                    let rightOrigin = (info & binary.BIT7) == binary.BIT7 ? decoder.readRightID() : nil
-                    let cantCopyParentInfo = (info & (binary.BIT7 | binary.BIT8)) == 0
-                    let hasParentYKey = cantCopyParentInfo ? decoder.readParentInfo() : false
-                    // If parent = nil and neither left nor right are defined, then we know that `parent` is child of `y`
-                    // and we read the next String as parentYKey.
-                    // It indicates how we store/retrieve parent from `y.share`
-                    // @type {String?}
-                    let parentYKey = cantCopyParentInfo && hasParentYKey ? decoder.readString() : nil
-
-                    let struct = Item(
-                        ID(client, clock),
-                        nil, // leftd
-                        origin, // origin
-                        nil, // right
-                        rightOrigin, // right origin
-                        cantCopyParentInfo && !hasParentYKey ? decoder.readLeftID() : (parentYKey != nil ? doc.get(parentYKey) : nil), // parent
-                        cantCopyParentInfo && (info & binary.BIT6) == binary.BIT6 ? decoder.readString() : nil, // parentSub
-                        readItemContent(decoder, info) // item content
-                    )
-                    */
-                    refs[i] = struct
-                    clock += struct.length
-                }
+        clientRefs[Int(client)] = StructRef(i: 0, refs: refs)
+        
+        for i in 0..<numberOfStructs {
+            let info = try decoder.readInfo()
+            switch info & 0b0001_1111 {
+            case 0:
+                let len = try decoder.readLen()
+                refs[Int(i)] = GC(id: ID(client: client, clock: clock), length: len)
+                clock += len
+            case 10:
+                let len = try decoder.restDecoder.readUInt()
+                refs[Int(i)] = Skip(id: ID(client: client, clock: clock), length: len)
+                clock += len
+                break
+            default:
+                let cantCopyParentInfo = (info & (0b0100_0000 | 0b1000_0000)) == 0
+                let struct_ = Item(
+                    id: ID(client: client, clock: clock),
+                    left: nil,
+                    origin: (info & 0b1000_0000) == 0b1000_0000 ? decoder.readLeftID() : nil, // origin
+                    right: nil,
+                    rightOrigin: (info & 0b0100_0000) == 0b0100_0000 ? decoder.readRightID() : nil, // right origin
+                    parent: cantCopyParentInfo ? (decoder.readParentInfo() ? doc.get(decoder.readString()) : decoder.readLeftID()) : nil, // parent
+                    parentSub: cantCopyParentInfo && (info & 0b0010_0000) == 0b0010_0000 ? decoder.readString() : nil, // parentSub
+                    content: readItemContent(decoder: decoder, info: info) // item content
+                )
+                refs[Array<(GC_or_Item)?>.Index(i)] = struct_
+                clock += struct_.length
             }
         }
         // console.log('time to read: ', performance.now() - start) // @todo remove
     }
+
     return clientRefs
 }
 
-public func integrateStructs(transaction: Transaction, store: StructStore, clientsStructRefs: Map<Int, { i: Int; refs: (GC | Item)[] }>) -> nil | { update: Data; missing: [Int: Int] } {
-    /**
-     * @type {Array<Item | GC>}
-     */
-    let stack: Array<Item | GC> = []
-    // sort them so that we take the higher id first, in case of conflicts the lower id will probably not conflict with the id from the higher user.
-    var clientsStructRefsIds = Array.from(clientsStructRefs.keys()).sort((a, b) -> a - b)
-    if clientsStructRefsIds.length == 0 {
+public func integrateStructs(
+    transaction: Transaction,
+    store: StructStore,
+    clientsStructRefs: inout [Int: StructRef]
+) throws -> PendingStrcut? {
+    var stack: [Struct] = []
+    var clientsStructRefsIds = clientsStructRefs.keys.sorted(by: <)
+    if clientsStructRefsIds.count == 0 {
         return nil
     }
-    let getNextStructTarget = () -> {
-        if clientsStructRefsIds.length == 0 {
+    
+    func getNextStructTarget() -> StructRef? {
+        if clientsStructRefsIds.count == 0 {
             return nil
         }
-        var nextStructsTarget = (clientsStructRefs.get(clientsStructRefsIds[clientsStructRefsIds.length - 1]) as { i: Int, refs: Array<GC|Item> })
-        while (nextStructsTarget.refs.length == nextStructsTarget.i) {
-            clientsStructRefsIds.pop()
-            if clientsStructRefsIds.length > 0 {
-                nextStructsTarget = (clientsStructRefs.get(clientsStructRefsIds[clientsStructRefsIds.length - 1])) as { i: Int, refs: Array<GC|Item> }
+        var nextStructsTarget = clientsStructRefs[clientsStructRefsIds.last!]!
+            
+        while nextStructsTarget.refs.count == nextStructsTarget.i {
+            clientsStructRefsIds.removeLast()
+            if clientsStructRefsIds.count > 0 {
+                nextStructsTarget = clientsStructRefs[clientsStructRefsIds.last!]!
             } else {
                 return nil
             }
@@ -170,170 +145,159 @@ public func integrateStructs(transaction: Transaction, store: StructStore, clien
         return nextStructsTarget
     }
     var curStructsTarget = getNextStructTarget()
-    if curStructsTarget == nil && stack.length == 0 {
+    if curStructsTarget == nil && stack.count == 0 {
         return nil
     }
 
-    /**
-     * @type {StructStore}
-     */
     let restStructs: StructStore = StructStore()
-    let missingSV = [:]
-    /**
-     * @param {Int} client
-     * @param {Int} clock
-     */
-    let updateMissingSv = (client: Int, clock: Int) -> {
-        let mclock = missingSV.get(client)
-        if mclock == nil || mclock > clock {
-            missingSV.set(client, clock)
+    var missingSV = [Int: Int]()
+    func updateMissingSv(client: Int, clock: Int) {
+        let mclock = missingSV[client]
+        if mclock == nil || mclock! > clock {
+            missingSV[client] = clock
         }
     }
-    /**
-     * @type {GC|Item}
-     */
-    var stackHead: GC | Item = (curStructsTarget as any).refs[(curStructsTarget as any).i++]
-    // caching the state because it is used very often
-    let state = [:]
+    
+    curStructsTarget!.i += 1
+    var stackHead: Struct = curStructsTarget!.refs[curStructsTarget!.i]!
+    var state = [Int: Int]()
 
-    let addStackToRestSS = () -> {
-        public func for(_ let item of stack) {
+    func addStackToRestSS() {
+        for item in stack {
             let client = item.id.client
-            let unapplicableItems = clientsStructRefs.get(client)
-            if unapplicableItems {
+            let unapplicableItems = clientsStructRefs[Int(client)]
+            if unapplicableItems != nil {
                 // decrement because we weren't able to apply previous operation
-                unapplicableItems.i--
-                restStructs.clients.set(client, unapplicableItems.refs.slice(unapplicableItems.i))
-                clientsStructRefs.delete(client)
-                unapplicableItems.i = 0
-                unapplicableItems.refs = []
+                unapplicableItems!.i -= 1
+                restStructs.clients[client] = unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! as! any GC_or_Item }
+                clientsStructRefs.removeValue(forKey: Int(client))
+                unapplicableItems!.i = 0
+                unapplicableItems!.refs = .init(value: [])
             } else {
                 // item was the last item on clientsStructRefs and the field was already cleared. Add item to restStructs and continue
-                restStructs.clients.set(client, [item])
+                restStructs.clients[client] = ([item] as! [GC_or_Item])
             }
             // remove client from clientsStructRefsIds to prevent users from applying the same update again
-            clientsStructRefsIds = clientsStructRefsIds.filter(c -> c != client)
+            clientsStructRefsIds = clientsStructRefsIds.filter{ $0 != client }
         }
-        stack.length = 0
+        stack.removeAll()
     }
 
     // iterate over all struct readers until we are done
     while (true) {
-        if stackHead.constructor != Skip {
-            let localClock = Lib0setIfUndefined(state, stackHead.id.client, () -> store.getState(stackHead.id.client))
-            let offset = localClock - stackHead.id.clock
+        if type(of: stackHead) != Skip.self {
+            let localClock = state.setIfUndefined(Int(stackHead.id.client), Int(store.getState(stackHead.id.client)))
+            let offset = Int(localClock) - Int(stackHead.id.clock)
             if offset < 0 {
-                // update from the same client is missing
-                stack.push(stackHead)
-                updateMissingSv(stackHead.id.client, stackHead.id.clock - 1)
+                stack.append(stackHead)
+                updateMissingSv(client: Int(stackHead.id.client), clock: Int(stackHead.id.clock) - 1)
                 // hid a dead wall, add all items from stack to restSS
                 addStackToRestSS()
             } else {
-                let missing = stackHead.getMissing(transaction, store)
+                let missing = (stackHead as! Item).getMissing(transaction, store: store)
                 if missing != nil {
-                    stack.push(stackHead)
-                    // get the struct reader that has the missing struct
+                    stack.append(stackHead)
                     
-                    let structRefs: { refs: Array<GC | Item>, i: Int } = clientsStructRefs.get(missing) || { refs: [], i: 0 }
+                    let structRefs: StructRef = clientsStructRefs[Int(missing!)] ?? StructRef(i: 0, refs: .init(value: []))
 
-                    if structRefs.refs.length == structRefs.i {
-                        // This update message causally depends on another update message that doesn't exist yet
-                        updateMissingSv( (missing), store.getState(missing))
+                    if structRefs.refs.count == structRefs.i {
+                        updateMissingSv(client: Int(missing!), clock: Int(store.getState(missing!)))
                         addStackToRestSS()
                     } else {
-                        stackHead = structRefs.refs[structRefs.i++]
+                        stackHead = structRefs.refs.value[structRefs.i]!
+                        structRefs.i += 1
                         continue
                     }
                 } else if offset == 0 || offset < stackHead.length {
                     // all fine, apply the stackhead
-                    stackHead.integrate(transaction, offset)
-                    state.set(stackHead.id.client, stackHead.id.clock + stackHead.length)
+                    try stackHead.integrate(transaction: transaction, offset: UInt(offset))
+                    state[Int(stackHead.id.client)] = Int(stackHead.id.clock) + Int(stackHead.length)
                 }
             }
         }
         // iterate to next stackHead
-        if stack.length > 0 {
-            stackHead =  (stack.pop()) as GC|Item
-        } else if curStructsTarget != nil && curStructsTarget.i < curStructsTarget.refs.length {
-            stackHead = (curStructsTarget.refs[curStructsTarget.i++]) as GC|Item
+        if stack.count > 0 {
+            stackHead = stack.removeFirst()
+        } else if curStructsTarget != nil && curStructsTarget!.i < curStructsTarget!.refs.count {
+            stackHead = curStructsTarget!.refs.value[curStructsTarget!.i]!
+            curStructsTarget!.i += 1
         } else {
             curStructsTarget = getNextStructTarget()
             if curStructsTarget == nil {
                 // we are done!
                 break
             } else {
-                stackHead = (curStructsTarget.refs[curStructsTarget.i++]) as GC|Item
+                stackHead = curStructsTarget!.refs.value[curStructsTarget!.i]!
+                curStructsTarget!.i += 1
             }
         }
     }
-    if restStructs.clients.size > 0 {
+    if restStructs.clients.count > 0 {
         let encoder = UpdateEncoderV2()
-        writeClientsStructs(encoder, restStructs, [:])
+        try writeClientsStructs(encoder: encoder, store: restStructs, _sm: [:])
         // write empty deleteset
         // writeDeleteSet(encoder, DeleteSet())
         encoder.restEncoder.writeUInt(0) // -> no need for an extra function call, just write 0 deletes
-        return { missing: missingSV, update: encoder.data }
+        return PendingStrcut(missing: missingSV, update: encoder.toData())
     }
     return nil
 }
 
 
-public func writeStructsFromTransaction(encoder: UpdateEncoderV1 | UpdateEncoderV2, transaction: Transaction) -> {
-    return writeClientsStructs(encoder, transaction.doc.store, transaction.beforeState)
+public func writeStructsFromTransaction(encoder: UpdateEncoder, transaction: Transaction) throws {
+    let uu = [Int: Int](transaction.beforeState.map{ (Int($0), Int($1)) }, uniquingKeysWith: { a, _ in a })
+    try writeClientsStructs(
+        encoder: encoder,
+        store: transaction.doc.store,
+        _sm: uu
+    )
 }
 
-public func readUpdateV2(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: any, structDecoder: UpdateDecoderV1 | UpdateDecoderV2 = UpdateDecoderV2(decoder)) {
-    ydoc.transact(transaction -> {
-        // force that transaction.local is set to non-local
+public func readUpdateV2(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any?, structDecoder: UpdateDecoder? = nil) throws {
+    let structDecoder = try structDecoder ?? UpdateDecoderV2(decoder)
+    
+    try ydoc.transact({ transaction in
         transaction.local = false
         var retry = false
         let doc = transaction.doc
+        
         let store = doc.store
-        // var start = performance.now()
-        let ss = readClientsStructRefs(structDecoder, doc)
-        // console.log('time to read structs: ', performance.now() - start) // @todo remove
-        // start = performance.now()
-        // console.log('time to merge: ', performance.now() - start) // @todo remove
-        // start = performance.now()
-        let restStructs = integrateStructs(transaction, store, ss)
+        var ss = try readClientsStructRefs(decoder: structDecoder, doc: doc)
+        
+        let restStructs = try integrateStructs(transaction: transaction, store: store, clientsStructRefs: &ss)
         let pending = store.pendingStructs
-        if pending {
+        if (pending != nil) {
             // check if we can apply something
-            public func for(_ let [client, clock] of pending.missing) {
-                if clock < store.getState(client) {
+            for (client, clock) in pending!.missing {
+                if clock < store.getState(UInt(client)) {
                     retry = true
                     break
                 }
             }
-            if restStructs {
+            if (restStructs != nil) {
                 // merge restStructs into store.pending
-                public func for(_ let [client, clock] of restStructs.missing) {
-                    let mclock = pending.missing.get(client)
-                    if mclock == nil || mclock > clock {
-                        pending.missing.set(client, clock)
+                for (client, clock) in restStructs!.missing {
+                    let mclock = pending!.missing[client]
+                    if mclock == nil || mclock! > clock {
+                        pending!.missing[client] = clock
                     }
                 }
-                pending.update = mergeUpdatesV2([pending.update, restStructs.update])
+                pending!.update = try mergeUpdatesV2(updates: [pending!.update, restStructs!.update])
             }
         } else {
             store.pendingStructs = restStructs
         }
         // console.log('time to integrate: ', performance.now() - start) // @todo remove
         // start = performance.now()
-        let dsRest = DeleteSet.decodeAndApply(structDecoder, transaction, store)
-        if store.pendingDs {
-            // @todo we could make a lower-bound state-vector check as we do above
-            let pendingDSUpdate = UpdateDecoderV2(Lib0Decoder(store.pendingDs))
-            pendingDSUpdate.restDecoder.readUInt() // read 0 structs, because we only encode deletes in pendingdsupdate
-            let dsRest2 = DeleteSet.decodeAndApply(pendingDSUpdate, transaction, store)
-            if dsRest && dsRest2 {
-                // case 1: ds1 != nil && ds2 != nil
-                store.pendingDs = mergeUpdatesV2([dsRest, dsRest2])
+        let dsRest = try DeleteSet.decodeAndApply(structDecoder, transaction: transaction, store: store)
+        if store.pendingDs != nil {
+            let pendingDSUpdate = try UpdateDecoderV2(Lib0Decoder(data: store.pendingDs!))
+            _ = try pendingDSUpdate.restDecoder.readUInt() // read 0 structs, because we only encode deletes in pendingdsupdate
+            let dsRest2 = try DeleteSet.decodeAndApply(pendingDSUpdate, transaction: transaction, store: store)
+            if dsRest != nil && dsRest2 != nil {
+                store.pendingDs = try mergeUpdatesV2(updates: [dsRest!, dsRest2!])
             } else {
-                // case 2: ds1 != nil
-                // case 3: ds2 != nil
-                // case 4: ds1 == nil && ds2 == nil
-                store.pendingDs = dsRest || dsRest2
+                store.pendingDs = dsRest ?? dsRest2
             }
         } else {
             // Either dsRest == nil && pendingDs == nil OR dsRest != nil
@@ -345,101 +309,114 @@ public func readUpdateV2(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: any
         // console.log('time to resume delete readers: ', performance.now() - start) // @todo remove
         // start = performance.now()
         if retry {
-            let update = (store.pendingStructs as {update: Data}).update
+            let update = store.pendingStructs!.update
             store.pendingStructs = nil
-            applyUpdateV2(transaction.doc, update)
+            try applyUpdateV2(ydoc: transaction.doc, update: update, transactionOrigin: nil)
         }
-    }, transactionOrigin, false)
+    }, origin: transactionOrigin, local: false)
 }
 
-public func readUpdate(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: any) {
-    return readUpdateV2(decoder, ydoc, transactionOrigin, UpdateDecoderV1(decoder))
+public func readUpdate(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any?) throws {
+    return try readUpdateV2(decoder: decoder, ydoc: ydoc, transactionOrigin: transactionOrigin, structDecoder: UpdateDecoderV1(decoder))
 }
 
-public func applyUpdateV2(ydoc: Doc, update: Data, transactionOrigin?: any, YDecoder: typeof UpdateDecoderV1 | typeof UpdateDecoderV2 = UpdateDecoderV2) {
-    let decoder = Lib0Decoder(update)
-    readUpdateV2(decoder, ydoc, transactionOrigin, YDecoder(decoder))
+public func applyUpdateV2(ydoc: Doc, update: Data, transactionOrigin: Any?, YDecoder: (Lib0Decoder) throws -> UpdateDecoder = { try UpdateDecoderV2($0) }) throws {
+    let decoder = Lib0Decoder(data: update)
+    try readUpdateV2(decoder: decoder, ydoc: ydoc, transactionOrigin: transactionOrigin, structDecoder: try YDecoder(decoder))
 }
 
-public func applyUpdate(ydoc: Doc, update: Data, transactionOrigin?: any) {
-    return applyUpdateV2(ydoc, update, transactionOrigin, UpdateDecoderV1)
+public func applyUpdate(ydoc: Doc, update: Data, transactionOrigin: Any?) throws {
+    return try applyUpdateV2(ydoc: ydoc, update: update, transactionOrigin: transactionOrigin, YDecoder: UpdateDecoderV1.init)
 }
 
-public func writeStateAsUpdate(encoder: UpdateEncoderV1 | UpdateEncoderV2, doc: Doc, targetStateVector: [Int: Int] = [:]) {
-    writeClientsStructs(encoder, doc.store, targetStateVector)
-    DeleteSet.createFromStructStore(doc.store).encode(encoder)
+public func writeStateAsUpdate(encoder: UpdateEncoder, doc: Doc, targetStateVector: [Int: Int] = [:]) throws {
+    try writeClientsStructs(encoder: encoder, store: doc.store, _sm: targetStateVector)
+    try DeleteSet.createFromStructStore(doc.store).encode(encoder)
 }
 
-public func encodeStateAsUpdateV2(doc: Doc, encodedTargetStateVector: Data = public func Data(_ [0]), encoder: UpdateEncoderV1 | UpdateEncoderV2 = UpdateEncoderV2()) -> Data{
-    let targetStateVector = decodeStateVector(encodedTargetStateVector)
-    writeStateAsUpdate(encoder, doc, targetStateVector)
-    let updates = [encoder.data]
+public func encodeStateAsUpdateV2(doc: Doc, encodedTargetStateVector: Data?, encoder: UpdateEncoder = UpdateEncoderV2()) throws -> Data {
+    let encodedTargetStateVector = Data([0])
+    let targetStateVector = try decodeStateVector(decodedState: encodedTargetStateVector)
+    try writeStateAsUpdate(encoder: encoder, doc: doc, targetStateVector: targetStateVector)
+    var updates = [encoder.toData()]
     // also add the pending updates (if there are any)
-    if doc.store.pendingDs {
-        updates.push(doc.store.pendingDs)
+    if doc.store.pendingDs != nil {
+        updates.append(doc.store.pendingDs!)
     }
-    if doc.store.pendingStructs {
-        updates.push(diffUpdateV2(doc.store.pendingStructs.update, encodedTargetStateVector))
+    if doc.store.pendingStructs != nil {
+        updates.append(try diffUpdateV2(update: doc.store.pendingStructs!.update, sv: encodedTargetStateVector))
     }
-    if updates.length > 1 {
-        if encoder.constructor == UpdateEncoderV1 {
-            return mergeUpdates(updates.map((update, i) -> i == 0 ? update : convertUpdateFormatV2ToV1(update)))
-        } else if encoder.constructor == UpdateEncoderV2 {
-            return mergeUpdatesV2(updates)
+    if updates.count > 1 {
+        if encoder is UpdateEncoderV1 {
+            return try mergeUpdates(updates: updates.enumerated().map{ i, update in
+                try i == 0 ? update : convertUpdateFormatV2ToV1(update: update)
+            })
+        } else if encoder is UpdateEncoderV2 {
+            return try mergeUpdatesV2(updates: updates)
         }
     }
     return updates[0]
 }
 
-public func encodeStateAsUpdate(doc: Doc, encodedTargetStateVector?: Data) -> Data {
-    return encodeStateAsUpdateV2(doc, encodedTargetStateVector, UpdateEncoderV1())
+public func encodeStateAsUpdate(doc: Doc, encodedTargetStateVector: Data?) throws -> Data {
+    return try encodeStateAsUpdateV2(doc: doc, encodedTargetStateVector: encodedTargetStateVector, encoder: UpdateEncoderV1())
 }
 
-/**
- * Read state vector from Decoder and return as Map
- *
- * @param {DSDecoderV1 | DSDecoderV2} decoder
- * @return {Map<Int,Int>} Maps `client` to the Int next expected `clock` from that client.
- *
- * @function
- */
-public func readStateVector(decoder: DSDecoderV1 | DSDecoderV2) -> [Int: Int] {
-    let ss = [:]
-    let ssLength = decoder.restDecoder.readUInt()
-    public func for(_ var i = 0; i < ssLength; i++) {
-        let client = decoder.restDecoder.readUInt()
-        let clock = decoder.restDecoder.readUInt()
-        ss.set(client, clock)
+public func readStateVector(decoder: DSDecoder) throws -> [Int: Int] {
+    var ss = [Int:Int]()
+    let ssLength = try decoder.restDecoder.readUInt()
+    for _ in 0..<ssLength {
+        let client = try decoder.restDecoder.readUInt()
+        let clock = try decoder.restDecoder.readUInt()
+        
+        ss[Int(client)] = Int(clock)
     }
     return ss
 }
 
-public func decodeStateVector(decodedState: Data) -> [Int: Int] {
-    return readStateVector(DSDecoderV1(Lib0Decoder(decodedState)))
+public func decodeStateVector(decodedState: Data) throws -> [Int: Int] {
+    return try readStateVector(decoder: DSDecoderV1(Lib0Decoder(data: decodedState)))
 }
 
-public func writeStateVector(encoder: DSEncoderV1 | DSEncoderV2, sv: [Int: Int]) {
-    encoder.restEncoder.writeUInt(sv.size)
-    Array.from(sv.entries()).sort((a, b) -> b[0] - a[0]).forEach(([client, clock]) -> {
-        encoder.restEncoder.writeUInt(client) // @todo use a special client decoder that is based on mapping
-        encoder.restEncoder.writeUInt(clock)
-    })
+public func writeStateVector(encoder: DSEncoder, sv: [Int: Int]) throws -> DSEncoder {
+    encoder.restEncoder.writeUInt(UInt(sv.count))
+    sv.sorted(by: { $0.key > $1.key }).forEach{ clock, client in
+        encoder.restEncoder.writeUInt(UInt(client))
+        encoder.restEncoder.writeUInt(UInt(clock))
+    }
     return encoder
 }
 
-public func writeDocumentStateVector(encoder: DSEncoderV1 | DSEncoderV2, doc: Doc) {
-    return writeStateVector(encoder, doc.store.getStateVector())
+public func writeDocumentStateVector(encoder: DSEncoder, doc: Doc) throws -> DSEncoder {
+    return try writeStateVector(encoder: encoder, sv: doc.store.getStateVector().toIntInt())
 }
 
-public func encodeStateVectorV2(doc: Doc | [Int: Int], encoder: DSEncoderV1 | DSEncoderV2 = public func DSEncoderV2()) -> Data {
-    if doc instanceof Map {
-        writeStateVector(encoder, doc)
-    } else {
-        writeDocumentStateVector(encoder, doc)
+public func encodeStateVectorV2(doc: [Int: Int], encoder: DSEncoder = DSEncoderV2()) throws -> Data {
+    try _ = writeStateVector(encoder: encoder, sv: doc)
+    return encoder.toData()
+}
+
+public func encodeStateVectorV2(doc: Doc, encoder: DSEncoder = DSEncoderV2()) throws -> Data {
+    try _ = writeDocumentStateVector(encoder: encoder, doc: doc)
+    return encoder.toData()
+}
+
+public func encodeStateVector(doc: Doc) throws -> Data {
+    return try encodeStateVectorV2(doc: doc, encoder: DSEncoderV1())
+}
+
+public func encodeStateVector(doc: [Int: Int]) throws -> Data {
+    return try encodeStateVectorV2(doc: doc, encoder: DSEncoderV1())
+}
+
+extension Dictionary where Key == Int, Value == Int {
+    func toUIntUInt() -> [UInt: UInt] {
+        .init(self.map{ (UInt($0), UInt($1)) }, uniquingKeysWith: { k, _ in k })
     }
-    return encoder.data
 }
 
-public func encodeStateVector(doc: Doc | [Int: Int]) -> Data {
-    return encodeStateVectorV2(doc, DSEncoderV1())
+extension Dictionary where Key == UInt, Value == UInt {
+    func toIntInt() -> [Int: Int] {
+        .init(self.map{ (Int($0), Int($1)) }, uniquingKeysWith: { k, _ in k })
+    }
 }

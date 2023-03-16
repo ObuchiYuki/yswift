@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Promise
 
 extension NSRange {
     public init(from: Int, to: Int) {

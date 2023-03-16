@@ -8,9 +8,14 @@
 import Foundation
 
 
-public struct PendingStrcut {
+public class PendingStrcut {
     public var missing: [Int: Int]
     public var update: Data
+    
+    init(missing: [Int: Int], update: Data) {
+        self.missing = missing
+        self.update = update
+    }
 }
 
 public class StructStore {

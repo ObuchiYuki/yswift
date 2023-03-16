@@ -28,7 +28,7 @@ public class GC: Struct {
         try transaction.doc.store.addStruct(self)
     }
 
-    public override func write(encoder: UpdateEncoder, offset: UInt, encodingRef: Int) {
+    public override func write(encoder: UpdateEncoder, offset: UInt) {
         encoder.writeInfo(structGCRefNumber)
         encoder.writeLen(self.length - offset)
     }

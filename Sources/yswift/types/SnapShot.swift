@@ -30,7 +30,7 @@ public class Snapshot: JSHashable {
 
     public func encodeV2(_ encoder: DSEncoder = DSEncoderV2()) throws -> Data {
         try self.ds.encode(encoder)
-        writeStateVector(encoder, self.sv)
+        try writeStateVector(encoder: encoder, sv: self.sv.toIntInt())
         return encoder.toData()
     }
     
@@ -40,7 +40,7 @@ public class Snapshot: JSHashable {
     
     static public func decodeV2(_ buf: Data, decoder: DSDecoder?) throws -> Snapshot {
         let decoder = try decoder ?? DSDecoderV2(Lib0Decoder(data: buf))
-        return Snapshot(DeleteSet.decode(decoder), readStateVector(decoder))
+        return Snapshot(try DeleteSet.decode(decoder: decoder), sv: try readStateVector(decoder: decoder).toUIntUInt())
     }
     
     static public func decode(_ buf: Data) throws -> Snapshot {
@@ -97,13 +97,13 @@ public class Snapshot: JSHashable {
                 // first clock written is 0
                 encoder.restEncoder.writeUInt(0)
                 for i in 0..<lastStructIndex {
-                    try structs[i].write(encoder, offset: 0)
+                    try structs[i].write(encoder: encoder, offset: 0)
                 }
             }
             try ds.encode(encoder)
         })
     
-        applyUpdateV2(newDoc, encoder.data, "snapshot")
+        try applyUpdateV2(ydoc: newDoc, update: encoder.toData(), transactionOrigin: "snapshot")
         return newDoc
     }
     

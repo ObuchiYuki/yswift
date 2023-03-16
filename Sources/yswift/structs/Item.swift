@@ -86,8 +86,6 @@ public class Item: Struct, JSHashable {
         parentSub: String?,
         content: any Content
     ) {
-        super.init(id: id, length: content.getLength())
-        
         self.origin = origin
         self.left = left
         self.right = right
@@ -97,6 +95,8 @@ public class Item: Struct, JSHashable {
         self.redone = nil
         self.content = content
         self.info = self.content.isCountable() ? 0b0000_0010 : 0
+        
+        super.init(id: id, length: content.getLength())
     }
     
     // =========================================================================== //
@@ -255,7 +255,7 @@ public class Item: Struct, JSHashable {
     }
     
     /** Return the creator clientID of the missing op or define missing items and return nil. */
-    public func getMissing(_ transaction: Transaction, store: StructStore) -> UInt? {
+    public override func getMissing(_ transaction: Transaction, store: StructStore) -> UInt? {
         if self.origin != nil && self.origin!.client != self.id.client && self.origin!.clock >= store.getState(self.origin!.client) {
             return self.origin!.client
         }
@@ -500,7 +500,7 @@ public class Item: Struct, JSHashable {
      *
      * This is called when this Item is sent to a remote peer.
      */
-    public override func write(encoder: UpdateEncoder, offset: UInt, encodingRef: Int) throws {
+    public override func write(encoder: UpdateEncoder, offset: UInt) throws {
         let origin = offset > 0 ? ID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
         let rightOrigin = self.rightOrigin
         let parentSub = self.parentSub
@@ -522,7 +522,7 @@ public class Item: Struct, JSHashable {
                 if parentItem == nil {
                     // parent type on y._map
                     // find the correct key
-                    let ykey = findRootTypeKey(parent)
+                    let ykey = try findRootTypeKey(type: parent as! AbstractType)
                     encoder.writeParentInfo(true) // write parentYKey
                     encoder.writeString(ykey)
                 } else {

@@ -18,7 +18,7 @@ public class Struct {
 
     public func merge(with right: Struct) -> Bool { return false }
 
-    public func write(encoder: any UpdateEncoder, offset: UInt, encodingRef: Int) throws { fatalError() }
+    public func write(encoder: any UpdateEncoder, offset: UInt) throws { fatalError() }
 
     public func integrate(transaction: Transaction, offset: UInt) throws -> Void { fatalError() }
 
@@ -39,4 +39,6 @@ public class Struct {
             }
         }
     }
+    
+    public func getMissing(_ transaction: Transaction, store: StructStore) -> UInt? { fatalError() }
 }
