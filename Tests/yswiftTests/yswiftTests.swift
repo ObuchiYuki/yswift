@@ -3,9 +3,18 @@ import XCTest
 
 final class yswiftTests: XCTestCase {
     func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-        XCTAssertEqual(yswift().text, "Hello, World!")
+        let doc1 = Doc(opts: DocOpts(cliendID: 100))
+        let doc2 = Doc(opts: DocOpts(cliendID: 101))
+        
+        doc1.on(Doc.Event.update) { update, _, _ in
+            print(update.map{ $0 })
+            try! applyUpdate(ydoc: doc2, update: update, transactionOrigin: nil)
+        }
+        
+        let root1 = try doc1.getMap(name: "root")
+        try root1.set("A", value: "B")
+        
+        let root2 = try doc2.getMap(name: "root")
+        print(root2.get("A")) 
     }
 }

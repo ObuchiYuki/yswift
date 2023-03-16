@@ -517,7 +517,7 @@ public class Item: Struct, JSHashable {
             encoder.writeRightID(rightOrigin!)
         }
         if origin == nil && rightOrigin == nil {
-            if (self.parent as! AbstractType)._item != nil {
+            if self.parent is AbstractType {
                 let parentItem = (self.parent as! AbstractType)._item
                 if parentItem == nil {
                     // parent type on y._map
@@ -536,6 +536,7 @@ public class Item: Struct, JSHashable {
                 encoder.writeParentInfo(false) // write parent id
                 encoder.writeLeftID(parent as! ID)
             } else {
+                
                 throw YSwiftError.unexpectedCase
             }
             if parentSub != nil {

@@ -400,12 +400,12 @@ public class AbstractType: JSHashable {
         let left = self._map[key]
         let doc = transaction.doc
         let ownClientId = doc.clientID
-        var content: (any Content)!
+        var content: any Content
         if value == nil {
-            content = ContentAny([value as Any])
+            content = ContentAny([value])
         } else {
-            if value! is Int || value! is [AnyHashable: Any] || value! is Bool || value! is [Any] || value! is String {
-                content = ContentAny([value as Any])
+            if value! is Int || value! is [String: Any] || value! is Bool || value! is [Any] || value! is String {
+                content = ContentAny([value])
             } else if value! is Data {
                 content = ContentBinary(value as! Data)
             } else if value! is Doc {

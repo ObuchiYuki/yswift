@@ -7,20 +7,17 @@
 
 import Foundation
 
-enum YSwiftError: LocalizedError {
-    case unexpectedCase
-    case unexpectedContentType
-    case lengthExceeded
-    case integretyCheckFail
-    case originDocGC
+struct YSwiftError: LocalizedError {
+    static let unexpectedCase = YSwiftError("Unexpected Case.")
+    static let unexpectedContentType = YSwiftError("Unexpected Case.")
+    static let lengthExceeded = YSwiftError("Unexpected Content Type.")
+    static let integretyCheckFail = YSwiftError("Integrety Check Fail")
+    static let originDocGC = YSwiftError("origin Doc must not be garbage collected")
     
-    var errorDescription: String? {
-        switch self {
-        case .unexpectedCase: return "Unexpected Case."
-        case .unexpectedContentType: return "Unexpected Content Type."
-        case .lengthExceeded: return "Length Exceeded"
-        case .integretyCheckFail: return "integretyCheckFail"
-        case .originDocGC: return "origin Doc must not be garbage collected"
-        }
+    let errorDescription: String
+    
+    init(_ message: String) {
+        self.errorDescription = message
+        print(Backtrace(dropFirstSymbols: 5))
     }
 }

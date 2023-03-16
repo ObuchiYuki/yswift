@@ -17,8 +17,9 @@ public struct DocOpts {
     public var meta: Any? = nil
     public var autoLoad: Bool = true
     public var shouldLoad: Bool = true
+    public var cliendID: UInt? = nil
     
-    public init(gc: Bool = true, gcFilter: @escaping (Item) -> Bool = {_ in true }, guid: String = UUID().uuidString, collectionid: String? = nil, meta: Any? = nil, autoLoad: Bool = true, shouldLoad: Bool = true) {
+    public init(gc: Bool = true, gcFilter: @escaping (Item) -> Bool = {_ in true }, guid: String = UUID().uuidString, collectionid: String? = nil, meta: Any? = nil, autoLoad: Bool = true, shouldLoad: Bool = true, cliendID: UInt? = nil) {
         self.gc = gc
         self.gcFilter = gcFilter
         self.guid = guid
@@ -26,6 +27,7 @@ public struct DocOpts {
         self.meta = meta
         self.autoLoad = autoLoad
         self.shouldLoad = shouldLoad
+        self.cliendID = cliendID
     }
 }
 
@@ -50,13 +52,12 @@ public class Doc: Lib0Observable, JSHashable {
     public var _item: Item?
     public var _transaction: Transaction?
     public var _transactionCleanups: [Transaction]
-    
 
     public init(opts: DocOpts = .init()) {
         
         self.gc = opts.gc
         self.gcFilter = opts.gcFilter
-        self.clientID = generateNewClientID()
+        self.clientID = opts.cliendID ?? generateNewClientID()
         self.guid = opts.guid
         self.collectionid = opts.collectionid
         self.share = [:]
@@ -133,16 +134,16 @@ public class Doc: Lib0Observable, JSHashable {
     }
 
     // JS実装では TypeConstructor なしで呼び出すとAbstractTypeを作った
-    public func get<T: AbstractType>(name: String, TypeConstructor: () -> T) throws -> T {
+    public func get<T: AbstractType>(_: T.Type, name: String, make: () -> T) throws -> T {
         let type_ = try self.share.setIfUndefined(name, {
-            let t = TypeConstructor()
+            let t = make()
             try t._integrate(self, item: nil)
             return t
         }())
         
         if T.self != AbstractType.self && !(type_ is T) {
             if type(of: type_) == AbstractType.self {
-                let t = TypeConstructor()
+                let t = make()
                 t._map = type_._map
                 type_._map.forEach({ _, n in
                     var n: Item? = n
@@ -169,9 +170,14 @@ public class Doc: Lib0Observable, JSHashable {
         return type_ as! T
     }
 
-//    getMap<T: Contentable_>(name: String = '') -> YMap<T> { return self.get(name, YMap) }
-//
-//    getArray<T: Contentable_>(name: String = '') -> YArray<T> { return self.get(name, YArray) }
+    public func getMap(name: String) throws -> YMap {
+        return try self.get(YMap.self, name: name, make: { YMap.init(nil) })
+    }
+
+    public func getArray(name: String) throws -> YArray {
+        return try self.get(YArray.self, name: name, make: { YArray.init() })
+    }
+    
 //
 //    public func getXmlFragment(_ name: String = '') -> YXmlFragment { return self.get(name, YXmlFragment) }
 //

@@ -50,12 +50,13 @@ public func writeClientsStructs(encoder: UpdateEncoder, store: StructStore, _sm:
             sm[Int(client)] = 0
         }
     })
+        
     // write # states that were updated
     encoder.restEncoder.writeUInt(UInt(sm.count))
     
-    try sm.sorted(by: { $0.key > $1.key }).forEach{ clock, client in
+    try sm.sorted(by: { $0.key > $1.key }).forEach{ client, clock in
         try writeStructs(
-            encoder: encoder, structs: store.clients[UInt(client)] ?? [], client: UInt(client), clock: UInt(clock)
+            encoder: encoder, structs: store.clients[UInt(client)]!, client: UInt(client), clock: UInt(clock)
         )
     }
 }
@@ -105,7 +106,7 @@ public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [I
                     rightOrigin: (info & 0b0100_0000) == 0b0100_0000 ? decoder.readRightID() : nil, // right origin
                     parent: cantCopyParentInfo
                     ? (decoder.readParentInfo()
-                       ? doc.get(name: decoder.readString(), TypeConstructor: AbstractType.init) as (any AbstractType_or_ID_or_String)
+                       ? doc.get(AbstractType.self, name: decoder.readString(), make: AbstractType.init) as (any AbstractType_or_ID_or_String)
                        : decoder.readLeftID() as any AbstractType_or_ID_or_String)
                     : nil, // parent
                     parentSub: cantCopyParentInfo && (info & 0b0010_0000) == 0b0010_0000 ? decoder.readString() : nil, // parentSub
@@ -162,8 +163,8 @@ public func integrateStructs(
         }
     }
     
+    var stackHead: Struct = curStructsTarget!.refs.value[curStructsTarget!.i]!
     curStructsTarget!.i += 1
-    var stackHead: Struct = curStructsTarget!.refs[curStructsTarget!.i]!
     var state = [Int: Int]()
 
     func addStackToRestSS() {
@@ -250,6 +251,8 @@ public func integrateStructs(
 
 public func writeStructsFromTransaction(encoder: UpdateEncoder, transaction: Transaction) throws {
     let uu = [Int: Int](transaction.beforeState.map{ (Int($0), Int($1)) }, uniquingKeysWith: { a, _ in a })
+    
+    
     try writeClientsStructs(
         encoder: encoder,
         store: transaction.doc.store,

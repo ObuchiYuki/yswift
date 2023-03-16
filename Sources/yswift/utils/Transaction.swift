@@ -42,7 +42,8 @@ public class Transaction {
     }
 
     public func encodeUpdateMessage(_ encoder: UpdateEncoder) throws -> Bool {
-        if self.deleteSet.clients.count == 0 && !self.afterState.allSatisfy({ client, clock in self.beforeState[client] != clock }) {
+        let hasContent = self.afterState.allSatisfy({ client, clock in self.beforeState[client] != clock })
+        if self.deleteSet.clients.count == 0 && !hasContent {
             return false
         }
         self.deleteSet.sortAndMerge()
@@ -154,10 +155,12 @@ public class Transaction {
                 }
             }
             if !transaction.local && transaction.afterState[doc.clientID] != transaction.beforeState[doc.clientID] {
+                print("=========== THIS RUN CONTAINS RANDOMNESS ===========")
                 doc.clientID = generateNewClientID()
             }
             
             doc.emit(Doc.Event.afterTransactionCleanup, transaction)
+            
             if doc.isObserving(Doc.Event.update) {
                 let encoder = UpdateEncoderV1()
                 let hasContent = try transaction.encodeUpdateMessage(encoder)
@@ -218,15 +221,21 @@ public class Transaction {
             doc.emit(Doc.Event.beforeTransaction, doc._transaction!)
         }
         
-        defer {
+        func defering() throws {
             if initialCall {
                 let finishCleanup = doc._transaction === doc._transactionCleanups[0]
                 doc._transaction = nil
-                if finishCleanup { try? Transaction.cleanup(doc._transactionCleanups, i: 0) }
+                if finishCleanup { try Transaction.cleanup(doc._transactionCleanups, i: 0) }
             }
         }
         
-        try body(doc._transaction!)
+        do {
+            try body(doc._transaction!)
+            try defering()
+        } catch {
+            try defering()
+            throw error
+        }
     }
 
 
