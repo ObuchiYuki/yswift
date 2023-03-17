@@ -174,32 +174,32 @@ final class encodingTests: XCTestCase {
         try XCTAssert(XCTUnwrap(lastEvent).loaded.contains(subdoc1))
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc1))
         
-//        // destroy and check whether lastEvent adds it again to added (it shouldn"t)
-//        subdoc1.destroy()
-//        let subdoc2 = yarray.get(0)
-//        XCTAssert(subdoc1 != subdoc2)
-//        XCTAssert(lastEvent != nil && lastEvent.added.has(subdoc2))
-//        XCTAssert(lastEvent != nil && !lastEvent.loaded.has(subdoc2))
-//        // load
-//        subdoc2.load()
-//        XCTAssert(lastEvent != nil && !lastEvent.added.has(subdoc2))
-//        XCTAssert(lastEvent != nil && lastEvent.loaded.has(subdoc2))
-//        // apply from remote
-//        let ydoc2 = Doc()
-//        ydoc2.on("subdocs", (event: Any) -> {
-//            lastEvent = event
-//        })
-//        applyUpdate(ydoc2, encodeStateAsUpdate(ydoc))
-//        let subdoc3 = ydoc2.getArray<Doc>().get(0)
-//        XCTAssert(subdoc3.shouldLoad == false)
-//        XCTAssert(subdoc3.autoLoad == false)
-//        XCTAssert(lastEvent != nil && lastEvent.added.has(subdoc3))
-//        XCTAssert(lastEvent != nil && !lastEvent.loaded.has(subdoc3))
-//        // load
-//        subdoc3.load()
-//        XCTAssert(subdoc3.shouldLoad)
-//        XCTAssert(lastEvent != nil && !lastEvent.added.has(subdoc3))
-//        XCTAssert(lastEvent != nil && lastEvent.loaded.has(subdoc3))
+        // destroy and check whether lastEvent adds it again to added (it shouldn"t)
+        try subdoc1.destroy()
+        let subdoc2 = try XCTUnwrap(yarray.get(0) as? Doc)
+        XCTAssert(subdoc1 != subdoc2)
+        try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc2))
+        try XCTAssert(!XCTUnwrap(lastEvent).loaded.contains(subdoc2))
+        // load
+        try subdoc2.load()
+        try XCTAssert(!XCTUnwrap(lastEvent).added.contains(subdoc2))
+        try XCTAssert(XCTUnwrap(lastEvent).loaded.contains(subdoc2))
+        // apply from remote
+        let ydoc2 = Doc()
+        ydoc2.on(Doc.Event.subdocs) { event, _ in
+            lastEvent = event
+        }
+        try applyUpdate(ydoc: ydoc2, update: encodeStateAsUpdate(doc: ydoc))
+        let subdoc3 = try XCTUnwrap(try ydoc2.getArray("").get(0) as? Doc)
+        XCTAssert(subdoc3.shouldLoad == false)
+        XCTAssert(subdoc3.autoLoad == false)
+        try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc3))
+        try XCTAssert(!XCTUnwrap(lastEvent).loaded.contains(subdoc3))
+        // load
+        try subdoc3.load()
+        XCTAssert(subdoc3.shouldLoad)
+        try XCTAssert(!XCTUnwrap(lastEvent).added.contains(subdoc3))
+        try XCTAssert(XCTUnwrap(lastEvent).loaded.contains(subdoc3))
     }
 
 //    func testSubdocLoadEdgeCasesAutoload() throws {
