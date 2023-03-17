@@ -22,7 +22,7 @@ public class YArray: AbstractType {
 
     public override init() {
         super.init()
-        self._searchMarker = []
+        self._searchMarker = .init(value: []) 
     }
 
     /** Construct a YArray containing the specified items. */
@@ -141,7 +141,7 @@ public class YArray: AbstractType {
     /**
      * Transforms this Shared Type to a JSON object.
      */
-    public func toJSON() -> [Any] {
+    public override func toJSON() -> Any {
         return self.map{ c, _ , _ in
             c is AbstractType ? (c as! AbstractType).toJSON() : c
         }

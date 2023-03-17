@@ -89,7 +89,7 @@ public class Snapshot: JSHashable {
                 if clock < originDoc.store.getState(client) {
                     _ = try StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
                 }
-                let structs = originDoc.store.clients[client] ?? []
+                let structs = originDoc.store.clients[client] ?? .init(value: [])
                 let lastStructIndex = try StructStore.findIndexSS(structs: structs, clock: clock - 1)
                 // write # encoded structs
                 encoder.restEncoder.writeUInt(UInt(lastStructIndex + 1))

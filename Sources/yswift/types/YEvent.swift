@@ -116,8 +116,8 @@ public class YEvent {
         return keys
     }
 
-    public var delta: [YEventDelta] {
-        return self.changes.delta
+    public func delta() throws -> [YEventDelta] {
+        return try self.changes().delta
     }
 
     /**
@@ -129,7 +129,7 @@ public class YEvent {
         return struct_.id.clock >= (self.transaction.beforeState[struct_.id.client] ?? 0)
     }
 
-    public var changes: YEventChange {
+    public func changes() throws -> YEventChange {
         if (self._changes != nil) { return self._changes! }
         
         var changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: [])

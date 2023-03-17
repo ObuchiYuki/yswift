@@ -407,7 +407,7 @@ public class Item: Struct, JSHashable {
         } else {
             // parent is not defined. Integrate GC struct instead
             try GC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
-        }
+        }        
     }
 
     public var next: Item? {
@@ -433,8 +433,8 @@ public class Item: Struct, JSHashable {
         )
     }
 
-    /** Try to merge two items */
-    public func merge(with right: Item) -> Bool {
+    public override func merge(with right: Struct) -> Bool {
+        let right = right as! Item
         if (
             type(of: self) == type(of: right) &&
             right.origin == self.lastID &&

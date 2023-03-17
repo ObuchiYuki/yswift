@@ -10,7 +10,7 @@ import Foundation
 public protocol YText_or_YArray {
     var length: UInt { get }
 }
-//extension YText: YText_or_YArray {}
+extension YText: YText_or_YArray {}
 extension YArray: YText_or_YArray {}
 
 public class ArraySearchMarker {
@@ -29,7 +29,7 @@ public class ArraySearchMarker {
         ArraySearchMarker.globalSearchMarkerTimestamp += 1
     }
 
-    static public func markPosition(_ markers: inout [ArraySearchMarker], item: Item, index: UInt) -> ArraySearchMarker {
+    static public func markPosition(_ markers: Ref<[ArraySearchMarker]>, item: Item, index: UInt) -> ArraySearchMarker {
         if markers.count >= ArraySearchMarker.maxSearchMarker {
             // override oldest marker (we don't want to create more objects)
             let marker = markers.min(by: { $0.timestamp < $1.timestamp })!
@@ -38,7 +38,7 @@ public class ArraySearchMarker {
         } else {
             // create marker
             let pm = ArraySearchMarker(item: item, index: index)
-            markers.append(pm)
+            markers.value.append(pm)
             return pm
         }
     }
@@ -54,9 +54,9 @@ public class ArraySearchMarker {
             return nil
         }
         
-        let marker: ArraySearchMarker? = yarray._searchMarker!.count == 0
+        let marker: ArraySearchMarker? = yarray._searchMarker!.value.count == 0
             ? nil
-            : yarray._searchMarker!.jsReduce{ a, b in
+            : yarray._searchMarker!.value.jsReduce{ a, b in
                 abs(Int(index) - Int(a.index)) < abs(Int(index) - Int(b.index)) ? a : b
             }
         
@@ -103,11 +103,11 @@ public class ArraySearchMarker {
             return marker!
         } else {
             // create marker
-            return ArraySearchMarker.markPosition(&yarray._searchMarker!, item: item!, index: pindex)
+            return ArraySearchMarker.markPosition(yarray._searchMarker!, item: item!, index: pindex)
         }
     }
 
-    static public func updateChanges(_ markers: inout [ArraySearchMarker], index: UInt, len: UInt) {
+    static public func updateChanges(_ markers: Ref<[ArraySearchMarker]>, index: UInt, len: UInt) {
         for i in (0..<markers.count).reversed() {
             let marker = markers[i]
             
@@ -126,7 +126,7 @@ public class ArraySearchMarker {
                 }
                 if item == nil || item!.marker == true {
                     // remove search marker if updated position is nil or if position is already marked
-                    markers.remove(at: i)
+                    markers.value.remove(at: i)
                     continue
                 }
                 marker.item = item

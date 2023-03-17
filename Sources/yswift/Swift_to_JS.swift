@@ -78,6 +78,11 @@ extension Array {
 }
 
 public func generateNewClientID() -> UInt {
+    #if DEBUG
+    if NSClassFromString("XCTest") != nil {
+        print("=========== THIS RUN CONTAINS RANDOMNESS ===========")
+    }
+    #endif
     return UInt(UInt32.random(in: UInt32.min...UInt32.max))
 }
 

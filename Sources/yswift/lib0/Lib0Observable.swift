@@ -17,7 +17,7 @@ open class Lib0Observable {
         let id = UUID()
     }
     
-    private var _observers: [String: [UUID: (Any) -> Void]] = [:]
+    private var _observers: [String: [UUID: (Any) throws -> Void]] = [:]
     
     public init() {}
     
@@ -26,11 +26,11 @@ open class Lib0Observable {
     }
 
     @discardableResult
-    public func on<Args>(_ event: EventName<Args>, _ observer: @escaping (Args) -> Void) -> Disposer {
+    public func on<Args>(_ event: EventName<Args>, _ observer: @escaping (Args) throws -> Void) -> Disposer {
         if (self._observers[event.name] == nil) { self._observers[event.name] = [:] }
         let disposer = Disposer()
         self._observers[event.name]![disposer.id] = { value in
-            observer(value as! Args)
+            try observer(value as! Args)
         }
         return disposer
     }
@@ -42,12 +42,12 @@ open class Lib0Observable {
         }
     }
 
-    public func emit<Args>(_ event: EventName<Args>, _ args: Args) {
+    public func emit<Args>(_ event: EventName<Args>, _ args: Args) throws {
         guard let listeners = self._observers[event.name] else { return }
-        listeners.forEach{ $0.value(args) }
+        try listeners.forEach{ try $0.value(args) }
     }
     
-    public func destroy() {
+    public func destroy() throws {
         self._observers = [:]
     }
 }

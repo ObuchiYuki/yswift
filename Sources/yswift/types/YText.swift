@@ -235,7 +235,7 @@ public func insertText(
     let doc = transaction.doc
     let ownClientId = doc.clientID
     try minimizeAttributeChanges(currPos: currPos, attributes: attributes)
-    var negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
+    let negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
     // insert content
     let content = text is String
         ? ContentString((text as! String as NSString)) as any Content
@@ -247,7 +247,7 @@ public func insertText(
     var left = currPos.left, right = currPos.right, index = currPos.index
     
     if parent._searchMarker != nil {
-        ArraySearchMarker.updateChanges(&parent._searchMarker!, index: UInt(currPos.index), len: content.getLength())
+        ArraySearchMarker.updateChanges(parent._searchMarker!, index: UInt(currPos.index), len: content.getLength())
     }
     right = Item(
         id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
@@ -277,7 +277,7 @@ public func formatText(
     let doc = transaction.doc
     let ownClientId = doc.clientID
     try minimizeAttributeChanges(currPos: currPos, attributes: attributes)
-    var negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
+    let negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
     // iterate until first non-format or nil is found
     // delete all formats with attributes[format.key] != nil
     // also check the attributes after the first non-format as we do not want to insert redundant negated attributes there
@@ -424,13 +424,13 @@ func cleanupContextlessFormattingGap(transaction: Transaction, item: Item?) {
     }
 }
 
-func cleanupYTextFormatting(type: YText) -> Int {
+func cleanupYTextFormatting(type: YText) throws -> Int {
     var res = 0
-    type.doc?.transact({ transaction in
+    try type.doc?.transact({ transaction in
         var start = type._start!
         var end = type._start
         var startAttributes = YTextAttributes(value: [:])
-        var currentAttributes = YTextAttributes(value: [:])
+        let currentAttributes = YTextAttributes(value: [:])
         while end != nil {
             if end!.deleted == false {
                 if end!.content is ContentFormat {
@@ -487,7 +487,7 @@ public func deleteText(
     
     let parent = ((currPos.left ?? currPos.right!).parent as! AbstractType)
     if parent._searchMarker != nil {
-        ArraySearchMarker.updateChanges(&parent._searchMarker!, index: UInt(currPos.index), len: UInt(-startLength + length))
+        ArraySearchMarker.updateChanges(parent._searchMarker!, index: UInt(currPos.index), len: UInt(-startLength + length))
     }
     return currPos
 }
@@ -514,20 +514,20 @@ public class YTextEvent: YEvent {
         })
     }
     
-    public override var changes: YEventChange {
+    public override func changes() throws -> YEventChange {
         if self._changes == nil {
-            let changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: self.delta)
+            let changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: try self.delta())
             self._changes = changes
         }
         return self._changes!
     }
 
-    public override var delta: [YEventDelta] {
+    public override func delta() throws -> [YEventDelta] {
         if (self._delta != nil) { return self._delta! }
 
         var deltas: [YEventDelta] = []
 
-        self.target.doc?.transact({ transaction in
+        try self.target.doc?.transact({ transaction in
             let currentAttributes = YTextAttributes(value: [:]) // saves all current attributes for insert
             let oldAttributes = YTextAttributes(value: [:])
             var item = self.target._start
@@ -679,10 +679,10 @@ public class YText: AbstractType {
             // swift add
             try self.insert(0, text: string!, attributes: nil)
         }] : []
-        self._searchMarker = []
+        self._searchMarker = .init(value: [])
     }
 
-    public var length: Int { return Int(self._length) }
+    public var length: UInt { return self._length }
 
     public override func _integrate(_ y: Doc, item: Item?) throws {
         try super._integrate(y, item: item)
@@ -724,7 +724,7 @@ public class YText: AbstractType {
                 
                 try StructStore.iterateStructs(
                     transaction: transaction,
-                    structs: &doc.store.clients[client]!,
+                    structs: doc.store.clients[client]!,
                     clockStart: clock,
                     len: afterClock,
                     f: { item in
@@ -754,7 +754,7 @@ public class YText: AbstractType {
                 if foundFormattingItem {
                     // If a formatting item was inserted, we simply clean the whole type.
                     // We need to compute currentAttributes for the current position anyway.
-                    _ = cleanupYTextFormatting(type: self)
+                    _ = try cleanupYTextFormatting(type: self)
                 } else {
                     // If no formatting attribute was inserted, we can make due with contextless
                     // formatting cleanups.
@@ -921,7 +921,7 @@ public class YText: AbstractType {
     }
 
 
-    public func insert(_ index: Int, text: String, attributes: YTextAttributes?) throws {
+    public func insert(_ index: Int, text: String, attributes: YTextAttributes? = nil) throws {
         var attributes = attributes
         if text.count <= 0 { return }
         
@@ -934,6 +934,8 @@ public class YText: AbstractType {
                         attributes!.value[k] = v
                     })
                 }
+                                
+
                 try insertText(transaction: transaction, parent: self, currPos: pos, text: text, attributes: attributes!)
             })
         } else {
@@ -995,14 +997,14 @@ public class YText: AbstractType {
         }
     }
 
-    public func removeAttribute(_ attributeName: String) {
+    public func removeAttribute(_ attributeName: String) throws {
         if self.doc != nil {
-            self.doc!.transact({ transaction in
+            try self.doc!.transact({ transaction in
                 self.mapDelete(transaction, key: attributeName)
             })
         } else {
             self._pending?.append {
-                self.removeAttribute(attributeName)
+                try self.removeAttribute(attributeName)
             }
         }
     }

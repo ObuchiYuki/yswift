@@ -24,14 +24,13 @@ public class Struct {
     
     public func getMissing(_ transaction: Transaction, store: StructStore) throws -> UInt? { fatalError() }
 
-    static public func tryMerge(withLeft structs: [Struct], pos: Int) {
-        var structs = structs
+    static public func tryMerge(withLeft structs: Ref<[Struct]>, pos: Int) {
         let left = structs[pos - 1]
         let right = structs[pos]
         
         if left.deleted == right.deleted && type(of: left) == type(of: right) {
             if left.merge(with: right) {
-                structs.remove(at: pos)
+                structs.value.remove(at: pos)
                 if right is Item
                     && (right as! Item).parentSub != nil
                     && ((right as! Item).parent as! AbstractType)._map[(right as! Item).parentSub!] === right

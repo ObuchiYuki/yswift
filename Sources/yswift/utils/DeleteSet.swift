@@ -40,14 +40,14 @@ public class DeleteItem {
 public class DeleteSet {
     public var clients: [UInt: [DeleteItem]] = [:]
 
-    public func iterate(_ transaction: Transaction, body: (GC_or_Item) -> Void) throws {
+    public func iterate(_ transaction: Transaction, body: (Struct) -> Void) throws {
         
         return try self.clients.forEach{ clientid, deletes in
             for i in 0..<deletes.count {
                 let del = deletes[i]
                 try StructStore.iterateStructs(
                     transaction: transaction,
-                    structs: &transaction.doc.store.clients[clientid]!,
+                    structs: transaction.doc.store.clients[clientid]!,
                     clockStart: del.clock, len: del.len, f: body
                 )
             }
@@ -240,7 +240,7 @@ public class DeleteSet {
             decoder.resetDsCurVal()
             let client = try decoder.restDecoder.readUInt()
             let IntOfDeletes = try decoder.restDecoder.readUInt()
-            var structs = store.clients[client] ?? []
+            let structs = store.clients[client] ?? .init(value: [])
             let state = store.getState(client)
             
             for _ in 0..<IntOfDeletes {
@@ -254,7 +254,8 @@ public class DeleteSet {
                     var struct_: Item = structs[index] as! Item
                     // split the first item if necessary
                     if !struct_.deleted && struct_.id.clock < clock {
-                        structs.insert(struct_.split(transaction, diff: clock - struct_.id.clock), at: index + 1)
+                        structs.value
+                            .insert(struct_.split(transaction, diff: clock - struct_.id.clock), at: index + 1)
                         index += 1 // increase we now want to use the next struct
                     }
                     while (index < structs.count) {
@@ -263,7 +264,8 @@ public class DeleteSet {
                         if struct_.id.clock < clockEnd {
                             if !struct_.deleted {
                                 if clockEnd < struct_.id.clock + struct_.length {
-                                    structs.insert(struct_.split(transaction, diff: clockEnd - struct_.id.clock), at: index)
+                                    structs.value
+                                        .insert(struct_.split(transaction, diff: clockEnd - struct_.id.clock), at: index)
                                 }
                                 struct_.delete(transaction)
                             }

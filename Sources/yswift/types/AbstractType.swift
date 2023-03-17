@@ -27,7 +27,7 @@ public class AbstractType: JSHashable {
     public var _length: UInt = 0
     public var _eH: EventHandler<EventType, Transaction> = EventHandler() /** Event handlers */
     public var _dEH: EventHandler<[YEvent], Transaction> = EventHandler() /** Deep event handlers */
-    public var _searchMarker: [ArraySearchMarker]? = nil
+    public var _searchMarker: Ref<[ArraySearchMarker]>? = nil
 
      /** The first non-deleted item */
     public var _first: Item? {
@@ -292,7 +292,7 @@ public class AbstractType: JSHashable {
 
         if index == 0 {
             if self._searchMarker != nil {
-                ArraySearchMarker.updateChanges(&self._searchMarker!, index: index, len: UInt(contents.count))
+                ArraySearchMarker.updateChanges(self._searchMarker!, index: index, len: UInt(contents.count))
             }
             return try self.listInsertGenericsAfter(transaction, referenceItem: nil, contents: contents)
         }
@@ -323,14 +323,14 @@ public class AbstractType: JSHashable {
             n = n!.right
         }
         if (self._searchMarker != nil) {
-            ArraySearchMarker.updateChanges(&self._searchMarker!, index: startIndex, len: UInt(contents.count))
+            ArraySearchMarker.updateChanges(self._searchMarker!, index: startIndex, len: UInt(contents.count))
         }
         return try self.listInsertGenericsAfter(transaction, referenceItem: n, contents: contents)
     }
     
     public func listPushGenerics(_ transaction: Transaction, contents: [Any]) throws {
         
-        let marker = (self._searchMarker ?? [])
+        let marker = (self._searchMarker ?? .init(value: []))
             .reduce(ArraySearchMarker(item: self._start, index: 0)) { maxMarker, currMarker in
                 return currMarker.index > maxMarker.index ? currMarker : maxMarker
             }
@@ -382,7 +382,7 @@ public class AbstractType: JSHashable {
             throw YSwiftError.lengthExceeded
         }
         if (self._searchMarker != nil) {
-            ArraySearchMarker.updateChanges(&self._searchMarker!, index: startIndex, len: length - startLength)
+            ArraySearchMarker.updateChanges(self._searchMarker!, index: startIndex, len: length - startLength)
         }
     }
 
@@ -467,7 +467,7 @@ public class AbstractType: JSHashable {
 
     public func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
         if !transaction.local && self._searchMarker != nil {
-            self._searchMarker!.removeAll()
+            self._searchMarker!.value.removeAll()
         }
     }
 

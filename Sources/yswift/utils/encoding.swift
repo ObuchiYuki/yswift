@@ -20,14 +20,16 @@ import Foundation
  * 7: Item with Type
  */
 
-public func writeStructs(encoder: UpdateEncoder, structs: [GC_or_Item], client: UInt, clock: UInt) throws {
+public func writeStructs(encoder: UpdateEncoder, structs: Ref<[Struct]>, client: UInt, clock: UInt) throws {
     // write first id
     let clock = max(clock, structs[0].id.clock) // make sure the first id exists
     let startNewStructs = try StructStore.findIndexSS(structs: structs, clock: clock)
+        
     // write # encoded structs
     encoder.restEncoder.writeUInt(UInt(structs.count - startNewStructs))
     encoder.writeClient(client)
     encoder.restEncoder.writeUInt(clock)
+        
     let firstStruct = structs[startNewStructs]
     // write first struct with an offset
     try firstStruct.write(encoder: encoder, offset: clock - firstStruct.id.clock)
@@ -53,7 +55,7 @@ public func writeClientsStructs(encoder: UpdateEncoder, store: StructStore, _sm:
         
     // write # states that were updated
     encoder.restEncoder.writeUInt(UInt(sm.count))
-    
+            
     try sm.sorted(by: { $0.key > $1.key }).forEach{ client, clock in
         try writeStructs(
             encoder: encoder, structs: store.clients[UInt(client)]!, client: UInt(client), clock: UInt(clock)
@@ -174,13 +176,15 @@ public func integrateStructs(
             if unapplicableItems != nil {
                 // decrement because we weren't able to apply previous operation
                 unapplicableItems!.i -= 1
-                restStructs.clients[client] = unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! as! any GC_or_Item }
+                restStructs.clients[client] = Ref(value:
+                                                    unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! as! Struct }
+                )
                 clientsStructRefs.removeValue(forKey: Int(client))
                 unapplicableItems!.i = 0
                 unapplicableItems!.refs = .init(value: [])
             } else {
                 // item was the last item on clientsStructRefs and the field was already cleared. Add item to restStructs and continue
-                restStructs.clients[client] = ([item] as! [GC_or_Item])
+                restStructs.clients[client] = .init(value: [item])
             }
             // remove client from clientsStructRefsIds to prevent users from applying the same update again
             clientsStructRefsIds = clientsStructRefsIds.filter{ $0 != client }
@@ -323,16 +327,16 @@ public func readUpdateV2(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any
     }, origin: transactionOrigin, local: false)
 }
 
-public func readUpdate(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any?) throws {
+public func readUpdate(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any? = nil) throws {
     return try readUpdateV2(decoder: decoder, ydoc: ydoc, transactionOrigin: transactionOrigin, structDecoder: UpdateDecoderV1(decoder))
 }
 
-public func applyUpdateV2(ydoc: Doc, update: Data, transactionOrigin: Any?, YDecoder: (Lib0Decoder) throws -> UpdateDecoder = { try UpdateDecoderV2($0) }) throws {
+public func applyUpdateV2(ydoc: Doc, update: Data, transactionOrigin: Any? = nil, YDecoder: (Lib0Decoder) throws -> UpdateDecoder = { try UpdateDecoderV2($0) }) throws {
     let decoder = Lib0Decoder(data: update)
     try readUpdateV2(decoder: decoder, ydoc: ydoc, transactionOrigin: transactionOrigin, structDecoder: try YDecoder(decoder))
 }
 
-public func applyUpdate(ydoc: Doc, update: Data, transactionOrigin: Any?) throws {
+public func applyUpdate(ydoc: Doc, update: Data, transactionOrigin: Any? = nil) throws {
     return try applyUpdateV2(ydoc: ydoc, update: update, transactionOrigin: transactionOrigin, YDecoder: UpdateDecoderV1.init)
 }
 
@@ -342,9 +346,12 @@ public func writeStateAsUpdate(encoder: UpdateEncoder, doc: Doc, targetStateVect
 }
 
 public func encodeStateAsUpdateV2(doc: Doc, encodedTargetStateVector: Data?, encoder: UpdateEncoder = UpdateEncoderV2()) throws -> Data {
-    let encodedTargetStateVector = Data([0])
+    let encodedTargetStateVector = encodedTargetStateVector ?? Data([0])
+    
     let targetStateVector = try decodeStateVector(decodedState: encodedTargetStateVector)
+    
     try writeStateAsUpdate(encoder: encoder, doc: doc, targetStateVector: targetStateVector)
+        
     var updates = [encoder.toData()]
     // also add the pending updates (if there are any)
     if doc.store.pendingDs != nil {
@@ -365,7 +372,7 @@ public func encodeStateAsUpdateV2(doc: Doc, encodedTargetStateVector: Data?, enc
     return updates[0]
 }
 
-public func encodeStateAsUpdate(doc: Doc, encodedTargetStateVector: Data?) throws -> Data {
+public func encodeStateAsUpdate(doc: Doc, encodedTargetStateVector: Data? = nil) throws -> Data {
     return try encodeStateAsUpdateV2(doc: doc, encodedTargetStateVector: encodedTargetStateVector, encoder: UpdateEncoderV1())
 }
 

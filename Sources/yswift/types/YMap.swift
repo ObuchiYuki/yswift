@@ -62,7 +62,7 @@ public class YMap: AbstractType {
     }
 
     /** Transforms this Shared Type to a JSON object. */
-    public func toJSON() -> [String: Any] {
+    public override func toJSON() -> Any {
         var map: [String: Any] = [:]
         self._map.forEach({ key, item in
             if !item.deleted {
@@ -112,9 +112,9 @@ public class YMap: AbstractType {
 //    }
 
     /** Remove a specified element from this YMap. */
-    public func delete(_ key: String) {
+    public func delete(_ key: String) throws {
         if self.doc != nil {
-            self.doc!.transact({ transaction in
+            try self.doc!.transact({ transaction in
                 self.mapDelete(transaction, key: key)
             })
         } else {
@@ -144,9 +144,9 @@ public class YMap: AbstractType {
     }
 
     /** Removes all elements from this YMap. */
-    public func clear() {
+    public func clear() throws {
         if self.doc != nil {
-            self.doc!.transact({ transaction in
+            try self.doc!.transact({ transaction in
                 self.forEach({ _, key, map in
                     map.mapDelete(transaction, key: key)
                 })

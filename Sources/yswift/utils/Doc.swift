@@ -15,11 +15,11 @@ public struct DocOpts {
     public var guid: String = UUID().uuidString
     public var collectionid: String? = nil
     public var meta: Any? = nil
-    public var autoLoad: Bool = true
+    public var autoLoad: Bool = false
     public var shouldLoad: Bool = true
     public var cliendID: UInt? = nil
     
-    public init(gc: Bool = true, gcFilter: @escaping (Item) -> Bool = {_ in true }, guid: String = UUID().uuidString, collectionid: String? = nil, meta: Any? = nil, autoLoad: Bool = true, shouldLoad: Bool = true, cliendID: UInt? = nil) {
+    public init(gc: Bool = true, gcFilter: @escaping (Item) -> Bool = {_ in true }, guid: String = UUID().uuidString, collectionid: String? = nil, meta: Any? = nil, autoLoad: Bool = false, shouldLoad: Bool = true, cliendID: UInt? = nil) {
         self.gc = gc
         self.gcFilter = gcFilter
         self.guid = guid
@@ -51,7 +51,7 @@ public class Doc: Lib0Observable, JSHashable {
     
     public var _item: Item?
     public var _transaction: Transaction?
-    public var _transactionCleanups: [Transaction]
+    public var _transactionCleanups: Ref<[Transaction]>
 
     public init(opts: DocOpts = .init()) {
         
@@ -63,7 +63,7 @@ public class Doc: Lib0Observable, JSHashable {
         self.share = [:]
         self.store = StructStore()
         self._transaction = nil
-        self._transactionCleanups = []
+        self._transactionCleanups = .init(value: [])
         self.subdocs = Set()
         self._item = nil
         self.shouldLoad = opts.shouldLoad
@@ -99,7 +99,7 @@ public class Doc: Lib0Observable, JSHashable {
             }
             self.isSynced = isSynced == nil || isSynced == true
             if !self.isLoaded {
-                self.emit(Event.load, ())
+                try self.emit(Event.load, ())
             }
         })
         self.whenSynced = provideSyncedPromise()
@@ -112,10 +112,10 @@ public class Doc: Lib0Observable, JSHashable {
      *
      * It is safe to call `load()` multiple times.
      */
-    public func load() {
+    public func load() throws {
         let item = self._item
         if item != nil && !self.shouldLoad {
-            (item!.parent as! AbstractType).doc?.transact({ transaction in
+            try (item!.parent as! AbstractType).doc?.transact({ transaction in
                 transaction.subdocsLoaded.insert(self)
             }, origin: nil)
         }
@@ -129,7 +129,7 @@ public class Doc: Lib0Observable, JSHashable {
         
     }
 
-    public func transact(_ body: (Transaction) throws -> Void, origin: Any? = nil, local: Bool = true) rethrows {
+    public func transact(_ body: (Transaction) throws -> Void, origin: Any? = nil, local: Bool = true) throws {
         try Transaction.transact(self, body: body, origin: origin, local: local)
     }
 
@@ -170,39 +170,63 @@ public class Doc: Lib0Observable, JSHashable {
         return type_ as! T
     }
 
-    public func getMap(name: String) throws -> YMap {
+    public func getMap(_ name: String) throws -> YMap {
         return try self.get(YMap.self, name: name, make: { YMap.init(nil) })
     }
 
-    public func getArray(name: String) throws -> YArray {
+    public func getArray(_ name: String) throws -> YArray {
         return try self.get(YArray.self, name: name, make: { YArray.init() })
+    }
+    
+    public func getText(_ name: String) throws -> YText {
+        return try self.get(YText.self, name: name, make: { YText.init() })
+    }
+    
+    
+    public func toJSON() -> [String: Any] {
+        var doc: [String: Any] = [:]
+        self.share.forEach({ key, value in
+            doc[key] = value.toJSON()
+        })
+        return doc
     }
     
 //
 //    public func getXmlFragment(_ name: String = '') -> YXmlFragment { return self.get(name, YXmlFragment) }
 //
-//    public func getText(_ name: String = '') -> YText { return self.get(name, YText) }
 
-//    public func destroy() {
-//        self.subdocs.forEach{ $0.destroy() }
-//        let item = self._item
-//        if item != nil {
-//            self._item = nil
-//            let content = item.content as ContentDoc
-//            content.doc = Doc(
-//                { guid: self.guid, ...content.opts, shouldLoad: false }
-//            )
-//            content.doc._item = item;
-//            (item.parent as AbstractType).doc?.transact(transaction -> {
-//                let doc = content.doc
-//                if !item.deleted { transaction.subdocsAdded.add(doc) }
-//                transaction.subdocsRemoved.add(this)
-//            }, nil)
-//        }
-//        self.emit('destroyed', [true])
-//        self.emit('destroy', [this])
-//        super.destroy()
-//    }
+    public override func destroy() throws {
+        try self.subdocs.forEach{ try $0.destroy() }
+        let item = self._item
+        if item != nil {
+            self._item = nil
+            
+            print(item!.content)
+            
+            let content = item!.content as? ContentDoc
+            
+            // swift add
+            var __copyOpts = DocOpts()
+            __copyOpts.guid = self.guid
+            if let gc = content?.opts.gc { __copyOpts.gc = gc }
+            if let meta = content?.opts.meta { __copyOpts.meta = meta }
+            if let autoLoad = content?.opts.autoLoad { __copyOpts.autoLoad = autoLoad }
+            __copyOpts.shouldLoad = false
+            
+            let subdoc = Doc(opts: __copyOpts)
+            content?.doc = subdoc
+            content?.doc._item = item!
+            
+            try (item!.parent as! AbstractType).doc?.transact({ transaction in
+                let doc = subdoc
+                if !item!.deleted { transaction.subdocsAdded.insert(doc) }
+                transaction.subdocsRemoved.insert(self)
+            }, origin: nil)
+        }
+        try self.emit(Event.destroyed, true)
+        try self.emit(Event.destroy, ())
+        try super.destroy()
+    }
 }
 
 extension Doc {
