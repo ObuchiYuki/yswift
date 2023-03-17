@@ -9,9 +9,9 @@ import Foundation
 
 final public class ContentFormat: Content {
     public var key: String
-    public var value: Any
+    public var value: YTextAttributeValue?
     
-    init(key: String, value: Any) {
+    init(key: String, value: YTextAttributeValue?) {
         self.key = key
         self.value = value
     }
@@ -45,5 +45,6 @@ final public class ContentFormat: Content {
 }
 
 func readContentFormat(_ decoder: UpdateDecoder) throws -> ContentFormat {
-    return try ContentFormat(key: decoder.readKey(), value: decoder.readJSON())
+    // TODO: this as? may be wrong
+    return try ContentFormat(key: decoder.readKey(), value: decoder.readJSON() as? YTextAttributeValue)
 }

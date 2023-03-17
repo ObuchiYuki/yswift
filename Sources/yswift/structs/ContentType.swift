@@ -78,7 +78,7 @@ final public class ContentType: Content {
 private let typeRefs = [
     readYArray,
     readYMap,
-//    readYText,
+    readYText,
 //    readYXmlElement,
 //    readYXmlFragment,
 //    readYXmlHook,
@@ -86,7 +86,7 @@ private let typeRefs = [
 ]
 let YArrayRefID: UInt8 = 0
 let YMapRefID: UInt8 = 1
-//let YTextRefID: UInt8 = 2
+let YTextRefID: UInt8 = 2
 //let YXmlElementRefID: UInt8 = 3
 //let YXmlFragmentRefID: UInt8 = 4
 //let YXmlHookRefID: UInt8 = 5

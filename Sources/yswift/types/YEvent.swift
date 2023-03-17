@@ -9,15 +9,23 @@ import Foundation
 
 public protocol YEventDeltaInsertType {}
 extension String: YEventDeltaInsertType {}
-extension [Any]: YEventDeltaInsertType {}
-extension [String: Any]: YEventDeltaInsertType {}
+extension [Any?]: YEventDeltaInsertType {}
+extension [String: Any?]: YEventDeltaInsertType {}
 extension AbstractType: YEventDeltaInsertType {}
 
-public struct YEventDelta {
+public class YEventDelta {
     public var insert: YEventDeltaInsertType?
     public var retain: UInt?
     public var delete: UInt?
-    public var attributes: [String: Any]?
+    public var attributes: YTextAttributes?
+    
+    init(insert: YEventDeltaInsertType? = nil, retain: UInt? = nil, delete: UInt? = nil, attributes: YTextAttributes? = nil) {
+        self.insert = insert
+        self.retain = retain
+        self.delete = delete
+        self.attributes = attributes
+    }
+    
 }
 
 public enum YEventAction: String {

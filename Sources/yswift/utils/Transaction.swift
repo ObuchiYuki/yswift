@@ -80,17 +80,17 @@ public class Transaction {
                 transaction.afterState = transaction.doc.store.getStateVector()
                 doc.emit(Doc.Event.beforeObserverCalls, transaction)
                 
-                var fs: [() -> Void] = []
+                var fs: [() throws -> Void] = []
                 
                 transaction.changed.forEach{ (itemtype: AbstractType, subs: Set<String?>) in
-                    fs.append({ () -> Void in
+                    fs.append{
                         if itemtype._item == nil || !itemtype._item!.deleted {
-                            itemtype._callObserver(transaction, _parentSubs: subs)
+                            try itemtype._callObserver(transaction, _parentSubs: subs)
                         }
-                    })
+                    }
                 }
                 
-                fs.append({ () -> Void in
+                fs.append({
                     // deep observe events
                     transaction.changedParentTypes.forEach{ type, events in
                         var events = events
@@ -116,11 +116,18 @@ public class Transaction {
                     }
                 })
 
+                var handleError: Error?
                 var i = 0; while i < fs.count {
-                    fs[i]()
+                    do {
+                        try fs[i]()
+                    } catch {
+                        handleError = error
+                    }
                     i += 1
                 }
-                
+                if let handleError = handleError {
+                    throw handleError
+                }
             }
             
             // Replace deleted items with ItemDeleted / GC.

@@ -8,6 +8,29 @@
 import Foundation
 import Promise
 
+// not complete copy of ===
+func jsStrictEqual(_ a: Any?, _ b: Any?) -> Bool {
+    if a == nil && b == nil {
+        return true
+    }
+    // this may check JS object and array content
+    if let a = a as? AnyHashable, let b = b as? AnyHashable {
+        return a == b
+    }
+    return false
+}
+
+func removeDualOptional<T>(_ value: T??) -> T? {
+    switch value {
+    case .none: return nil
+    case .some(let value):
+        switch value {
+        case .none: return nil
+        case .some(let value): return value
+        }
+    }
+}
+
 extension NSRange {
     public init(from: Int, to: Int) {
         self.init(location: from, length: to-from)
@@ -56,4 +79,33 @@ extension Array {
 
 public func generateNewClientID() -> UInt {
     return UInt(UInt32.random(in: UInt32.min...UInt32.max))
+}
+
+public func equalFlat(a: [String: Any?], b: [String: Any?]) -> Bool {
+    // TODO: may be wrong
+    if let a = a as? [String: AnyHashable?], let b = b as? [String: AnyHashable?], a == b {
+        return true
+    }
+    
+//    if a.keys.count != b.keys.count { return false }
+//
+//    for (key, value) in a {
+//        if (!(value != nil || b[key] != nil) && b[key] == value) {
+//            return false
+//        }
+//    }
+    return true
+}
+
+public func equalAttributes(_ a: Any?, _ b: Any?) -> Bool {
+    if (a == nil && b == nil) { return true }
+    if !(a is [String: Any]), let a = a as? AnyHashable, let b = b as? AnyHashable {
+        return a == b
+    }
+    
+    if a is [String: Any]? && b is [String: Any]? {
+        return a != nil && b != nil && equalFlat(a: a as! [String: Any?], b: b as! [String: Any?])
+    }
+    
+    return false
 }

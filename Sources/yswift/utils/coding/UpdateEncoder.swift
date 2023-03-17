@@ -50,7 +50,7 @@ public protocol UpdateEncoder: DSEncoder {
     func writeLen(_ len: UInt)
     func writeAny(_ any: Any?)
     func writeBuf(_ buf: Data)
-    func writeJSON(_ embed: Any) throws
+    func writeJSON(_ embed: Any?) throws
     func writeKey(_ key: String)
 }
 
@@ -98,10 +98,14 @@ public class UpdateEncoderV1: DSEncoderV1, UpdateEncoder {
         self.restEncoder.writeData(buf)
     }
 
-    public func writeJSON(_ embed: Any) throws {
-        self.restEncoder.writeData(
-            try JSONSerialization.data(withJSONObject: embed)
-        )
+    public func writeJSON(_ embed: Any?) throws {
+        if embed == nil {
+            self.restEncoder.writeString("null")
+        } else {
+            self.restEncoder.writeData(
+                try JSONSerialization.data(withJSONObject: embed!)
+            )
+        }
     }
 
     public func writeKey(_ key: String) {
@@ -223,7 +227,7 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
      *
      * Initial we incoded objects using JSON. Now we use the much faster lib0/any-encoder. This method mainly exists for legacy purposes for the v1 encoder.
      */
-    public func writeJSON(_ embed: Any) {
+    public func writeJSON(_ embed: Any?) {
         self.restEncoder.writeAny(embed)
     }
 

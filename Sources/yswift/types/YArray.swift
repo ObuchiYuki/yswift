@@ -65,8 +65,8 @@ public class YArray: AbstractType {
      * @param {Transaction} transaction
      * @param {Set<nil|String>} parentSubs Keys changed on this type. `nil` if list was modified.
      */
-    public override func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) {
-        super._callObserver(transaction, _parentSubs: _parentSubs)
+    public override func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
+        try super._callObserver(transaction, _parentSubs: _parentSubs)
         self.callObservers(transaction: transaction, event: YArrayEvent(self, transaction: transaction))
     }
 

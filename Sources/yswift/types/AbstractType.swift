@@ -465,7 +465,7 @@ public class AbstractType: JSHashable {
 
     public func _write(_ _encoder: UpdateEncoder) {}
 
-    public func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) {
+    public func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
         if !transaction.local && self._searchMarker != nil {
             self._searchMarker!.removeAll()
         }

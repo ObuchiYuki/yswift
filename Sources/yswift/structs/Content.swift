@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol Content {
+public protocol Content: AnyObject {
     func getLength() -> UInt
     
     func getContent() -> [Any]
