@@ -13,7 +13,7 @@ final public class ContentEmbed: Content {
     
     public init(_ embed: Any) { self.embed = embed }
 
-    public func getLength() -> UInt { return 1 }
+    public func getLength() -> Int { return 1 }
 
     public func getContent() -> [Any] { return [self.embed] }
 
@@ -21,7 +21,7 @@ final public class ContentEmbed: Content {
 
     public func copy() -> ContentEmbed { return ContentEmbed(self.embed) }
 
-    public func splice(_ offset: UInt) -> ContentEmbed { fatalError() }
+    public func splice(_ offset: Int) -> ContentEmbed { fatalError() }
 
     public func mergeWith(_ right: Content) -> Bool { return false }
 
@@ -31,7 +31,7 @@ final public class ContentEmbed: Content {
     
     public func gc(_ store: StructStore) {}
 
-    public func write(_ encoder: UpdateEncoder, offset: UInt) throws { try encoder.writeJSON(self.embed) }
+    public func write(_ encoder: UpdateEncoder, offset: Int) throws { try encoder.writeJSON(self.embed) }
 
     public func getRef() -> UInt8 { return 5 }
 }

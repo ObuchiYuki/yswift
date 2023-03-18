@@ -15,12 +15,12 @@ public func lazyStructReaderGenerator(_ decoder: UpdateDecoder, yield: (Struct) 
     for _ in 0..<numOfStateUpdates {
         let numberOfStructs = try decoder.restDecoder.readUInt()
         let client = try decoder.readClient()
-        var clock = try decoder.restDecoder.readUInt()
+        var clock = try Int(decoder.restDecoder.readUInt())
         
         for _ in 0..<numberOfStructs {
             let info = try decoder.readInfo()
             if info == 10 {
-                let len = try decoder.restDecoder.readUInt()
+                let len = try Int(decoder.restDecoder.readUInt())
                 yield(
                     Skip(id: ID(client: client, clock: clock), length: len)
                 )

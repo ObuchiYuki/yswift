@@ -12,7 +12,7 @@ final public class ContentJSON: Content {
     
     public init(_ arr: [Any?]) { self.arr = arr }
 
-    public func getLength() -> UInt { return UInt(self.arr.count) }
+    public func getLength() -> Int { return self.arr.count }
 
     public func getContent() -> [Any] { return self.arr as [Any] }
 
@@ -20,9 +20,9 @@ final public class ContentJSON: Content {
 
     public func copy() -> ContentJSON { return ContentJSON(self.arr) }
 
-    public func splice(_ offset: UInt) -> ContentJSON {
-        let right = ContentJSON(self.arr[Int(offset)...].map{ $0 })
-        self.arr = self.arr[..<Int(offset)].map{ $0 }
+    public func splice(_ offset: Int) -> ContentJSON {
+        let right = ContentJSON(self.arr[offset...].map{ $0 })
+        self.arr = self.arr[..<offset].map{ $0 }
         return right
     }
 
@@ -37,11 +37,11 @@ final public class ContentJSON: Content {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: UInt) throws {
-        let len = UInt(self.arr.count)
+    public func write(_ encoder: UpdateEncoder, offset: Int) throws {
+        let len = self.arr.count
         encoder.writeLen(len - offset)
         for i in offset..<len {
-            let c = self.arr[Int(i)]
+            let c = self.arr[i]
             encoder.writeString(c == nil ? "undefined" : String(data: try JSONSerialization.data(withJSONObject: c!), encoding: .utf8)!)
         }
     }

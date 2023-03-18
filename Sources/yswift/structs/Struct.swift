@@ -7,9 +7,9 @@
 
 public class Struct {
     public let id: ID
-    public var length: UInt
+    public var length: Int
     
-    public init(id: ID, length: UInt) {
+    public init(id: ID, length: Int) {
         self.id = id
         self.length = length
     }
@@ -18,11 +18,11 @@ public class Struct {
 
     public func merge(with right: Struct) -> Bool { return false }
 
-    public func write(encoder: any UpdateEncoder, offset: UInt) throws { fatalError() }
+    public func write(encoder: any UpdateEncoder, offset: Int) throws { fatalError() }
 
-    public func integrate(transaction: Transaction, offset: UInt) throws -> Void { fatalError() }
+    public func integrate(transaction: Transaction, offset: Int) throws -> Void { fatalError() }
     
-    public func getMissing(_ transaction: Transaction, store: StructStore) throws -> UInt? { fatalError() }
+    public func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? { fatalError() }
 
     static public func tryMerge(withLeft structs: Ref<[Struct]>, pos: Int) {
         let left = structs[pos - 1]

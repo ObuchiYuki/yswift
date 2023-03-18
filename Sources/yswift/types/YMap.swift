@@ -57,8 +57,8 @@ public class YMap: AbstractType {
      * @param {Transaction} transaction
      * @param {Set<nil|String>} parentSubs Keys changed on this type. `nil` if list was modified.
      */
-    public override func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) {
-        self.callObservers(transaction: transaction, event: YMapEvent(self, transaction: transaction, keysChanged: _parentSubs))
+    public override func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
+        try self.callObservers(transaction: transaction, event: YMapEvent(self, transaction: transaction, keysChanged: _parentSubs))
     }
 
     /** Transforms this Shared Type to a JSON object. */

@@ -8,15 +8,15 @@
 import Foundation
 
 public class DeleteItem {
-    public let clock: UInt
-    public var len: UInt
+    public let clock: Int
+    public var len: Int
     
-    public init(clock: UInt, len: UInt) {
+    public init(clock: Int, len: Int) {
         self.clock = clock
         self.len = len
     }
 
-    static public func findIndex(_ dis: [DeleteItem], clock: UInt) -> Int? {
+    static public func findIndex(_ dis: [DeleteItem], clock: Int) -> Int? {
         var left = 0
         var right = dis.count - 1
         
@@ -38,7 +38,7 @@ public class DeleteItem {
 }
 
 public class DeleteSet {
-    public var clients: [UInt: [DeleteItem]] = [:]
+    public var clients: [Int: [DeleteItem]] = [:]
 
     public func iterate(_ transaction: Transaction, body: (Struct) throws -> Void) throws {
         
@@ -79,7 +79,7 @@ public class DeleteSet {
         }
     }
 
-    public func add(client: UInt, clock: UInt, length: UInt) {
+    public func add(client: Int, clock: Int, length: Int) {
         if self.clients[client] == nil {
             self.clients[client] = []
         }
@@ -95,7 +95,7 @@ public class DeleteSet {
             .sorted(by: { $0.key < $1.key })
             .forEach({ client, dsitems in
                 encoder.resetDsCurVal()
-                encoder.restEncoder.writeUInt(client)
+                encoder.restEncoder.writeUInt(UInt(client))
                 let len = dsitems.count
                 encoder.restEncoder.writeUInt(UInt(len))
                 for i in 0..<len {
@@ -115,7 +115,7 @@ public class DeleteSet {
                 let endDeleteItemClock = deleteItem.clock + deleteItem.len
                 
                 var si = try StructStore.findIndexSS(structs: structs, clock: deleteItem.clock)
-                var struct_ = structs[si];
+                var struct_ = structs[si]
                 
                 while si < structs.count && struct_.id.clock < endDeleteItemClock {
                     let struct__ = structs[si]
@@ -126,8 +126,8 @@ public class DeleteSet {
                         try (struct__ as! Item).gc(store, parentGCd: false)
                     }
                     
+                    struct_ = structs.value[si]
                     si += 1
-                    struct_ = structs[si]
                 }
             }
         }
@@ -183,7 +183,7 @@ public class DeleteSet {
         
         for _ in 0..<numClients {
             decoder.resetDsCurVal()
-            let client = try decoder.restDecoder.readUInt()
+            let client = try Int(decoder.restDecoder.readUInt())
             let IntOfDeletes = try decoder.restDecoder.readUInt()
             if IntOfDeletes > 0 {
                 if ds.clients[client] == nil { ds.clients[client] = [] }
@@ -215,8 +215,8 @@ public class DeleteSet {
                         
                         while i + 1 < structs.count && next.deleted {
                             len += next.length
-                            i += 1
                             next = structs[i + 1]
+                            i += 1
                         }
                     }
                     
@@ -238,12 +238,12 @@ public class DeleteSet {
         
         for _ in 0..<numClients {
             decoder.resetDsCurVal()
-            let client = try decoder.restDecoder.readUInt()
-            let IntOfDeletes = try decoder.restDecoder.readUInt()
+            let client = try Int(decoder.restDecoder.readUInt())
+            let numberOfDeletes = try decoder.restDecoder.readUInt()
             let structs = store.clients[client] ?? .init(value: [])
             let state = store.getState(client)
             
-            for _ in 0..<IntOfDeletes {
+            for _ in 0..<numberOfDeletes {
                 let clock = try decoder.readDsClock()
                 let clockEnd = try clock + decoder.readDsLen()
                 if clock < state {
@@ -251,23 +251,24 @@ public class DeleteSet {
                         unappliedDS.add(client: client, clock: state, length: clockEnd - state)
                     }
                     var index = try StructStore.findIndexSS(structs: structs, clock: clock)
-                    var struct_: Item = structs[index] as! Item
+                    var struct_ = structs[index]
                     // split the first item if necessary
                     if !struct_.deleted && struct_.id.clock < clock {
                         structs.value
-                            .insert(struct_.split(transaction, diff: clock - struct_.id.clock), at: index + 1)
+                            .insert((struct_ as! Item).split(transaction, diff: clock - struct_.id.clock), at: index + 1)
                         index += 1 // increase we now want to use the next struct
                     }
                     while (index < structs.count) {
-                        struct_ = structs[index] as! Item
+                        struct_ = structs[index]
                         index += 1
                         if struct_.id.clock < clockEnd {
                             if !struct_.deleted {
                                 if clockEnd < struct_.id.clock + struct_.length {
                                     structs.value
-                                        .insert(struct_.split(transaction, diff: clockEnd - struct_.id.clock), at: index)
+                                        .insert((struct_ as! Item)
+                                            .split(transaction, diff: clockEnd - struct_.id.clock), at: index)
                                 }
-                                struct_.delete(transaction)
+                                (struct_ as! Item).delete(transaction)
                             }
                         } else {
                             break

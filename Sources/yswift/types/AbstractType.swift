@@ -24,7 +24,7 @@ public class AbstractType: JSHashable {
     public var _item: Item? = nil
     public var _map: [String: Item] = [:]
     public var _start: Item? = nil
-    public var _length: UInt = 0
+    public var _length: Int = 0
     public var _eH: EventHandler<EventType, Transaction> = EventHandler() /** Event handlers */
     public var _dEH: EventHandler<[YEvent], Transaction> = EventHandler() /** Deep event handlers */
     public var _searchMarker: Ref<[ArraySearchMarker]>? = nil
@@ -32,7 +32,7 @@ public class AbstractType: JSHashable {
      /** The first non-deleted item */
     public var _first: Item? {
         var n = self._start
-        while (n != nil && n!.deleted) { n = n!.right }
+        while (n != nil && n!.deleted) { n = n!.right  as? Item }
         return n
     }
 
@@ -53,7 +53,7 @@ public class AbstractType: JSHashable {
         var arr: [Item] = []
         while (item != nil) {
             arr.append(item!)
-            item = item!.right
+            item = item!.right as? Item
         }
         return arr
     }
@@ -67,7 +67,7 @@ public class AbstractType: JSHashable {
         return false
     }
 
-    public func callObservers(transaction: Transaction, event: EventType) {
+    public func callObservers(transaction: Transaction, event: EventType) throws {
         var type = self
         let changedType = type
         
@@ -77,14 +77,14 @@ public class AbstractType: JSHashable {
             if type._item == nil { break }
             type = type._item!.parent as! AbstractType
         }
-        changedType._eH.callListeners(event, transaction)
+        try changedType._eH.callListeners(event, transaction)
     }
 
     public func listSlice(_ start: Int, end: Int) -> [Any] {
         var start = start, end = end
         
-        if start < 0 { start = Int(self._length) + start }
-        if end < 0 { end = Int(self._length) + end }
+        if start < 0 { start = self._length + start }
+        if end < 0 { end = self._length + end }
         var len = end - start
         var cs: [Any] = []
         var n = self._start
@@ -102,7 +102,7 @@ public class AbstractType: JSHashable {
                     start = 0
                 }
             }
-            n = n!.right
+            n = n!.right as? Item
         }
         return cs
     }
@@ -117,7 +117,7 @@ public class AbstractType: JSHashable {
                     cs.append(c[i])
                 }
             }
-            n = n!.right
+            n = n!.right as? Item
         }
         return cs
     }
@@ -132,31 +132,31 @@ public class AbstractType: JSHashable {
                     cs.append(c[i])
                 }
             }
-            n = n!.right
+            n = n!.right as? Item
         }
         return cs
     }
 
     /** Executes a provided function on once on overy element of this YArray. */
-    public func listForEach(body: (Any, Int) -> Void) {
+    public func listForEach(body: (Any, Int) throws -> Void) rethrows {
         var index = 0
         var item = self._start
         while (item != nil) {
             if item!.countable && !item!.deleted {
                 let c = item!.content.getContent()
                 for i in 0..<c.count {
-                    body(c[i], index)
+                    try body(c[i], index)
                     index += 1
                 }
             }
-            item = item!.right
+            item = item!.right as? Item
         }
     }
 
-    public func listMap<R>(body: (Any, Int) -> R) -> [R] {
+    public func listMap<R>(body: (Any, Int) throws -> R) rethrows -> [R] {
         var result: [R] = []
-        self.listForEach{ element, index in
-            result.append(body(element, index))
+        try self.listForEach{ element, index in
+            try result.append(body(element, index))
         }
         return result
     }
@@ -169,13 +169,13 @@ public class AbstractType: JSHashable {
         return AnyIterator<Any>{ () -> Any? in
             // find some content
             if currentContent == nil {
-                while (item != nil && item!.deleted) { item = item!.right }
+                while (item != nil && item!.deleted) { item = item!.right as? Item }
                 if item == nil {
                     return nil
                 }
                 currentContent = item!.content.getContent()
                 currentContentIndex = 0
-                item = item!.right
+                item = item!.right as? Item
             }
             let value = currentContent![currentContentIndex]
             currentContentIndex += 1
@@ -199,11 +199,11 @@ public class AbstractType: JSHashable {
                     index += 1
                 }
             }
-            item = item!.right
+            item = item!.right as? Item
         }
     }
 
-    public func listGet(_ index: UInt) -> Any? {
+    public func listGet(_ index: Int) -> Any? {
         var index = index
         let marker = ArraySearchMarker.find(self, index: index)
         var item = self._start
@@ -219,7 +219,7 @@ public class AbstractType: JSHashable {
                 index -= item!.length
             }
             
-            item = item!.right
+            item = item!.right as? Item
         }
         
         return nil
@@ -270,7 +270,7 @@ public class AbstractType: JSHashable {
                         
                         try left!.integrate(transaction: transaction, offset: 0)
                         
-                    } else if type(of: content) == AbstractType.self {
+                    } else if content is AbstractType {
                         let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                         let icontent = ContentType(content as! AbstractType)
                         left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
@@ -286,13 +286,13 @@ public class AbstractType: JSHashable {
     }
 
     // this -> parent
-    public func listInsertGenerics(_ transaction: Transaction, index: UInt, contents: [Any]) throws {
+    public func listInsertGenerics(_ transaction: Transaction, index: Int, contents: [Any]) throws {
         var index = index
         if index > self._length { throw YSwiftError.lengthExceeded }
 
         if index == 0 {
             if self._searchMarker != nil {
-                ArraySearchMarker.updateChanges(self._searchMarker!, index: index, len: UInt(contents.count))
+                ArraySearchMarker.updateChanges(self._searchMarker!, index: index, len: contents.count)
             }
             
             try self.listInsertGenericsAfter(transaction, referenceItem: nil, contents: contents)
@@ -323,10 +323,10 @@ public class AbstractType: JSHashable {
                 }
                 index -= n!.length
             }
-            n = n!.right
+            n = n!.right as? Item
         }
         if (self._searchMarker != nil) {
-            ArraySearchMarker.updateChanges(self._searchMarker!, index: startIndex, len: UInt(contents.count))
+            ArraySearchMarker.updateChanges(self._searchMarker!, index: startIndex, len: contents.count)
         }
         return try self.listInsertGenericsAfter(transaction, referenceItem: n, contents: contents)
     }
@@ -339,13 +339,13 @@ public class AbstractType: JSHashable {
             }
     
         var item = marker.item
-        while (item?.right != nil) { item = item!.right }
+        while (item?.right != nil) { item = item!.right as? Item }
         return try self.listInsertGenericsAfter(transaction, referenceItem: item, contents: contents)
     }
 
 
     /** this -> parent */
-    public func listDelete(_ transaction: Transaction, index: UInt, length: UInt) throws {
+    public func listDelete(_ transaction: Transaction, index: Int, length: Int) throws {
         var index = index, length = length
         
         if length == 0 { return }
@@ -367,7 +367,7 @@ public class AbstractType: JSHashable {
                 index -= item!.length
             }
             
-            item = item!.right
+            item = item!.right as? Item
         }
         
         while (length > 0 && item != nil) {
@@ -379,7 +379,7 @@ public class AbstractType: JSHashable {
                 item!.delete(transaction)
                 length -= item!.length
             }
-            item = item!.right
+            item = item!.right as? Item
         }
         if length > 0 {
             throw YSwiftError.lengthExceeded
@@ -429,7 +429,7 @@ public class AbstractType: JSHashable {
     // this -> parent
     public func mapGet(_ key: String) -> Any? {
         let val = self._map[key]
-        return val != nil && !val!.deleted ? val!.content.getContent()[Int(val!.length) - 1] : nil
+        return val != nil && !val!.deleted ? val!.content.getContent()[val!.length - 1] : nil
     }
 
     // this -> parent
@@ -437,7 +437,7 @@ public class AbstractType: JSHashable {
         var res: [String: Any?] = [:]
         self._map.forEach({ key, value in
             if !value.deleted {
-                res[key] = value.content.getContent()[Int(value.length) - 1]
+                res[key] = value.content.getContent()[value.length - 1]
             }
         })
         return res
@@ -453,7 +453,7 @@ public class AbstractType: JSHashable {
     public func mapGetSnapshot(_ key: String, snapshot: Snapshot) -> Any? {
         var v = self._map[key]
         while (v != nil && (snapshot.sv[v!.id.client] == nil || v!.id.clock >= (snapshot.sv[v!.id.client] ?? 0))) {
-            v = v!.left
+            v = v!.left as? Item
         }
         return v != nil && v!.isVisible(snapshot) ? v!.content.getContent()[Int(v!.length) - 1] : nil
     }
@@ -475,12 +475,14 @@ public class AbstractType: JSHashable {
     }
 
     /** Observe all events that are created on this type. */
-    public func observe(_ f: @escaping (EventType, Transaction) -> Void) -> EventHandler.Disposer {
+    @discardableResult
+    public func observe(_ f: @escaping (EventType, Transaction) throws -> Void) -> EventHandler.Disposer {
         self._eH.addListener(f)
     }
 
     /** Observe all events that are created by this type and its children. */
-    public func observeDeep(_ f: @escaping ([YEvent], Transaction) -> Void) -> EventHandler.Disposer {
+    @discardableResult
+    public func observeDeep(_ f: @escaping ([YEvent], Transaction) throws -> Void) -> EventHandler.Disposer {
         self._dEH.addListener(f)
     }
 

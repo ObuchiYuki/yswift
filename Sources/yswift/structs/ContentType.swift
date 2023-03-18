@@ -14,7 +14,7 @@ final public class ContentType: Content {
     
     public init(_ type: AbstractType) { self.type = type }
 
-    public func getLength() -> UInt { return 1 }
+    public func getLength() -> Int { return 1 }
 
     public func getContent() -> [Any] { return [self.type] }
 
@@ -22,7 +22,7 @@ final public class ContentType: Content {
 
     public func copy() -> ContentType { return ContentType(self.type._copy()) }
 
-    public func splice(_ offset: UInt) -> ContentType { fatalError() }
+    public func splice(_ offset: Int) -> ContentType { fatalError() }
 
     public func mergeWith(_ right: Content) -> Bool { return false }
 
@@ -38,7 +38,7 @@ final public class ContentType: Content {
             } else {
                 transaction._mergeStructs.append(item!)
             }
-            item = item!.right
+            item = (item!.right as? Item)
         }
         self.type._map.forEach({ _, item in
             if !item.deleted {
@@ -55,20 +55,20 @@ final public class ContentType: Content {
         var item = self.type._start
         while (item != nil) {
             try item!.gc(store, parentGCd: true)
-            item = item!.right
+            item = (item!.right as? Item)
         }
         self.type._start = nil
         try self.type._map.forEach({ _, item in
             var item: Item? = item
             while (item != nil) {
                 try item!.gc(store, parentGCd: true)
-                item = item!.left
+                item = (item!.left as? Item)
             }
         })
         self.type._map = [:]
     }
 
-    public func write(_ encoder: UpdateEncoder, offset: UInt) {
+    public func write(_ encoder: UpdateEncoder, offset: Int) {
         self.type._write(encoder)
     }
 

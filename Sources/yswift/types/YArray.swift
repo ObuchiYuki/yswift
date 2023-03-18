@@ -55,8 +55,8 @@ public class YArray: AbstractType {
         return array
     }
 
-    public var length: UInt {
-        return self._prelimContent == nil ? self._length : UInt(self._prelimContent!.count)
+    public var length: Int {
+        return self._prelimContent == nil ? self._length : self._prelimContent!.count
     }
 
     /**
@@ -67,13 +67,13 @@ public class YArray: AbstractType {
      */
     public override func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
         try super._callObserver(transaction, _parentSubs: _parentSubs)
-        self.callObservers(transaction: transaction, event: YArrayEvent(self, transaction: transaction))
+        try self.callObservers(transaction: transaction, event: YArrayEvent(self, transaction: transaction))
     }
 
     public func insert(_ index: Int, content: [Any]) throws {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
-                try self.listInsertGenerics(transaction, index: UInt(index), contents: content)
+                try self.listInsertGenerics(transaction, index: index, contents: content)
             })
         } else {
             self._prelimContent!.insert(contentsOf: content, at: index)
@@ -110,7 +110,7 @@ public class YArray: AbstractType {
     public func delete(_ index: Int, length: Int = 1) throws {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
-                try self.listDelete(transaction, index: UInt(index), length: UInt(length))
+                try self.listDelete(transaction, index: index, length: length)
             })
         } else {
             self._prelimContent!.removeSubrange(index..<index+length)
@@ -124,7 +124,7 @@ public class YArray: AbstractType {
      * @return {T}
      */
     public func get(_ index: Int) -> Any? {
-        return self.listGet(UInt(index))
+        return self.listGet(index)
     }
 
     /** Transforms this YArray to a JavaScript Array. */
@@ -156,9 +156,9 @@ public class YArray: AbstractType {
      * @return {Array<M>} A array with each element being the result of the
      *                                 callback function
      */
-    public func map<U>(_ body: (Any, Int, YArray) -> U) -> [U] {
-        return self.listMap(body: { (element: Any, index: Int) -> U in
-            body(element, index, self)
+    public func map<U>(_ body: (Any, Int, YArray) throws -> U) rethrows -> [U] {
+        return try self.listMap(body: { (element: Any, index: Int) -> U in
+            try body(element, index, self)
         })
     }
 
@@ -167,9 +167,9 @@ public class YArray: AbstractType {
      *
      * @param {function(T,Int,YArray<T>):Void} f A function to execute on every element of this YArray.
      */
-    public func forEach(_ f: (Any, Int, YArray) -> Void) {
-        self.listForEach(body: { value, index in
-            f(value, index, self)
+    public func forEach(_ f: (Any, Int, YArray) throws -> Void) rethrows {
+        try self.listForEach(body: { value, index in
+            try f(value, index, self)
         })
     }
 

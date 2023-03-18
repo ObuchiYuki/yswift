@@ -16,7 +16,7 @@ final public class ContentFormat: Content {
         self.value = value
     }
 
-    public func getLength() -> UInt { return 1 }
+    public func getLength() -> Int { return 1 }
     
     public func getContent() -> [Any] { return [] }
 
@@ -24,7 +24,7 @@ final public class ContentFormat: Content {
 
     public func copy() -> ContentFormat { return ContentFormat(key: self.key, value: self.value) }
 
-    public func splice(_ offset: UInt) -> ContentFormat { fatalError() }
+    public func splice(_ offset: Int) -> ContentFormat { fatalError() }
 
     public func mergeWith(_ right: Content) -> Bool { return false }
 
@@ -36,7 +36,7 @@ final public class ContentFormat: Content {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: UInt) throws {
+    public func write(_ encoder: UpdateEncoder, offset: Int) throws {
         encoder.writeKey(self.key)
         try encoder.writeJSON(self.value)
     }

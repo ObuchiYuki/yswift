@@ -8,7 +8,7 @@
 import Foundation
 
 public protocol Content: AnyObject {
-    func getLength() -> UInt
+    func getLength() -> Int
     
     func getContent() -> [Any]
     
@@ -16,7 +16,7 @@ public protocol Content: AnyObject {
     
     func copy() -> Self
     
-    func splice(_ offset: UInt) -> Self
+    func splice(_ offset: Int) -> Self
 
     func mergeWith(_ right: any Content) -> Bool
 
@@ -26,7 +26,7 @@ public protocol Content: AnyObject {
 
     func gc(_ store: StructStore) throws -> Void
 
-    func write(_ encoder: UpdateEncoder, offset: UInt) throws -> Void
+    func write(_ encoder: UpdateEncoder, offset: Int) throws -> Void
     
     func getRef() -> UInt8
 }

@@ -18,6 +18,17 @@ struct YSwiftError: LocalizedError {
     
     init(_ message: String) {
         self.errorDescription = message
-        print(Backtrace(dropFirstSymbols: 5))
+        
+        #if DEBUG
+        if __isTesting {
+            print(Backtrace(dropFirstSymbols: 5))
+        }
+        #endif
     }
 }
+
+#if DEBUG
+let __isTesting = NSClassFromString("XCText") != nil
+#else
+let __isTesting = false
+#endif

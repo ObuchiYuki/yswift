@@ -10,24 +10,24 @@ import lib0
 
 public class ID: Equatable {
     /// Client id
-    public var client: UInt
+    public var client: Int
     /// unique per client id, continuous Int */
-    public var clock: UInt
+    public var clock: Int
 
-    public init(client: UInt, clock: UInt) {
+    public init(client: Int, clock: Int) {
         self.client = client
         self.clock = clock
     }
 
     public func encode(_ encoder: Lib0Encoder) {
-        encoder.writeUInt(self.client)
-        encoder.writeUInt(self.clock)
+        encoder.writeUInt(UInt(self.client))
+        encoder.writeUInt(UInt(self.clock))
     }
 
     public static func decode(_ decoder: Lib0Decoder) throws -> ID {
         return ID(
-            client: try decoder.readUInt(),
-            clock: try decoder.readUInt()
+            client: Int(try decoder.readUInt()),
+            clock: Int(try decoder.readUInt())
         )
     }
     

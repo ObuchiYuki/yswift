@@ -26,7 +26,7 @@ final public class ContentString: Content {
     
     public init(_ str: NSString) { self.str = str }
 
-    public func getLength() -> UInt { return UInt(self.str.length) }
+    public func getLength() -> Int { return self.str.length }
 
     public func getContent() -> [Any] {
         self.str.utf16Array
@@ -37,8 +37,7 @@ final public class ContentString: Content {
 
     public func copy() -> ContentString { return ContentString(self.str) }
 
-    public func splice(_ offset: UInt) -> ContentString {
-        let offset = Int(offset)
+    public func splice(_ offset: Int) -> ContentString {
         let right = ContentString(self.str.substring(from: offset) as NSString)
         self.str = self.str.substring(to: offset) as NSString
 
@@ -67,8 +66,8 @@ final public class ContentString: Content {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: UInt) {
-        encoder.writeString(offset == 0 ? self.str as String : self.str.substring(to: Int(offset)))
+    public func write(_ encoder: UpdateEncoder, offset: Int) {
+        encoder.writeString(offset == 0 ? self.str as String : self.str.substring(to: offset))
     }
 
     public func getRef() -> UInt8 { return 4 }

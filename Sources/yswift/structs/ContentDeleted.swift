@@ -8,11 +8,11 @@
 import Foundation
 
 final public class ContentDeleted: Content {
-    public var len: UInt
+    public var len: Int
     
-    public init(_ len: UInt) { self.len = len }
+    public init(_ len: Int) { self.len = len }
 
-    public func getLength() -> UInt { return self.len }
+    public func getLength() -> Int { return self.len }
 
     public func getContent() -> [Any] { return [] }
 
@@ -20,7 +20,7 @@ final public class ContentDeleted: Content {
 
     public func copy() -> ContentDeleted { return ContentDeleted(self.len) }
 
-    public func splice(_ offset: UInt) -> ContentDeleted {
+    public func splice(_ offset: Int) -> ContentDeleted {
         let right = ContentDeleted(self.len - offset)
         self.len = offset
         return right
@@ -40,7 +40,7 @@ final public class ContentDeleted: Content {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: UInt) { encoder.writeLen(self.len - offset) }
+    public func write(_ encoder: UpdateEncoder, offset: Int) { encoder.writeLen(self.len - offset) }
 
     public func getRef() -> UInt8 { return 1 }
 }

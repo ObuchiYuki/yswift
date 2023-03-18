@@ -19,15 +19,15 @@ public class PendingStrcut {
 }
 
 public class StructStore {
-    public var clients: [UInt: Ref<[Struct]>] = [:]
+    public var clients: [Int: Ref<[Struct]>] = [:]
     public var pendingStructs: PendingStrcut? = nil
     public var pendingDs: Data? = nil
 
     public init() {}
 
     /** Return the states as a Map<client,clock>. Note that clock refers to the next expected clock id. */
-    public func getStateVector() -> [UInt: UInt] {
-        var sm = [UInt: UInt]()
+    public func getStateVector() -> [Int: Int] {
+        var sm = [Int: Int]()
         self.clients.forEach({ client, structs in
             let struct_ = structs[structs.count - 1]
             sm[client] = struct_.id.clock + struct_.length
@@ -35,7 +35,7 @@ public class StructStore {
         return sm
     }
 
-    public func getState(_ client: UInt) -> UInt {
+    public func getState(_ client: Int) -> Int {
         let structs = self.clients[client]
         if structs == nil {
             return 0
@@ -96,16 +96,16 @@ public class StructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    public func getItemCleanEnd(_ transaction: Transaction, id: ID) throws -> Item {
+    public func getItemCleanEnd(_ transaction: Transaction, id: ID) throws -> Struct {
         let structs = self.clients[id.client]!
         
         let index = try StructStore.findIndexSS(structs: structs, clock: id.clock)
         let struct_ = structs[index]
         if id.clock != struct_.id.clock + struct_.length - 1 && !(struct_ is GC) {
             structs.value
-                .insert((struct_ as! Item).split(transaction, diff: id.clock - struct_.id.clock + 1), at: Int(index) + 1)
+                .insert((struct_ as! Item).split(transaction, diff: id.clock - struct_.id.clock + 1), at: index + 1)
         }
-        return struct_ as! Item
+        return struct_
     }
 
     /** Replace `item` with `newitem` in store */
@@ -116,16 +116,16 @@ public class StructStore {
     }
 
     /** Iterate over a range of structs */
-    static public func iterateStructs(transaction: Transaction, structs: Ref<[Struct]>, clockStart: UInt, len: UInt, f: (Struct) throws -> Void) throws {
+    static public func iterateStructs(transaction: Transaction, structs: Ref<[Struct]>, clockStart: Int, len: Int, f: (Struct) throws -> Void) throws {
         if len == 0 { return }
         let clockEnd = clockStart + len
-        var index = try self.findIndexCleanStart(transaction: transaction, structs: structs, clock: Int(clockStart))
+        var index = try self.findIndexCleanStart(transaction: transaction, structs: structs, clock: clockStart)
         var struct_: Struct
         repeat {
             struct_ = structs.value[index]
             index += 1
             if clockEnd < struct_.id.clock + struct_.length {
-                _ = try self.findIndexCleanStart(transaction: transaction, structs: structs, clock: Int(clockEnd))
+                _ = try self.findIndexCleanStart(transaction: transaction, structs: structs, clock: clockEnd)
             }
             try f(struct_)
         } while (index < structs.count && structs[index].id.clock < clockEnd)
@@ -133,7 +133,7 @@ public class StructStore {
 
 
     /** Perform a binary search on a sorted array */
-    public static func findIndexSS(structs: Ref<[Struct]>, clock: UInt) throws -> Int {
+    public static func findIndexSS(structs: Ref<[Struct]>, clock: Int) throws -> Int {
         var left = 0
         var right = structs.count - 1
         var mid = structs[right]
@@ -144,7 +144,7 @@ public class StructStore {
         // @todo does it even make sense to pivot the search?
         // If a good split misses, it might actually increase the time to find the correct item.
         // Currently, the only advantage is that search with pivoting might find the item on the first try.
-        var midindex = (Int(clock) / (Int(midclock) + Int(mid.length) - 1)) * right
+        var midindex = (clock / (midclock + mid.length - 1)) * right
         while (left <= right) {
             mid = structs[midindex]
             midclock = mid.id.clock
@@ -164,11 +164,11 @@ public class StructStore {
     }
 
     public static func findIndexCleanStart(transaction: Transaction, structs: Ref<[Struct]>, clock: Int) throws -> Int {
-        let index = try StructStore.findIndexSS(structs: structs, clock: UInt(clock))
+        let index = try StructStore.findIndexSS(structs: structs, clock: clock)
         let struct_ = structs[index]
         if struct_.id.clock < clock && struct_ is Item {
             structs.value
-                .insert(((struct_ as! Item).split(transaction, diff: UInt(clock) - (struct_ as! Item).id.clock)), at: index + 1)
+                .insert(((struct_ as! Item).split(transaction, diff: clock - (struct_ as! Item).id.clock)), at: index + 1)
             return index + 1
         }
         return index

@@ -14,7 +14,7 @@ final public class ContentAny: Content {
         self.array = array
     }
 
-    public func getLength() -> UInt { return UInt(self.array.count) }
+    public func getLength() -> Int { return self.array.count }
 
     public func getContent() -> [Any] { return self.array as [Any] }
 
@@ -22,9 +22,9 @@ final public class ContentAny: Content {
 
     public func copy() -> ContentAny { return ContentAny(self.array) }
 
-    public func splice(_ offset: UInt) -> ContentAny {
-        let right = ContentAny(self.array[Int(offset)...].map{ $0 })
-        self.array = self.array[0..<Int(offset)].map{ $0 }
+    public func splice(_ offset: Int) -> ContentAny {
+        let right = ContentAny(self.array[offset...].map{ $0 })
+        self.array = self.array[0..<offset].map{ $0 }
         return right
     }
 
@@ -39,10 +39,10 @@ final public class ContentAny: Content {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: UInt) {
+    public func write(_ encoder: UpdateEncoder, offset: Int) {
         let len = self.array.count
-        encoder.writeLen(UInt(len) - offset)
-        for i in Int(offset)..<len {
+        encoder.writeLen(len - offset)
+        for i in offset..<len {
             let c = self.array[i]
             encoder.writeAny(c)
         }

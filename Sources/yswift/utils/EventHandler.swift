@@ -8,11 +8,11 @@
 import Foundation
 
 public class EventHandler<T0, T1> {
-    public var handlers: [Disposer: (T0, T1) -> Void] = [:]
+    public var handlers: [Disposer: (T0, T1) throws -> Void] = [:]
     
     public typealias Disposer = UUID
     
-    public func addListener(_ handler: @escaping (T0, T1) -> Void) -> Disposer {
+    public func addListener(_ handler: @escaping (T0, T1) throws -> Void) -> Disposer {
         let disposer = UUID()
         self.handlers[disposer] = handler
         return disposer
@@ -26,9 +26,9 @@ public class EventHandler<T0, T1> {
         self.handlers.removeAll()
     }
     
-    public func callListeners(_ v0: T0, _ v1: T1) {
+    public func callListeners(_ v0: T0, _ v1: T1) throws {
         for (_, handler) in self.handlers {
-            handler(v0, v1)
+            try handler(v0, v1)
         }
     }
 }

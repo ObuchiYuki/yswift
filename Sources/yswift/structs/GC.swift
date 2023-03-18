@@ -20,7 +20,7 @@ public class GC: Struct {
         return true
     }
 
-    public override func integrate(transaction: Transaction, offset: UInt) throws {
+    public override func integrate(transaction: Transaction, offset: Int) throws {
         if offset > 0 {
             self.id.clock += offset
             self.length -= offset
@@ -28,12 +28,12 @@ public class GC: Struct {
         try transaction.doc.store.addStruct(self)
     }
 
-    public override func write(encoder: UpdateEncoder, offset: UInt) {
+    public override func write(encoder: UpdateEncoder, offset: Int) {
         encoder.writeInfo(structGCRefNumber)
         encoder.writeLen(self.length - offset)
     }
 
-    public func getMissing(_ transaction: Transaction, store: StructStore) -> Int? {
+    public override func getMissing(_ transaction: Transaction, store: StructStore) -> Int? {
         return nil
     }
 }

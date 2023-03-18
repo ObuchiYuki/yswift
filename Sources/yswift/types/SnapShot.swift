@@ -10,9 +10,9 @@ import lib0
 
 public class Snapshot: JSHashable {
     public var ds: DeleteSet
-    public var sv: [UInt: UInt]
+    public var sv: [Int: Int]
 
-    public init(_ ds: DeleteSet, sv: [UInt: UInt]) {
+    public init(_ ds: DeleteSet, sv: [Int: Int]) {
         self.ds = ds
         self.sv = sv
     }
@@ -30,7 +30,7 @@ public class Snapshot: JSHashable {
 
     public func encodeV2(_ encoder: DSEncoder = DSEncoderV2()) throws -> Data {
         try self.ds.encode(encoder)
-        _ = try writeStateVector(encoder: encoder, sv: self.sv.toIntInt())
+        _ = try writeStateVector(encoder: encoder, sv: self.sv)
         return encoder.toData()
     }
     
@@ -40,7 +40,7 @@ public class Snapshot: JSHashable {
     
     static public func decodeV2(_ buf: Data, decoder: DSDecoder?) throws -> Snapshot {
         let decoder = try decoder ?? DSDecoderV2(Lib0Decoder(data: buf))
-        return Snapshot(try DeleteSet.decode(decoder: decoder), sv: try readStateVector(decoder: decoder).toUIntUInt())
+        return Snapshot(try DeleteSet.decode(decoder: decoder), sv: try readStateVector(decoder: decoder))
     }
     
     static public func decode(_ buf: Data) throws -> Snapshot {
@@ -76,13 +76,13 @@ public class Snapshot: JSHashable {
     
         let encoder = UpdateEncoderV2()
         try originDoc.transact({ transaction in
-            var size: UInt = 0
+            var size = 0
             self.sv.forEach({ clock, _ in
                 if clock > 0 {
                     size += 1
                 }
             })
-            encoder.restEncoder.writeUInt(size)
+            encoder.restEncoder.writeUInt(UInt(size))
             // splitting the structs before writing them to the encoder
             for (client, clock) in self.sv {
                 if clock == 0 { continue }

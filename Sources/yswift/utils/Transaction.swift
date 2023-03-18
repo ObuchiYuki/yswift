@@ -14,9 +14,9 @@ public class Transaction {
     
     public var deleteSet: DeleteSet = DeleteSet()
     
-    public var beforeState: [UInt: UInt] = [:]
+    public var beforeState: [Int: Int] = [:]
 
-    public var afterState: [UInt: UInt] = [:]
+    public var afterState: [Int: Int] = [:]
 
     public var changed: [AbstractType: Set<String?>] = [:] // Map<AbstractType_<YEvent<any>>, Set<String?>>
 
@@ -79,7 +79,7 @@ public class Transaction {
         do {
             ds.sortAndMerge()
             transaction.afterState = transaction.doc.store.getStateVector()
-            try doc.emit(Doc.Event.beforeObserverCalls, transaction)
+            try doc.emit(Doc.On.beforeObserverCalls, transaction)
             
             var fs: [() throws -> Void] = []
             
@@ -107,13 +107,13 @@ public class Transaction {
                             events
                                 .sort{ event1, event2 in event1.path.count < event2.path.count }
                             
-                            type._dEH.callListeners(events, transaction)
+                            try type._dEH.callListeners(events, transaction)
                         }
                     }
                 }
                 
                 fs.append{
-                    try doc.emit(Doc.Event.afterTransaction, transaction)
+                    try doc.emit(Doc.On.afterTransaction, transaction)
                 }
             })
 
@@ -168,20 +168,20 @@ public class Transaction {
             doc.clientID = generateNewClientID()
         }
         
-        try doc.emit(Doc.Event.afterTransactionCleanup, transaction)
+        try doc.emit(Doc.On.afterTransactionCleanup, transaction)
         
-        if doc.isObserving(Doc.Event.update) {
+        if doc.isObserving(Doc.On.update) {
             let encoder = UpdateEncoderV1()
             let hasContent = try transaction.encodeUpdateMessage(encoder)
             if hasContent {
-                try doc.emit(Doc.Event.update, (encoder.toData(), transaction.origin, transaction))
+                try doc.emit(Doc.On.update, (encoder.toData(), transaction.origin, transaction))
             }
         }
-        if doc.isObserving(Doc.Event.updateV2) {
+        if doc.isObserving(Doc.On.updateV2) {
             let encoder = UpdateEncoderV2()
             let hasContent = try transaction.encodeUpdateMessage(encoder)
             if hasContent {
-                try doc.emit(Doc.Event.updateV2, (
+                try doc.emit(Doc.On.updateV2, (
                     encoder.toData(), transaction.origin, transaction
                 ))
             }
@@ -200,16 +200,16 @@ public class Transaction {
                 doc.subdocs.insert(subdoc)
             })
             subdocsRemoved.forEach{ doc.subdocs.remove($0) }
-            let subdocevent = Doc.Event.SubDocEvent(
+            let subdocevent = Doc.On.SubDocEvent(
                 loaded: subdocsLoaded, added: subdocsAdded, removed: subdocsRemoved
             )
-            try doc.emit(Doc.Event.subdocs, (subdocevent, transaction))
+            try doc.emit(Doc.On.subdocs, (subdocevent, transaction))
             try subdocsRemoved.forEach{ try $0.destroy() }
         }
 
         if transactions.count <= i + 1 {
             doc._transactionCleanups = .init(value: [])
-            try doc.emit(Doc.Event.afterAllTransactions, transactions.map{ $0 })
+            try doc.emit(Doc.On.afterAllTransactions, transactions.map{ $0 })
         } else {
             try Transaction.cleanup(transactions, i: i + 1)
         }
@@ -227,9 +227,9 @@ public class Transaction {
             doc._transactionCleanups.value.append(doc._transaction!)
                         
             if doc._transactionCleanups.count == 1 {
-                try doc.emit(Doc.Event.beforeAllTransactions, ())
+                try doc.emit(Doc.On.beforeAllTransactions, ())
             }
-            try doc.emit(Doc.Event.beforeTransaction, doc._transaction!)
+            try doc.emit(Doc.On.beforeTransaction, doc._transaction!)
         }
         
         func defering() throws {

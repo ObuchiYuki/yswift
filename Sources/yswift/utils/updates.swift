@@ -130,8 +130,8 @@ func encodeStateVectorFromUpdateV2(
             if currClient != curr!.id.client {
                 if currClock != 0 {
                     size += 1
-                    encoder.restEncoder.writeUInt(currClient)
-                    encoder.restEncoder.writeUInt(currClock)
+                    encoder.restEncoder.writeUInt(UInt(currClient))
+                    encoder.restEncoder.writeUInt(UInt(currClock))
                 }
                 currClient = curr!.id.client
                 currClock = 0
@@ -148,13 +148,13 @@ func encodeStateVectorFromUpdateV2(
         // write what we have
         if currClock != 0 {
             size += 1
-            encoder.restEncoder.writeUInt(currClient)
-            encoder.restEncoder.writeUInt(currClock)
+            encoder.restEncoder.writeUInt(UInt(currClient))
+            encoder.restEncoder.writeUInt(UInt(currClock))
         }
         // prepend the size of the state vector
         let enc = Lib0Encoder()
         enc.writeUInt(UInt(size))
-        enc.writeData(encoder.restEncoder.data)
+        enc.writeOpaqueSizeData(encoder.restEncoder.data)
         encoder.restEncoder = enc
         return encoder.toData()
     } else {
@@ -212,32 +212,32 @@ public func parseUpdateMeta(update: Data) throws -> UpdateMeta {
 public func sliceStruct(left: Struct, diff: Int) -> Struct { // no Skip return
     if left is GC {
         let client = left.id.client, clock = left.id.clock
-        return GC(id: ID(client: client, clock: clock + UInt(diff)), length: left.length - UInt(diff))
+        return GC(id: ID(client: client, clock: clock + diff), length: left.length - diff)
     } else if left is Skip {
         let client = left.id.client, clock = left.id.clock
-        return Skip(id: ID(client: client, clock: clock + UInt(diff)), length: left.length - UInt(diff))
+        return Skip(id: ID(client: client, clock: clock + diff), length: left.length - diff)
     } else {
         let leftItem = left as! Item
         let client = leftItem.id.client, clock = leftItem.id.clock
         
         return Item(
-            id: ID(client: client, clock: clock + UInt(diff)),
+            id: ID(client: client, clock: clock + diff),
             left: nil,
-            origin: ID(client: client, clock: clock + UInt(diff) - 1),
+            origin: ID(client: client, clock: clock + diff - 1),
             right: nil,
             rightOrigin: leftItem.rightOrigin,
             parent: leftItem.parent,
             parentSub: leftItem.parentSub,
-            content: leftItem.content.splice(UInt(diff))
+            content: leftItem.content.splice(diff)
         )
     }
 }
 
 public class StructWrite {
     public var struct_: Struct
-    public var offset: UInt
+    public var offset: Int
     
-    init(struct_: Struct, offset: UInt) {
+    init(struct_: Struct, offset: Int) {
         self.struct_ = struct_
         self.offset = offset
     }
@@ -452,9 +452,9 @@ public func writeStructToLazyStructWriter(lazyWriter: LazyStructWriter, struct_:
         // write next client
         lazyWriter.encoder.writeClient(struct_.id.client)
         // write startClock
-        lazyWriter.encoder.restEncoder.writeUInt(struct_.id.clock + UInt(offset))
+        lazyWriter.encoder.restEncoder.writeUInt(UInt(struct_.id.clock + offset))
     }
-    try struct_.write(encoder: lazyWriter.encoder, offset: UInt(offset))
+    try struct_.write(encoder: lazyWriter.encoder, offset: offset)
     lazyWriter.written += 1
 }
 

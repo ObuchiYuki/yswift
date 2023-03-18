@@ -20,7 +20,7 @@ import Foundation
  * 7: Item with Type
  */
 
-public func writeStructs(encoder: UpdateEncoder, structs: Ref<[Struct]>, client: UInt, clock: UInt) throws {
+public func writeStructs(encoder: UpdateEncoder, structs: Ref<[Struct]>, client: Int, clock: Int) throws {
     // write first id
     let clock = max(clock, structs[0].id.clock) // make sure the first id exists
     let startNewStructs = try StructStore.findIndexSS(structs: structs, clock: clock)
@@ -28,7 +28,7 @@ public func writeStructs(encoder: UpdateEncoder, structs: Ref<[Struct]>, client:
     // write # encoded structs
     encoder.restEncoder.writeUInt(UInt(structs.count - startNewStructs))
     encoder.writeClient(client)
-    encoder.restEncoder.writeUInt(clock)
+    encoder.restEncoder.writeUInt(UInt(clock))
         
     let firstStruct = structs[startNewStructs]
     // write first struct with an offset
@@ -43,7 +43,7 @@ public func writeClientsStructs(encoder: UpdateEncoder, store: StructStore, _sm:
     var sm = [Int: Int]()
     _sm.forEach({ client, clock in
         // only write if structs are available
-        if store.getState(UInt(client)) > clock {
+        if store.getState(client) > clock {
             sm[client] = clock
         }
     })
@@ -58,7 +58,7 @@ public func writeClientsStructs(encoder: UpdateEncoder, store: StructStore, _sm:
             
     try sm.sorted(by: { $0.key > $1.key }).forEach{ client, clock in
         try writeStructs(
-            encoder: encoder, structs: store.clients[UInt(client)]!, client: UInt(client), clock: UInt(clock)
+            encoder: encoder, structs: store.clients[client]!, client: client, clock: clock
         )
     }
 }
@@ -76,26 +76,26 @@ public typealias GC_or_Item_RefArray = Ref<[Struct?]>
 
 public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [Int: StructRef] {
     var clientRefs = [Int: StructRef]()
-    let numOfStateUpdates = try decoder.restDecoder.readUInt()
+    let numOfStateUpdates = try Int(decoder.restDecoder.readUInt())
     
     for _ in 0..<numOfStateUpdates {
-        let numberOfStructs = try decoder.restDecoder.readUInt()
-        let refs: GC_or_Item_RefArray = Ref(value: Array(repeating: nil, count: Int(numberOfStructs)))
+        let numberOfStructs = try Int(decoder.restDecoder.readUInt())
+        let refs: GC_or_Item_RefArray = Ref(value: Array(repeating: nil, count: numberOfStructs))
         let client = try decoder.readClient()
-        var clock = try decoder.restDecoder.readUInt()
+        var clock = try Int(decoder.restDecoder.readUInt())
         // let start = performance.now()
-        clientRefs[Int(client)] = StructRef(i: 0, refs: refs)
+        clientRefs[client] = StructRef(i: 0, refs: refs)
         
         for i in 0..<numberOfStructs {
             let info = try decoder.readInfo()
             switch info & 0b0001_1111 {
             case 0:
                 let len = try decoder.readLen()
-                refs[Int(i)] = GC(id: ID(client: client, clock: clock), length: len)
+                refs[i] = GC(id: ID(client: client, clock: clock), length: len)
                 clock += len
             case 10:
-                let len = try decoder.restDecoder.readUInt()
-                refs[Int(i)] = Skip(id: ID(client: client, clock: clock), length: len)
+                let len = try Int(decoder.restDecoder.readUInt())
+                refs[i] = Skip(id: ID(client: client, clock: clock), length: len)
                 clock += len
                 break
             default:
@@ -172,14 +172,14 @@ public func integrateStructs(
     func addStackToRestSS() {
         for item in stack {
             let client = item.id.client
-            let unapplicableItems = clientsStructRefs[Int(client)]
+            let unapplicableItems = clientsStructRefs[client]
             if unapplicableItems != nil {
                 // decrement because we weren't able to apply previous operation
                 unapplicableItems!.i -= 1
-                restStructs.clients[client] = Ref(value:
-                                                    unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! as! Struct }
+                restStructs.clients[client] = Ref(
+                    value: unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! as! Struct }
                 )
-                clientsStructRefs.removeValue(forKey: Int(client))
+                clientsStructRefs.removeValue(forKey: client)
                 unapplicableItems!.i = 0
                 unapplicableItems!.refs = .init(value: [])
             } else {
@@ -195,11 +195,11 @@ public func integrateStructs(
     // iterate over all struct readers until we are done
     while (true) {
         if type(of: stackHead) != Skip.self {
-            let localClock = state.setIfUndefined(Int(stackHead.id.client), Int(store.getState(stackHead.id.client)))
-            let offset = Int(localClock) - Int(stackHead.id.clock)
+            let localClock = state.setIfUndefined(stackHead.id.client, store.getState(stackHead.id.client))
+            let offset = localClock - stackHead.id.clock
             if offset < 0 {
                 stack.append(stackHead)
-                updateMissingSv(client: Int(stackHead.id.client), clock: Int(stackHead.id.clock) - 1)
+                updateMissingSv(client: stackHead.id.client, clock: stackHead.id.clock - 1)
                 // hid a dead wall, add all items from stack to restSS
                 addStackToRestSS()
             } else {
@@ -207,10 +207,10 @@ public func integrateStructs(
                 if missing != nil {
                     stack.append(stackHead)
                     
-                    let structRefs: StructRef = clientsStructRefs[Int(missing!)] ?? StructRef(i: 0, refs: .init(value: []))
+                    let structRefs: StructRef = clientsStructRefs[missing!] ?? StructRef(i: 0, refs: .init(value: []))
 
                     if structRefs.refs.count == structRefs.i {
-                        updateMissingSv(client: Int(missing!), clock: Int(store.getState(missing!)))
+                        updateMissingSv(client: missing!, clock: store.getState(missing!))
                         addStackToRestSS()
                     } else {
                         stackHead = structRefs.refs.value[structRefs.i]!
@@ -219,8 +219,8 @@ public func integrateStructs(
                     }
                 } else if offset == 0 || offset < stackHead.length {
                     // all fine, apply the stackhead
-                    try stackHead.integrate(transaction: transaction, offset: UInt(offset))
-                    state[Int(stackHead.id.client)] = Int(stackHead.id.clock) + Int(stackHead.length)
+                    try stackHead.integrate(transaction: transaction, offset: offset)
+                    state[stackHead.id.client] = stackHead.id.clock + stackHead.length
                 }
             }
         }
@@ -254,13 +254,10 @@ public func integrateStructs(
 
 
 public func writeStructsFromTransaction(encoder: UpdateEncoder, transaction: Transaction) throws {
-    let uu = [Int: Int](transaction.beforeState.map{ (Int($0), Int($1)) }, uniquingKeysWith: { a, _ in a })
-    
-    
     try writeClientsStructs(
         encoder: encoder,
         store: transaction.doc.store,
-        _sm: uu
+        _sm: transaction.beforeState
     )
 }
 
@@ -280,7 +277,7 @@ public func readUpdateV2(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any
         if (pending != nil) {
             // check if we can apply something
             for (client, clock) in pending!.missing {
-                if clock < store.getState(UInt(client)) {
+                if clock < store.getState(client) {
                     retry = true
                     break
                 }
@@ -402,7 +399,7 @@ public func writeStateVector(encoder: DSEncoder, sv: [Int: Int]) throws -> DSEnc
 }
 
 public func writeDocumentStateVector(encoder: DSEncoder, doc: Doc) throws -> DSEncoder {
-    return try writeStateVector(encoder: encoder, sv: doc.store.getStateVector().toIntInt())
+    return try writeStateVector(encoder: encoder, sv: doc.store.getStateVector())
 }
 
 public func encodeStateVectorV2(doc: [Int: Int], encoder: DSEncoder = DSEncoderV2()) throws -> Data {

@@ -28,7 +28,7 @@ public final class Lib0Decoder {
     
     public func readData(count: Int) -> Data {
         defer { position += count }
-        return data[position..<position+count]
+        return Data(data[position..<position+count])
     }
     public func readVarData() throws -> Data {
         let count = try Int(self.readUInt())
@@ -44,6 +44,7 @@ public final class Lib0Decoder {
         var num: UInt = 0
         var mult: UInt = 1
         let len = self.data.count
+        
         while self.position < len {
             let r = UInt(self.data[self.position])
             self.position += 1

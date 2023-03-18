@@ -12,8 +12,8 @@ public protocol DSDecoder {
     var restDecoder: Lib0Decoder { get }
 
     func resetDsCurVal()
-    func readDsClock() throws -> UInt
-    func readDsLen() throws -> UInt
+    func readDsClock() throws -> Int
+    func readDsLen() throws -> Int
 }
 
 public class DSDecoderV1: DSDecoder {
@@ -25,24 +25,24 @@ public class DSDecoderV1: DSDecoder {
 
     public func resetDsCurVal() {}
 
-    public func readDsClock() throws -> UInt {
-        return try self.restDecoder.readUInt()
+    public func readDsClock() throws -> Int {
+        return try Int(self.restDecoder.readUInt())
     }
 
-    public func readDsLen() throws -> UInt {
-        return try self.restDecoder.readUInt()
+    public func readDsLen() throws -> Int {
+        return try Int(self.restDecoder.readUInt())
     }
 }
 
 public protocol UpdateDecoder: DSDecoder {
     func readLeftID() throws -> ID
     func readRightID() throws -> ID
-    func readClient() throws -> UInt
+    func readClient() throws -> Int
     func readInfo() throws -> UInt8
     func readString() throws -> String
     func readParentInfo() throws -> Bool
-    func readTypeRef() throws -> UInt
-    func readLen() throws -> UInt
+    func readTypeRef() throws -> Int
+    func readLen() throws -> Int
     func readAny() throws -> Any
     func readBuf() throws -> Data
     func readKey() throws -> String
@@ -51,15 +51,21 @@ public protocol UpdateDecoder: DSDecoder {
 
 public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
     public func readLeftID() throws -> ID {
-        return try ID(client: self.restDecoder.readUInt(), clock: self.restDecoder.readUInt())
+        return try ID(
+            client: Int(self.restDecoder.readUInt()),
+            clock: Int(self.restDecoder.readUInt())
+        )
     }
 
     public func readRightID() throws -> ID {
-        return try ID(client: self.restDecoder.readUInt(), clock: self.restDecoder.readUInt())
+        return try ID(
+            client: Int(self.restDecoder.readUInt()),
+            clock: Int(self.restDecoder.readUInt())
+        )
     }
 
-    public func readClient() throws -> UInt {
-        return try self.restDecoder.readUInt()
+    public func readClient() throws -> Int {
+        return try Int(self.restDecoder.readUInt())
     }
 
     public func readInfo() -> UInt8 {
@@ -74,13 +80,13 @@ public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
         return try self.restDecoder.readUInt() == 1
     }
 
-    public func readTypeRef() throws -> UInt {
-        return try self.restDecoder.readUInt()
+    public func readTypeRef() throws -> Int {
+        return try Int(self.restDecoder.readUInt())
     }
 
     /** Write len of a struct - well suited for Opt RLE encoder. */
-    public func readLen() throws -> UInt {
-        return try self.restDecoder.readUInt()
+    public func readLen() throws -> Int {
+        return try Int(self.restDecoder.readUInt())
     }
 
     public func readAny() throws -> Any {
@@ -101,7 +107,7 @@ public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
 }
 
 public class DSDecoderV2: DSDecoder {
-    private var dsCurrVal: UInt = 0
+    private var dsCurrVal: Int = 0
     public let restDecoder: Lib0Decoder
 
     public init(_ decoder: Lib0Decoder) throws {
@@ -110,13 +116,13 @@ public class DSDecoderV2: DSDecoder {
 
     public func resetDsCurVal() { self.dsCurrVal = 0 }
 
-    public func readDsClock() throws -> UInt {
-        self.dsCurrVal += try self.restDecoder.readUInt()
+    public func readDsClock() throws -> Int {
+        self.dsCurrVal += try Int(self.restDecoder.readUInt())
         return self.dsCurrVal
     }
 
-    public func readDsLen() throws -> UInt {
-        let diff = try self.restDecoder.readUInt() + 1
+    public func readDsLen() throws -> Int {
+        let diff = try Int(self.restDecoder.readUInt()) + 1
         self.dsCurrVal += diff
         return diff
     }
@@ -152,20 +158,20 @@ public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
 
     public func readLeftID() throws -> ID {
         return try ID(
-            client: self.clientDecoder.read(),
-            clock: UInt(self.leftClockDecoder.read())
+            client: Int(self.clientDecoder.read()),
+            clock: self.leftClockDecoder.read()
         )
     }
 
     public func readRightID() throws -> ID {
         return try ID(
-            client: self.clientDecoder.read(),
-            clock: UInt(self.rightClockDecoder.read())
+            client: Int(self.clientDecoder.read()),
+            clock: self.rightClockDecoder.read()
         )
     }
 
-    public func readClient() throws -> UInt {
-        return try self.clientDecoder.read()
+    public func readClient() throws -> Int {
+        return try Int(self.clientDecoder.read())
     }
 
     public func readInfo() throws -> UInt8 {
@@ -180,12 +186,12 @@ public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
         return try self.parentInfoDecoder.read() == 1
     }
 
-    public func readTypeRef() throws -> UInt {
-        return try self.typeRefDecoder.read()
+    public func readTypeRef() throws -> Int {
+        return try Int(self.typeRefDecoder.read())
     }
 
-     public func readLen() throws -> UInt {
-        return try self.lenDecoder.read()
+     public func readLen() throws -> Int {
+        return try Int(self.lenDecoder.read())
     }
 
     public func readAny() throws -> Any {

@@ -49,7 +49,7 @@ public func followRedone(store: StructStore, id: ID) throws -> StructRedone {
     var item: Struct? = nil
     repeat {
         if diff > 0 {
-            nextID = ID(client: nextID!.client, clock: nextID!.clock + UInt(diff))
+            nextID = ID(client: nextID!.client, clock: nextID!.clock + diff)
         }
         item = try store.find(nextID!)
         diff = Int(nextID!.clock - item!.id.clock)
@@ -106,7 +106,7 @@ extension UndoManager {
             captureTimeout: TimeInterval = 500,
             captureTransaction: @escaping ((Transaction) -> Bool) = {_ in true },
             deleteFilter: @escaping ((Item) -> Bool) = {_ in true},
-            trackedOrigins: Ref<Set<AnyHashable>> = Ref(value: [nil as UInt8?]),
+            trackedOrigins: Ref<Set<AnyHashable?>> = Ref(value: [nil as UInt8?]),
             ignoreRemoteMapChanges: Bool = false,
             doc: Doc? = nil
         ) {
@@ -121,7 +121,7 @@ extension UndoManager {
         public var captureTimeout: TimeInterval
         public var captureTransaction: ((Transaction) -> Bool)
         public var deleteFilter: ((Item) -> Bool)
-        public var trackedOrigins: Ref<Set<AnyHashable>>
+        public var trackedOrigins: Ref<Set<AnyHashable?>>
         public var ignoreRemoteMapChanges: Bool
         public var doc: Doc?
     }
@@ -140,7 +140,7 @@ final public class UndoManager: Lib0Observable, JSHashable {
 
     public var scope: Ref<[AbstractType]> = .init(value: [])
     public var deleteFilter: (Item) -> Bool
-    public var trackedOrigins: Ref<Set<AnyHashable>>
+    public var trackedOrigins: Ref<Set<AnyHashable?>>
     public var captureTransaction: (Transaction) -> Bool
     public var undoStack: Ref<[StackItem]>
     public var redoStack: Ref<[StackItem]>
@@ -172,12 +172,12 @@ final public class UndoManager: Lib0Observable, JSHashable {
         self.addToScope(typeScope)
         self.trackedOrigins.value.insert(self)
         
-        self.afterTransactionDisposer = self.doc.on(Doc.Event.afterTransaction) { transaction in
+        self.afterTransactionDisposer = self.doc.on(Doc.On.afterTransaction) { transaction in
             // Only track certain transactions
             if (
                 !self.captureTransaction(transaction)
                 || !self.scope.contains(where: { transaction.changedParentTypes.keys.contains($0) })
-                || (!self.trackedOrigins.contains(transaction.origin as! AnyHashable)
+                || (!self.trackedOrigins.contains(transaction.origin as? AnyHashable)
                     
                     // TODO: implement this type of contains...
 //                    && (transaction.origin == nil || !self.trackedOrigins.contains(type(of: transaction.origin)))
@@ -242,7 +242,7 @@ final public class UndoManager: Lib0Observable, JSHashable {
                 try self.emit(Event.stackItemUpdated, changeEvent)
             }
         }
-        self.doc.on(Doc.Event.destroy) {
+        self.doc.on(Doc.On.destroy) {
             try self.destroy()
         }
     }
@@ -280,7 +280,7 @@ final public class UndoManager: Lib0Observable, JSHashable {
                             let redone = try followRedone(store: store, id: struct_.id)
                             var item = redone.item, diff = redone.diff
                             if diff > 0 {
-                                item = try StructStore.getItemCleanStart(transaction, id: ID(client: item.id.client, clock: item.id.clock + UInt(diff)))
+                                item = try StructStore.getItemCleanStart(transaction, id: ID(client: item.id.client, clock: item.id.clock + diff))
                             }
                             struct_ = item
                         }
@@ -375,6 +375,7 @@ final public class UndoManager: Lib0Observable, JSHashable {
         self.lastChange = Date.distantPast
     }
 
+    @discardableResult
     public func undo() throws -> StackItem? {
         self.undoing = true
         var res: StackItem?
@@ -385,6 +386,7 @@ final public class UndoManager: Lib0Observable, JSHashable {
         return res
     }
 
+    @discardableResult
     public func redo() throws -> StackItem? {
         self.redoing = true
         var res: StackItem?
@@ -407,7 +409,7 @@ final public class UndoManager: Lib0Observable, JSHashable {
 
     public override func destroy() throws {
         self.trackedOrigins.value.remove(self)
-        self.doc.off(Doc.Event.afterTransaction, self.afterTransactionDisposer)
+        self.doc.off(Doc.On.afterTransaction, self.afterTransactionDisposer)
         try super.destroy()
     }
 }

@@ -62,7 +62,7 @@ public class ItemTextListPosition {
             }
         }
         self.left = self.right
-        self.right = self.right!.right
+        self.right = self.right!.right as? Item
     }
 
     public func findNext(_ transaction: Transaction, count: Int) throws -> ItemTextListPosition {
@@ -77,14 +77,14 @@ public class ItemTextListPosition {
                 if !self.right!.deleted {
                     if count < self.right!.length {
                         // split right
-                        try StructStore.getItemCleanStart(transaction, id: ID(client: self.right!.id.client, clock: self.right!.id.clock + UInt(count)))
+                        try StructStore.getItemCleanStart(transaction, id: ID(client: self.right!.id.client, clock: self.right!.id.clock + count))
                     }
                     self.index += Int(self.right!.length)
                     count -= Int(self.right!.length)
                 }
             }
             self.left = self.right!
-            self.right = self.right!.right
+            self.right = self.right!.right as? Item
         }
         return self
     }
@@ -92,15 +92,15 @@ public class ItemTextListPosition {
     static public func find(_ transaction: Transaction, parent: AbstractType, index: Int) throws -> ItemTextListPosition {
         let currentAttributes: YTextAttributes = .init(value: [:])
         
-        let marker = ArraySearchMarker.find(parent, index: UInt(index))
+        let marker = ArraySearchMarker.find(parent, index: index)
         if marker != nil && marker!.item != nil {
             let pos = ItemTextListPosition(
-                left: marker!.item!.left,
+                left: marker!.item!.left as? Item,
                 right: marker!.item!,
-                index: Int(marker!.index),
+                index: marker!.index,
                 currentAttributes: currentAttributes
             )
-            return try pos.findNext(transaction, count: index - Int(marker!.index))
+            return try pos.findNext(transaction, count: index - marker!.index)
         } else {
             let pos = ItemTextListPosition(left: nil, right: parent._start, index: 0, currentAttributes: currentAttributes)
             return try pos.findNext(transaction, count: index)
@@ -193,7 +193,7 @@ public func insertAttributes(
 ) throws -> YTextAttributes {
     let doc = transaction.doc
     let ownClientId = doc.clientID
-    var negatedAttributes: YTextAttributes = .init(value: [:])
+    let negatedAttributes: YTextAttributes = .init(value: [:])
     // insert format-start items
     for (key, val) in attributes {
         let currentVal = currPos.currentAttributes.value[key]
@@ -247,7 +247,7 @@ public func insertText(
     var left = currPos.left, right = currPos.right, index = currPos.index
     
     if parent._searchMarker != nil {
-        ArraySearchMarker.updateChanges(parent._searchMarker!, index: UInt(currPos.index), len: content.getLength())
+        ArraySearchMarker.updateChanges(parent._searchMarker!, index: currPos.index, len: content.getLength())
     }
     right = Item(
         id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
@@ -270,7 +270,7 @@ public func formatText(
     transaction: Transaction,
     parent: AbstractType,
     currPos: ItemTextListPosition,
-    length: UInt,
+    length: Int,
     attributes: YTextAttributes
 ) throws {
     var length = length
@@ -315,7 +315,7 @@ public func formatText(
                 if length < currPos.right!.length {
                     try StructStore.getItemCleanStart(
                         transaction,
-                        id: ID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + UInt(length))
+                        id: ID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
                     )
                 }
                 length -= currPos.right!.length
@@ -355,7 +355,7 @@ public func cleanupFormattingGap(
     startAttributes: YTextAttributes,
     currAttributes: YTextAttributes
 ) -> Int {
-    var start = start // swift add
+    var start: Item? = start // swift add
     var end: Item? = start
     var endFormats = [String: ContentFormat]()
     while (end != nil && (!end!.countable || end!.deleted)) {
@@ -363,16 +363,16 @@ public func cleanupFormattingGap(
             let cf = end!.content as! ContentFormat
             endFormats[cf.key] = cf
         }
-        end = end!.right
+        end = end!.right as? Item
     }
     var cleanups = 0
     var reachedCurr = false
-    while (start != end) {
+    while (start != nil && start != end) {
         if curr == start {
             reachedCurr = true
         }
-        if !start.deleted {
-            let content = start.content
+        if !start!.deleted {
+            let content = start!.content
             switch true {
             case content is ContentFormat:
                 let __contentFormat = content as! ContentFormat
@@ -381,7 +381,7 @@ public func cleanupFormattingGap(
                 // OLD: ... || startAttrValue == value
                 if endFormats[key] !== content as (any Content)? || jsStrictEqual(removeDualOptional(startAttrValue), value) {
                     // Either this format is overwritten or it is not necessary because the attribute already existed.
-                    start.delete(transaction)
+                    start!.delete(transaction)
                     cleanups += 1
                     if !reachedCurr && jsStrictEqual(removeDualOptional(currAttributes.value[key]), value) && !jsStrictEqual(removeDualOptional(startAttrValue), value) {
                         if startAttrValue == nil {
@@ -391,14 +391,14 @@ public func cleanupFormattingGap(
                         }
                     }
                 }
-                if !reachedCurr && !start.deleted {
+                if !reachedCurr && !start!.deleted {
                     updateCurrentAttributes(currentAttributes: currAttributes, format: content as! ContentFormat)
                 }
                 break
             default: break // nop
             }
         }
-        start = start.right!
+        start = start!.right! as? Item
     }
     return cleanups
 }
@@ -406,8 +406,8 @@ public func cleanupFormattingGap(
 func cleanupContextlessFormattingGap(transaction: Transaction, item: Item?) {
     var item = item // swift add
     // iterate until item.right is nil or content
-    while (item != nil && item!.right != nil && (item!.right!.deleted || !item!.right!.countable)) {
-        item = item!.right
+    while (item != nil && item!.right != nil && (item!.right!.deleted || !(item!.right as! Item).countable)) {
+        item = item!.right as? Item
     }
     var attrs = Set<String>()
     // iterate back until a content item is found
@@ -420,7 +420,7 @@ func cleanupContextlessFormattingGap(transaction: Transaction, item: Item?) {
                 attrs.insert(key)
             }
         }
-        item = item!.left
+        item = item!.left as? Item
     }
 }
 
@@ -443,7 +443,7 @@ func cleanupYTextFormatting(type: YText) throws -> Int {
                     start = end!
                 }
             }
-            end = end!.right
+            end = end!.right as? Item
         }
     })
     return res
@@ -466,7 +466,7 @@ public func deleteText(
                 if length < currPos.right!.length {
                     try StructStore.getItemCleanStart(
                         transaction,
-                        id: ID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + UInt(length))
+                        id: ID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
                     )
                 }
                 length -= Int(currPos.right!.length)
@@ -487,7 +487,7 @@ public func deleteText(
     
     let parent = ((currPos.left ?? currPos.right!).parent as! AbstractType)
     if parent._searchMarker != nil {
-        ArraySearchMarker.updateChanges(parent._searchMarker!, index: UInt(currPos.index), len: UInt(-startLength + length))
+        ArraySearchMarker.updateChanges(parent._searchMarker!, index: currPos.index, len: -startLength + length)
     }
     return currPos
 }
@@ -545,7 +545,7 @@ public class YTextEvent: YEvent {
                 var delta: YEventDelta
 
                 if action == .delete {
-                    delta = YEventDelta(delete: UInt(deleteLen))
+                    delta = YEventDelta(delete: deleteLen)
                     deleteLen = 0
                 } else if action == .insert {
                     delta = YEventDelta(insert: insert)
@@ -557,7 +557,7 @@ public class YTextEvent: YEvent {
                     }
                     insert = ""
                 } else {
-                    delta = YEventDelta(retain: UInt(retain))
+                    delta = YEventDelta(retain: retain)
                     if attributes.value.keys.count > 0 {
                         delta.attributes = .init(value: [:])
                         for key in attributes.value.keys {
@@ -648,7 +648,7 @@ public class YTextEvent: YEvent {
                         )
                     }
                 }
-                item = item!.right
+                item = item!.right as? Item
             }
             
             addDelta()
@@ -682,7 +682,7 @@ public class YText: AbstractType {
         self._searchMarker = .init(value: [])
     }
 
-    public var length: UInt { return self._length }
+    public var length: Int { return self._length }
 
     public override func _integrate(_ y: Doc, item: Item?) throws {
         try super._integrate(y, item: item)
@@ -710,7 +710,7 @@ public class YText: AbstractType {
         let event = YTextEvent(self, transaction: transaction, subs: _parentSubs)
         let doc = transaction.doc
         
-        self.callObservers(transaction: transaction, event: event)
+        try self.callObservers(transaction: transaction, event: event)
         
         if !transaction.local {
             // check if another formatting item was inserted
@@ -779,7 +779,7 @@ public class YText: AbstractType {
             if !n!.deleted && n!.countable && n!.content is ContentString {
                 str += (n!.content as! ContentString).str as String
             }
-            n = n!.right
+            n = n!.right as? Item
         }
         return str
     }
@@ -871,7 +871,7 @@ public class YText: AbstractType {
                         
                         if snapshot != nil && !n!.isVisible(snapshot) {
                             if cur == nil
-                                || cur!.jsPropertyTyped(Int.self, name: "user").map({ UInt($0) }) != n!.id.client
+                                || cur!.jsPropertyTyped(Int.self, name: "user") != n!.id.client
                                 || cur!.jsPropertyTyped(String.self, name: "type") != "removed"
                             {
                                 packStr()
@@ -882,7 +882,7 @@ public class YText: AbstractType {
                             }
                         } else if prevSnapshot != nil && !n!.isVisible(prevSnapshot) {
                             if cur == nil
-                                || cur!.jsPropertyTyped(Int.self, name: "user").map({ UInt($0) }) != n!.id.client
+                                || cur!.jsPropertyTyped(Int.self, name: "user") != n!.id.client
                                 || cur!.jsPropertyTyped(String.self, name: "type") != "added"
                             {
                                 packStr()
@@ -913,7 +913,7 @@ public class YText: AbstractType {
                     default: break // nop
                     }
                 }
-                n = n!.right
+                n = n!.right as? Item
             }
             packStr()
         }, origin: "cleanup")
@@ -988,7 +988,7 @@ public class YText: AbstractType {
                 if pos.right == nil {
                     return
                 }
-                try formatText(transaction: transaction, parent: self, currPos: pos, length: UInt(length), attributes: attributes)
+                try formatText(transaction: transaction, parent: self, currPos: pos, length: length, attributes: attributes)
             })
         } else {
             self._pending?.append{

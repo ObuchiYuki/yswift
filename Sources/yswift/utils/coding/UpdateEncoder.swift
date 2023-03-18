@@ -21,12 +21,12 @@ public class DSEncoderV1: DSEncoder {
         // nop
     }
 
-    public func writeDsClock(_ clock: UInt) {
-        self.restEncoder.writeUInt(clock)
+    public func writeDsClock(_ clock: Int) {
+        self.restEncoder.writeUInt(UInt(clock))
     }
 
-    public func writeDsLen(_ len: UInt) {
-        self.restEncoder.writeUInt(len)
+    public func writeDsLen(_ len: Int) {
+        self.restEncoder.writeUInt(UInt(len))
     }
 }
 
@@ -34,20 +34,20 @@ public protocol DSEncoder {
     var restEncoder: Lib0Encoder { get set }
     
     func resetDsCurVal()
-    func writeDsClock(_ clock: UInt)
-    func writeDsLen(_ len: UInt) throws
+    func writeDsClock(_ clock: Int)
+    func writeDsLen(_ len: Int) throws
     func toData() -> Data
 }
 
 public protocol UpdateEncoder: DSEncoder {
     func writeLeftID(_ id: ID)
     func writeRightID(_ id: ID)
-    func writeClient(_ client: UInt)
+    func writeClient(_ client: Int)
     func writeInfo(_ info: UInt8)
     func writeString(_ s: String)
     func writeParentInfo(_ isYKey: Bool)
     func writeTypeRef(_ info: UInt8)
-    func writeLen(_ len: UInt)
+    func writeLen(_ len: Int)
     func writeAny(_ any: Any?)
     func writeBuf(_ buf: Data)
     func writeJSON(_ embed: Any?) throws
@@ -57,17 +57,17 @@ public protocol UpdateEncoder: DSEncoder {
 public class UpdateEncoderV1: DSEncoderV1, UpdateEncoder {
     
     public func writeLeftID(_ id: ID) {
-        self.restEncoder.writeUInt(id.client)
-        self.restEncoder.writeUInt(id.clock)
+        self.restEncoder.writeUInt(UInt(id.client))
+        self.restEncoder.writeUInt(UInt(id.clock))
     }
 
     public func writeRightID(_ id: ID) {
-        self.restEncoder.writeUInt(id.client)
-        self.restEncoder.writeUInt(id.clock)
+        self.restEncoder.writeUInt(UInt(id.client))
+        self.restEncoder.writeUInt(UInt(id.clock))
     }
 
-    public func writeClient(_ client: UInt) {
-        self.restEncoder.writeUInt(client)
+    public func writeClient(_ client: Int) {
+        self.restEncoder.writeUInt(UInt(client))
     }
 
     public func writeInfo(_ info: UInt8) {
@@ -86,8 +86,8 @@ public class UpdateEncoderV1: DSEncoderV1, UpdateEncoder {
         self.restEncoder.writeUInt(UInt(info))
     }
 
-    public func writeLen(_ len: UInt) {
-        self.restEncoder.writeUInt(len)
+    public func writeLen(_ len: Int) {
+        self.restEncoder.writeUInt(UInt(len))
     }
 
     public func writeAny(_ any: Any?) {
@@ -116,7 +116,7 @@ public class UpdateEncoderV1: DSEncoderV1, UpdateEncoder {
 public class DSEncoderV2: DSEncoder {
     
     public var restEncoder = Lib0Encoder()
-    private var dsCurrVal: UInt = 0
+    private var dsCurrVal: Int = 0
 
     public init() {}
 
@@ -128,17 +128,17 @@ public class DSEncoderV2: DSEncoder {
         self.dsCurrVal = 0
     }
 
-    public func writeDsClock(_ clock: UInt) {
+    public func writeDsClock(_ clock: Int) {
         let diff = clock - self.dsCurrVal
         self.dsCurrVal = clock
-        self.restEncoder.writeUInt(diff)
+        self.restEncoder.writeUInt(UInt(diff))
     }
 
-    public func writeDsLen(_ len: UInt) throws {
+    public func writeDsLen(_ len: Int) throws {
         if len == 0 {
             throw YSwiftError.unexpectedCase
         }
-        self.restEncoder.writeUInt(len - 1)
+        self.restEncoder.writeUInt(UInt(len - 1))
         self.dsCurrVal += len
     }
 }
@@ -180,17 +180,17 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
     }
 
     public func writeLeftID(_ id: ID) {
-        self.clientEncoder.write(id.client)
-        self.leftClockEncoder.write(Int(id.clock))
+        self.clientEncoder.write(UInt(id.client))
+        self.leftClockEncoder.write(id.clock)
     }
 
     public func writeRightID(_ id: ID) {
-        self.clientEncoder.write(id.client)
-        self.rightClockEncoder.write(Int(id.clock))
+        self.clientEncoder.write(UInt(id.client))
+        self.rightClockEncoder.write(id.clock)
     }
 
-    public func writeClient(_ client: UInt) {
-        self.clientEncoder.write(client)
+    public func writeClient(_ client: Int) {
+        self.clientEncoder.write(UInt(client))
     }
 
     public func writeInfo(_ info: UInt8) {
@@ -210,8 +210,8 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
     }
 
     /// Write len of a struct - well suited for Opt RLE encoder.
-    public func writeLen(_ len: UInt) {
-        self.lenEncoder.write(len)
+    public func writeLen(_ len: Int) {
+        self.lenEncoder.write(UInt(len))
     }
 
     public func writeAny(_ any: Any?) {

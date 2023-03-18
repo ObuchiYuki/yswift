@@ -64,7 +64,7 @@ final public class ContentDoc: Content {
         self.opts = opts
     }
 
-    public func getLength() -> UInt { return 1 }
+    public func getLength() -> Int { return 1 }
 
     public func getContent() -> [Any] { return [self.doc] }
 
@@ -72,12 +72,11 @@ final public class ContentDoc: Content {
     
     public func copy() -> ContentDoc { return ContentDoc(createDocFromOpts(guid: self.doc.guid, opts: self.opts)) }
 
-    public func splice(_ offset: UInt) -> ContentDoc { fatalError() }
+    public func splice(_ offset: Int) -> ContentDoc { fatalError() }
 
     public func mergeWith(_ right: Content) -> Bool { return false }
 
     public func integrate(_ transaction: Transaction, item: Item) {
-        // this needs to be reflected in doc.destroy as well
         self.doc._item = item
         transaction.subdocsAdded.insert(self.doc)
         if self.doc.shouldLoad {
@@ -95,9 +94,7 @@ final public class ContentDoc: Content {
 
     public func gc(_ store: StructStore) { }
 
-    public func write(_ encoder: UpdateEncoder, offset: UInt) {
-        print(self.doc.guid, self.opts)
-        
+    public func write(_ encoder: UpdateEncoder, offset: Int) {
         encoder.writeString(self.doc.guid)
         encoder.writeAny(self.opts.toAny())
     }

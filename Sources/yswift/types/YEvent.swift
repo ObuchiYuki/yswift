@@ -15,11 +15,11 @@ extension AbstractType: YEventDeltaInsertType {}
 
 public class YEventDelta {
     public var insert: YEventDeltaInsertType?
-    public var retain: UInt?
-    public var delete: UInt?
+    public var retain: Int?
+    public var delete: Int?
     public var attributes: YTextAttributes?
     
-    init(insert: YEventDeltaInsertType? = nil, retain: UInt? = nil, delete: UInt? = nil, attributes: YTextAttributes? = nil) {
+    init(insert: YEventDeltaInsertType? = nil, retain: Int? = nil, delete: Int? = nil, attributes: YTextAttributes? = nil) {
         self.insert = insert
         self.retain = retain
         self.delete = delete
@@ -85,17 +85,17 @@ public class YEvent {
 
             if self.adds(item) {
                 var prev = item.left
-                while (prev != nil && self.adds(prev!)) { prev = prev!.left }
+                while (prev != nil && self.adds(prev!)) { prev = (prev as! Item).left }
                 
                 if self.deletes(item) {
                     if prev != nil && self.deletes(prev!) {
                         action = .delete
-                        oldValue = prev!.content.getContent().last
+                        oldValue = (prev as! Item).content.getContent().last
                     } else { return }
                 } else {
                     if prev != nil && self.deletes(prev!) {
                         action = .update
-                        oldValue = prev!.content.getContent().last
+                        oldValue = (prev as! Item).content.getContent().last
                     } else {
                         action = .add
                         oldValue = nil
@@ -170,7 +170,7 @@ public class YEvent {
                     }
                 }
                 
-                item = item!.right
+                item = item!.right as? Item
             }
             if lastDelta != nil && lastDelta!.retain == nil {
                 packDelta()
@@ -200,7 +200,7 @@ func getPathTo(parent: AbstractType, child: AbstractType) -> [PathElement] {
                 if !c!.deleted {
                     i += 1
                 }
-                c = c!.right
+                c = c!.right as? Item
             }
             path.insert(i, at: 0)
         }

@@ -14,7 +14,7 @@ final public class ContentBinary: Content {
         self.content = content
     }
 
-    public func getLength() -> UInt { return 1 }
+    public func getLength() -> Int { return 1 }
 
     public func getContent() -> [Any] { return [self.content] }
 
@@ -22,7 +22,7 @@ final public class ContentBinary: Content {
 
     public func copy() -> ContentBinary { return ContentBinary(self.content) }
 
-    public func splice(_ offset: UInt) -> ContentBinary { fatalError() }
+    public func splice(_ offset: Int) -> ContentBinary { fatalError() }
 
     public func mergeWith(_ right: Content) -> Bool { return false }
     
@@ -32,7 +32,7 @@ final public class ContentBinary: Content {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: UInt) { encoder.writeBuf(self.content) }
+    public func write(_ encoder: UpdateEncoder, offset: Int) { encoder.writeBuf(self.content) }
 
     public func getRef() -> UInt8 { return 3 }
 }

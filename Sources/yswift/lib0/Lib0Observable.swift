@@ -6,6 +6,16 @@
 //
 
 import Foundation
+import Promise
+
+enum Message {
+    case a(Int)
+    case b(String)
+}
+
+open class Observable_ {
+    
+}
 
 open class Lib0Observable {
     public struct EventName<Arguments> {
@@ -33,6 +43,24 @@ open class Lib0Observable {
             try observer(value as! Args)
         }
         return disposer
+    }
+    
+    @discardableResult
+    public func once<Args>(_ event: EventName<Args>, _ observer: @escaping (Args) throws -> Void) -> Disposer {
+        var disposer: Disposer!
+        disposer = self.on(event) {
+            try observer($0)
+            self.off(event, disposer)
+        }
+        return disposer
+    }
+    
+    public func once<Args>(_ event: EventName<Args>) -> Promise<Args, Never> {
+        Promise{ resolve, reject in
+            self.once(event, {
+                resolve($0)
+            })
+        }
     }
 
     public func off<Args>(_ event: EventName<Args>, _ disposer: Disposer) {

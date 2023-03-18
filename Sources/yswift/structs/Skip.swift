@@ -21,16 +21,16 @@ final public class Skip: Struct {
         return true
     }
 
-    public override func integrate(transaction: Transaction, offset: UInt) throws {
+    public override func integrate(transaction: Transaction, offset: Int) throws {
         throw YSwiftError.unexpectedCase
     }
 
-    public override func write(encoder: UpdateEncoder, offset: UInt) throws {
+    public override func write(encoder: UpdateEncoder, offset: Int) throws {
         encoder.writeInfo(structSkipRefNumber)
-        encoder.restEncoder.writeUInt(self.length - offset)
+        encoder.restEncoder.writeUInt(UInt(self.length - offset))
     }
 
-    public override func getMissing(_ transaction: Transaction, store: StructStore) -> UInt? {
+    public override func getMissing(_ transaction: Transaction, store: StructStore) -> Int? {
         nil
     }
 }

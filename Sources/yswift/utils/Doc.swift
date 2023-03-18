@@ -17,7 +17,7 @@ public struct DocOpts {
     public var meta: Any?
     public var autoLoad: Bool
     public var shouldLoad: Bool
-    public var cliendID: UInt?
+    public var cliendID: Int?
     
     public init(
         gc: Bool = true,
@@ -27,7 +27,7 @@ public struct DocOpts {
         meta: Any? = nil,
         autoLoad: Bool = false,
         shouldLoad: Bool = true,
-        cliendID: UInt? = nil
+        cliendID: Int? = nil
     ) {
         self.gc = gc
         self.gcFilter = gcFilter
@@ -43,7 +43,7 @@ public struct DocOpts {
 public class Doc: Lib0Observable, JSHashable {
     public var gcFilter: (Item) -> Bool
     public var gc: Bool
-    public var clientID: UInt
+    public var clientID: Int
     public var guid: String
     public var collectionid: String?
     public var share: [String: AbstractType] // [String: AbstractType_<YEvent<any>>]
@@ -84,7 +84,7 @@ public class Doc: Lib0Observable, JSHashable {
         super.init()
         
         self.whenLoaded = Promise{ resolve, _ in
-            self.on(Event.load) {
+            self.on(On.load) {
                 self.isLoaded = true
                 resolve(())
             }
@@ -93,22 +93,22 @@ public class Doc: Lib0Observable, JSHashable {
         func provideSyncedPromise() -> Promise<Void, Never> {
             .init{ resolve, _ in
                 var disposer: Disposer!
-                disposer = self.on(Event.sync, { isSynced in
-                    if isSynced == nil || isSynced == true {
-                        self.off(Event.sync, disposer)
+                disposer = self.on(On.sync, { isSynced in
+                    if isSynced {
+                        self.off(On.sync, disposer)
                         resolve(())
                     }
                 })
             }
         }
         
-        self.on(Event.sync, { isSynced in
+        self.on(On.sync, { isSynced in
             if isSynced == false && self.isSynced {
                 self.whenSynced = provideSyncedPromise()
             }
-            self.isSynced = isSynced == nil || isSynced == true
+            self.isSynced = isSynced
             if !self.isLoaded {
-                try self.emit(Event.load, ())
+                try self.emit(On.load, ())
             }
         })
         self.whenSynced = provideSyncedPromise()
@@ -158,14 +158,14 @@ public class Doc: Lib0Observable, JSHashable {
                     var n: Item? = n
                     while n != nil {
                         n!.parent = t
-                        n = n!.left
+                        n = n!.left as? Item
                     }
                     
                 })
                 t._start = type_._start
                 var n = t._start; while n != nil {
                     n!.parent = t
-                    n = n!.right
+                    n = n!.right as? Item
                 }
                 t._length = type_._length
                 self.share[name] = t
@@ -173,7 +173,7 @@ public class Doc: Lib0Observable, JSHashable {
                 return t
             } else {
                 // TODO: throw
-                fatalError("Type with the name \(name) has already been defined with a different constructor")
+                fatalError("Type with the name '\(name)' has already been defined with a different constructor")
             }
         }
         return type_ as! T
@@ -232,16 +232,16 @@ public class Doc: Lib0Observable, JSHashable {
                 transaction.subdocsRemoved.insert(self)
             }, origin: nil)
         }
-        try self.emit(Event.destroyed, true)
-        try self.emit(Event.destroy, ())
+        try self.emit(On.destroyed, true)
+        try self.emit(On.destroy, ())
         try super.destroy()
     }
 }
 
 extension Doc {
-    public enum Event {
+    public enum On {
         public static let load = Doc.EventName<Void>("load")
-        public static let sync = Doc.EventName<Bool?>("sync")
+        public static let sync = Doc.EventName<Bool>("sync")
         
         public static let destroy = Doc.EventName<Void>("destroy")
         public static let destroyed = Doc.EventName<Bool>("destroyed")
