@@ -11,15 +11,24 @@ import Promise
 
 public struct DocOpts {
     public var gc: Bool = true
-    public var gcFilter: (Item) -> Bool = {_ in true }
-    public var guid: String = UUID().uuidString
-    public var collectionid: String? = nil
-    public var meta: Any? = nil
-    public var autoLoad: Bool = false
-    public var shouldLoad: Bool = true
-    public var cliendID: UInt? = nil
+    public var gcFilter: (Item) -> Bool
+    public var guid: String?
+    public var collectionid: String?
+    public var meta: Any?
+    public var autoLoad: Bool
+    public var shouldLoad: Bool
+    public var cliendID: UInt?
     
-    public init(gc: Bool = true, gcFilter: @escaping (Item) -> Bool = {_ in true }, guid: String = UUID().uuidString, collectionid: String? = nil, meta: Any? = nil, autoLoad: Bool = false, shouldLoad: Bool = true, cliendID: UInt? = nil) {
+    public init(
+        gc: Bool = true,
+        gcFilter: @escaping (Item) -> Bool = {_ in true },
+        guid: String? = nil,
+        collectionid: String? = nil,
+        meta: Any? = nil,
+        autoLoad: Bool = false,
+        shouldLoad: Bool = true,
+        cliendID: UInt? = nil
+    ) {
         self.gc = gc
         self.gcFilter = gcFilter
         self.guid = guid
@@ -58,7 +67,7 @@ public class Doc: Lib0Observable, JSHashable {
         self.gc = opts.gc
         self.gcFilter = opts.gcFilter
         self.clientID = opts.cliendID ?? generateNewClientID()
-        self.guid = opts.guid
+        self.guid = opts.guid ?? generateDocGuid()
         self.collectionid = opts.collectionid
         self.share = [:]
         self.store = StructStore()
@@ -134,7 +143,7 @@ public class Doc: Lib0Observable, JSHashable {
     }
 
     // JS実装では TypeConstructor なしで呼び出すとAbstractTypeを作った
-    public func get<T: AbstractType>(_: T.Type, name: String, make: () -> T) throws -> T {
+    public func get<T: AbstractType>(_: T.Type, name: String = "", make: () -> T) throws -> T {
         let type_ = try self.share.setIfUndefined(name, {
             let t = make()
             try t._integrate(self, item: nil)
@@ -170,15 +179,15 @@ public class Doc: Lib0Observable, JSHashable {
         return type_ as! T
     }
 
-    public func getMap(_ name: String) throws -> YMap {
+    public func getMap(_ name: String = "") throws -> YMap {
         return try self.get(YMap.self, name: name, make: { YMap.init(nil) })
     }
 
-    public func getArray(_ name: String) throws -> YArray {
+    public func getArray(_ name: String = "") throws -> YArray {
         return try self.get(YArray.self, name: name, make: { YArray.init() })
     }
     
-    public func getText(_ name: String) throws -> YText {
+    public func getText(_ name: String = "") throws -> YText {
         return try self.get(YText.self, name: name, make: { YText.init() })
     }
     

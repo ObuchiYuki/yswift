@@ -13,6 +13,15 @@ public struct ContentDocOpts {
     public var autoLoad: Bool?
     public var shouldLoad: Bool?
     
+    func toAny() -> Any {
+        var dict = [String: Any]()
+        dict["gc"] = gc
+        dict["meta"] = meta
+        dict["autoLoad"] = autoLoad
+        dict["shouldLoad"] = shouldLoad
+        return dict
+    }
+    
     static func fromAny(_ content: Any) -> ContentDocOpts {
         guard let dict = content as? [String: Any] else { return ContentDocOpts() }
         
@@ -87,8 +96,10 @@ final public class ContentDoc: Content {
     public func gc(_ store: StructStore) { }
 
     public func write(_ encoder: UpdateEncoder, offset: UInt) {
+        print(self.doc.guid, self.opts)
+        
         encoder.writeString(self.doc.guid)
-        encoder.writeAny(self.opts)
+        encoder.writeAny(self.opts.toAny())
     }
 
     public func getRef() -> UInt8 { return 9 }

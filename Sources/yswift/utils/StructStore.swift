@@ -57,16 +57,18 @@ public class StructStore {
     }
 
     public func addStruct(_ struct_: GC_or_Item) throws {
-        if self.clients[struct_.id.client] == nil {
-            self.clients[struct_.id.client] = .init(value: [])
+        var structs = self.clients[struct_.id.client]
+        if structs == nil {
+            structs = .init(value: [])
+            self.clients[struct_.id.client] = structs
         } else {
-            let lastStruct = self.clients[struct_.id.client]!.last!
+            let lastStruct = structs![structs!.count - 1]
             if lastStruct.id.clock + lastStruct.length != struct_.id.clock {
                 throw YSwiftError.unexpectedCase
             }
         }
             
-        self.clients[struct_.id.client]!.value.append(struct_)
+        structs!.value.append(struct_)
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
@@ -114,7 +116,7 @@ public class StructStore {
     }
 
     /** Iterate over a range of structs */
-    static public func iterateStructs(transaction: Transaction, structs: Ref<[Struct]>, clockStart: UInt, len: UInt, f: (Struct) -> Void) throws {
+    static public func iterateStructs(transaction: Transaction, structs: Ref<[Struct]>, clockStart: UInt, len: UInt, f: (Struct) throws -> Void) throws {
         if len == 0 { return }
         let clockEnd = clockStart + len
         var index = try self.findIndexCleanStart(transaction: transaction, structs: structs, clock: Int(clockStart))
@@ -125,7 +127,7 @@ public class StructStore {
             if clockEnd < struct_.id.clock + struct_.length {
                 _ = try self.findIndexCleanStart(transaction: transaction, structs: structs, clock: Int(clockEnd))
             }
-            f(struct_)
+            try f(struct_)
         } while (index < structs.count && structs[index].id.clock < clockEnd)
     }
 

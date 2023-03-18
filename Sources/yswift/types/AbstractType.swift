@@ -233,8 +233,6 @@ public class AbstractType: JSHashable {
         let store = doc.store
         let right = referenceItem == nil ? self._start : referenceItem!.right
 
-//        type JsonContent = { [s: String]: JsonContent } | JsonContent[] | Int? | String
-
         var jsonContent: [Any?] = []
 
         func packJsonContent() throws {
@@ -251,11 +249,11 @@ public class AbstractType: JSHashable {
                 jsonContent.append(content)
             } else {
                 if (
-                    content is Int ||
-                    content is Dictionary<AnyHashable, Any> ||
                     content is Bool ||
-                    content is Array<Any> ||
-                    content is String
+                    content is Int ||
+                    content is String ||
+                    content is [String: Any] ||
+                    content is [Any?]
                 ) {
                     jsonContent.append(content)
                 } else {
@@ -269,7 +267,9 @@ public class AbstractType: JSHashable {
                         let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                         let icontent = ContentDoc(content as! Doc)
                         left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                        
                         try left!.integrate(transaction: transaction, offset: 0)
+                        
                     } else if type(of: content) == AbstractType.self {
                         let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                         let icontent = ContentType(content as! AbstractType)
@@ -294,8 +294,11 @@ public class AbstractType: JSHashable {
             if self._searchMarker != nil {
                 ArraySearchMarker.updateChanges(self._searchMarker!, index: index, len: UInt(contents.count))
             }
-            return try self.listInsertGenericsAfter(transaction, referenceItem: nil, contents: contents)
+            
+            try self.listInsertGenericsAfter(transaction, referenceItem: nil, contents: contents)
+            return
         }
+        
         let startIndex = index
         let marker = ArraySearchMarker.find(self, index: index)
         var n = self._start

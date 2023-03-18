@@ -11,7 +11,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ObuchiYuki/lib0-swift.git", branch: "main"),
-        .package(url: "https://github.com/ObuchiYuki/Promise.git", from: "1.0.0")
+        .package(url: "https://github.com/ObuchiYuki/Promise.git", branch: "main")
     ],
     targets: [
         .target(name: "yswift", dependencies: [

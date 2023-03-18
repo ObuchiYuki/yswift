@@ -40,7 +40,7 @@ public class DeleteItem {
 public class DeleteSet {
     public var clients: [UInt: [DeleteItem]] = [:]
 
-    public func iterate(_ transaction: Transaction, body: (Struct) -> Void) throws {
+    public func iterate(_ transaction: Transaction, body: (Struct) throws -> Void) throws {
         
         return try self.clients.forEach{ clientid, deletes in
             for i in 0..<deletes.count {

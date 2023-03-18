@@ -77,10 +77,23 @@ extension Array {
     }
 }
 
-public func generateNewClientID() -> UInt {
-    #if DEBUG
+public func generateDocGuid() -> String {
+    #if DEBUG // to remove randomness
+    enum __ { static var cliendID: UInt = 0 }
     if NSClassFromString("XCTest") != nil {
-        print("=========== THIS RUN CONTAINS RANDOMNESS ===========")
+        __.cliendID += 1
+        return String(__.cliendID)
+    }
+    #endif
+    return UUID().uuidString
+}
+
+public func generateNewClientID() -> UInt {
+    #if DEBUG // to remove randomness
+    enum __ { static var cliendID: UInt = 0 }
+    if NSClassFromString("XCTest") != nil {
+        __.cliendID += 1
+        return __.cliendID
     }
     #endif
     return UInt(UInt32.random(in: UInt32.min...UInt32.max))

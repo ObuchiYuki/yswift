@@ -311,8 +311,9 @@ public class Item: Struct, JSHashable {
             self.length -= offset
         }
 
+
         if self.parent != nil {
-            if (self.left == nil && (self.right == nil || self.right?.left != nil))
+            if (self.left == nil && (self.right == nil || self.right!.left != nil))
                 || (self.left != nil && self.left?.right !== self.right)
             {
                 var left: Item? = self.left
@@ -348,7 +349,7 @@ public class Item: Struct, JSHashable {
                             // Since this is to the left of o, we can break here
                             break
                         } // else, o might be integrated before an item that this conflicts with. If so, we will find it in the next iterations
-                    } else if try item!.origin !== nil && itemsBeforeOrigin.contains(transaction.doc.store.getItem(item!.origin!)) {
+                    } else if try item!.origin != nil && itemsBeforeOrigin.contains(transaction.doc.store.getItem(item!.origin!)) {
                         // use getItem instead of getItemCleanEnd because we don't want / need to split items.
                         // case 2
                         if !conflictingItems.contains(try transaction.doc.store.getItem(item!.origin!)) {
@@ -371,7 +372,7 @@ public class Item: Struct, JSHashable {
                 var r: Item?
                 if self.parentSub != nil {
                     r = (self.parent as! AbstractType)._map[parentSub!]
-                    while r != nil && r!.left !== nil {
+                    while r != nil && r!.left != nil {
                         r = r!.left
                     }
                 } else {
@@ -394,8 +395,12 @@ public class Item: Struct, JSHashable {
             if self.parentSub == nil && self.countable && !self.deleted {
                 (self.parent as! AbstractType)._length += self.length
             }
+            
+            
             try transaction.doc.store.addStruct(self)
+            
             try self.content.integrate(transaction, item: self)
+            
             // add parent to transaction.changed
             transaction.addChangedType((self.parent as! AbstractType), parentSub: self.parentSub)
             if ((self.parent as! AbstractType)._item != nil && (self.parent as! AbstractType)._item!.deleted)
@@ -407,7 +412,8 @@ public class Item: Struct, JSHashable {
         } else {
             // parent is not defined. Integrate GC struct instead
             try GC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
-        }        
+        }
+        
     }
 
     public var next: Item? {
