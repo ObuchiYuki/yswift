@@ -40,7 +40,6 @@ final class encodingTests: XCTestCase {
         var sv: Data? = nil
         try ydoc.getText().insert(0, text: "a")
         ydoc.on(Doc.On.update) { update, _, _ in
-            print(update.map{ $0 })
             sv = try encodeStateVectorFromUpdate(update: update)
         }
         
@@ -48,23 +47,23 @@ final class encodingTests: XCTestCase {
         try XCTAssertEqual(XCTUnwrap(sv).map{ $0 }, [0])
     }
 
-//    func testDiffStateVectorOfUpdateIgnoresSkips() throws {
-//        let ydoc = Doc()
-//        /**
-//         * @type {Array<Data>}
-//         */
-//        let updates: Array<Data> = []
-//        ydoc.on("update", (update: Data) -> {
-//            updates.append(update)
-//        })
-//        ydoc.getText().insert(0, "a")
-//        ydoc.getText().insert(0, "b")
-//        ydoc.getText().insert(0, "c")
-//        let update13 = mergeUpdates([updates[0], updates[2]])
-//        let sv = encodeStateVectorFromUpdate(update13)
-//        let state = decodeStateVector(sv)
-//        XCTAssert(state.get(ydoc.clientID) == 1)
-//        XCTAssert(state.size == 1)
-//    }
+    func testDiffStateVectorOfUpdateIgnoresSkips() throws {
+        let ydoc = Doc()
+        var updates: [Data] = []
+        ydoc.on(Doc.On.update) { update, _, _ in
+            updates.append(update)
+        }
+        try ydoc.getText().insert(0, text: "a")
+        try ydoc.getText().insert(0, text: "b")
+        try ydoc.getText().insert(0, text: "c")
+                
+        let update13 = try mergeUpdates(updates: [updates[0], updates[2]])
+                
+        let sv = try encodeStateVectorFromUpdate(update: update13)
+        let state = try decodeStateVector(decodedState: sv)
+        XCTAssertEqual(state[ydoc.clientID], 1)
+        XCTAssertEqual(state.count, 1)
+    }
     
 }
+

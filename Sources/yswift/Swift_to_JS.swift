@@ -8,6 +8,12 @@
 import Foundation
 import Promise
 
+func optionalEqual<T>(_ a: T?, _ b: T?, compare: (T, T) -> Bool) -> Bool {
+    if a == nil && b == nil { return true }
+    guard let a = a, let b = b else { return false }
+    return compare(a, b)
+}
+
 // not complete copy of ===
 func jsStrictEqual(_ a: Any?, _ b: Any?) -> Bool {
     if a == nil && b == nil {
@@ -99,6 +105,15 @@ public func generateNewClientID() -> Int {
     return Int(UInt32.random(in: UInt32.min...UInt32.max))
 }
 
+public func equalJSON(_ a: Any?, _ b: Any?) -> Bool {
+    if a == nil && b == nil { return true }
+    if let a = a as? NSDictionary, let b = b as? NSDictionary { return a == b }
+    if let a = a as? NSArray, let b = b as? NSArray { return a == b }
+    if let a = a as? NSNumber, let b = b as? NSNumber { return a == b }
+    if let a = a as? NSString, let b = b as? NSString { return a == b }
+    return false
+}
+
 public func equalFlat(a: [String: Any?], b: [String: Any?]) -> Bool {
     // TODO: may be wrong
     if let a = a as? [String: AnyHashable?], let b = b as? [String: AnyHashable?], a == b {
@@ -116,14 +131,8 @@ public func equalFlat(a: [String: Any?], b: [String: Any?]) -> Bool {
 }
 
 public func equalAttributes(_ a: Any?, _ b: Any?) -> Bool {
-    if (a == nil && b == nil) { return true }
-    if !(a is [String: Any]), let a = a as? AnyHashable, let b = b as? AnyHashable {
-        return a == b
-    }
-    
-    if a is [String: Any]? && b is [String: Any]? {
-        return a != nil && b != nil && equalFlat(a: a as! [String: Any?], b: b as! [String: Any?])
-    }
-    
-    return false
+    var a = a, b = b
+    if a is NSNull { a = nil }
+    if b is NSNull { b = nil }
+    return equalJSON(a, b)
 }

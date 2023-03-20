@@ -57,9 +57,9 @@ public final class Lib0Encoder {
         self.writeUInt8(UInt8(0b0111_1111 & value))
     }
     
-    public func writeInt(_ value: Int) {
+    public func writeInt(_ value: Int, zeroIsNegative: Bool = false) {
         var value = value
-        let isNegative = value < 0
+        let isNegative = (value == 0 && zeroIsNegative) ? true : value < 0
         if (isNegative) { value = -value }
         
         self.writeUInt8(
@@ -118,6 +118,14 @@ public final class Lib0Encoder {
     }
 
     public func writeAny(_ data: Any?) {
+        if data == nil || data is NSNull { // null
+            print("write nil")
+            
+            
+            
+            self.writeUInt8(126)
+            return
+        }
         switch (data) {
         case let data as String:
             self.writeUInt8(119)
@@ -150,7 +158,8 @@ public final class Lib0Encoder {
             }
         case let data as Bool:
             self.writeUInt8(data ? 120 : 121)
-        default:
+        default: // undefined
+            assertionFailure("undefined object to code")
             self.writeUInt8(127)
         }
     }
@@ -230,7 +239,11 @@ private protocol Lib0UIntOptRleEncoderType {
 extension Lib0UIntOptRleEncoderType {
     func flush() {
         if self.count > 0 {
-            self.encoder.writeInt(self.count == 1 ? Int(self.state) : -Int(self.state))
+            if self.count == 1 {
+                self.encoder.writeInt(Int(self.state))
+            } else {
+                self.encoder.writeInt(-Int(self.state), zeroIsNegative: true)
+            }
             if self.count > 1 {
                 self.encoder.writeUInt(self.count - 2)
             }
@@ -242,10 +255,12 @@ public class Lib0UintOptRleEncoder: Lib0UIntOptRleEncoderType {
     fileprivate var encoder = Lib0Encoder()
     fileprivate var state: UInt = 0
     fileprivate var count: UInt = 0
+    fileprivate var mutated = false
 
     public init() {}
 
     public func write(_ value: UInt) {
+        self.mutated = true
         if self.state == value {
             self.count += 1
         } else {
@@ -256,7 +271,10 @@ public class Lib0UintOptRleEncoder: Lib0UIntOptRleEncoderType {
     }
 
     public var data: Data {
-        self.flush()
+        if self.mutated {
+            self.flush()
+            self.mutated = false
+        }
         return self.encoder.data
     }
 }
@@ -285,10 +303,10 @@ public class Lib0IncUintOptRleEncoder: Lib0UIntOptRleEncoderType {
 }
 
 public class Lib0IntDiffOptRleEncoder {
-    private let encoder = Lib0Encoder()
-    private var state = 0
-    private var count: UInt = 0
-    private var diff = 0
+    let encoder = Lib0Encoder()
+    var state = 0
+    var count: UInt = 0
+    var diff = 0
 
     public init() {}
 
@@ -341,8 +359,9 @@ public class Lib0StringEncoder {
         let encoder = Lib0Encoder()
         self.sarr.append(self.s)
         self.s = NSMutableString()
+                
         encoder.writeString(self.sarr.joined() as String)
-        encoder.writeData(self.lensE.data)
+        encoder.writeOpaqueSizeData(self.lensE.data)
         return encoder.data
     }
 }

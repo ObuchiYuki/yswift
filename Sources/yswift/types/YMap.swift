@@ -73,26 +73,28 @@ public class YMap: AbstractType {
         return map
     }
 
-//    private public func createMapIterator() -> IterableIterator<any[]> {
-//        return Lib0filterIterator(self._map.entries(), entry -> !entry[1].deleted)
-//    }
+    public func createMapIterator() -> some Sequence<(String, Any)> {
+        self._map.lazy
+            .filter{ _, v in !v.deleted }
+            .map{ ($0, $1.content.getContent()[$1.length - 1]) }
+    }
 
-//    /** Returns the size of the YMap (count of key/value pairs) */
-//    get public func size() -> Int {
-//        return [...self.createMapIterator()].length
-//    }
-//
-//    /** Returns the keys for each element in the YMap Type. */
-//    public func keys() -> IterableIterator<String> {
-//        return Lib0mapIterator(self.createMapIterator(), (v: [any]) -> v[0])
-//    }
-//
-//    /** Returns the values for each element in the YMap Type. */
-//    public func values() -> IterableIterator<any> {
-//        return Lib0mapIterator(self.createMapIterator(), (v: any) -> v[1].content.getContent()[v[1].length - 1])
-//    }
-//
-//    /** Returns an Iterator of [key, value] pairs */
+    /** Returns the size of the YMap (count of key/value pairs) */
+    public var size: Int {
+        return createMapIterator().map{ $0 }.count
+    }
+
+    /** Returns the keys for each element in the YMap Type. */
+    public func keys() -> some Sequence<String> {
+        self.createMapIterator().map{ key, _ in key }
+    }
+
+    /** Returns the values for each element in the YMap Type. */
+    public func values() -> some Sequence<Any> {
+        self.createMapIterator().map{ _, value in value }
+    }
+
+    /** Returns an Iterator of [key, value] pairs */
 //    public func entries() -> IterableIterator<any> {
 //        return Lib0mapIterator(self.createMapIterator(), (v: any) -> [v[0], v[1].content.getContent()[v[1].length - 1]])
 //    }

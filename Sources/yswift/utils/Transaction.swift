@@ -7,6 +7,15 @@
 
 import Foundation
 
+func anyMap<K, V>(_ m: [K: V], _ f: (K, V) -> Bool) -> Bool {
+    for (key, value) in m {
+        if f(key, value) {
+            return true
+        }
+    }
+    return false
+}
+
 
 public class Transaction {
 
@@ -42,7 +51,10 @@ public class Transaction {
     }
 
     public func encodeUpdateMessage(_ encoder: UpdateEncoder) throws -> Bool {
-        let hasContent = self.afterState.allSatisfy({ client, clock in self.beforeState[client] != clock })
+        let hasContent = anyMap(self.afterState, { client, clock in
+            self.beforeState[client] != clock
+        })
+        
         if self.deleteSet.clients.count == 0 && !hasContent {
             return false
         }
@@ -172,7 +184,9 @@ public class Transaction {
         
         if doc.isObserving(Doc.On.update) {
             let encoder = UpdateEncoderV1()
+            
             let hasContent = try transaction.encodeUpdateMessage(encoder)
+            
             if hasContent {
                 try doc.emit(Doc.On.update, (encoder.toData(), transaction.origin, transaction))
             }

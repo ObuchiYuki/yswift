@@ -99,12 +99,12 @@ public class UpdateEncoderV1: DSEncoderV1, UpdateEncoder {
     }
 
     public func writeJSON(_ embed: Any?) throws {
-        if embed == nil {
-            self.restEncoder.writeString("null")
-        } else {
+        if let embed = embed {
             self.restEncoder.writeData(
-                try JSONSerialization.data(withJSONObject: embed!)
+                try JSONSerialization.data(withJSONObject: embed, options: [.fragmentsAllowed])
             )
+        } else {
+            self.restEncoder.writeString("null")
         }
     }
 
@@ -144,20 +144,20 @@ public class DSEncoderV2: DSEncoder {
 }
 
 public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
-    private var keyMap: [String: Int] = [:]
+    var keyMap: [String: Int] = [:]
     
     /// Refers to the next uniqe key-identifier to me used. See writeKey method for more information.
     private var keyClock: Int = 0
 
-    private let keyClockEncoder = Lib0IntDiffOptRleEncoder()
-    private let clientEncoder = Lib0UintOptRleEncoder()
-    private let leftClockEncoder = Lib0IntDiffOptRleEncoder()
-    private let rightClockEncoder = Lib0IntDiffOptRleEncoder()
-    private let infoEncoder = Lib0RleEncoder()
-    private let StringEncoder = Lib0StringEncoder()
-    private let parentInfoEncoder = Lib0RleEncoder()
-    private let typeRefEncoder = Lib0UintOptRleEncoder()
-    private let lenEncoder = Lib0UintOptRleEncoder()
+    let keyClockEncoder = Lib0IntDiffOptRleEncoder()
+    let clientEncoder = Lib0UintOptRleEncoder()
+    let leftClockEncoder = Lib0IntDiffOptRleEncoder()
+    let rightClockEncoder = Lib0IntDiffOptRleEncoder()
+    let infoEncoder = Lib0RleEncoder()
+    let stringEncoder = Lib0StringEncoder()
+    let parentInfoEncoder = Lib0RleEncoder()
+    let typeRefEncoder = Lib0UintOptRleEncoder()
+    let lenEncoder = Lib0UintOptRleEncoder()
 
     public override init() {
         super.init()
@@ -165,17 +165,17 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
 
     public override func toData() -> Data {
         let encoder = Lib0Encoder()
-        encoder.writeUInt(0) // this is a feature flag that we might use in the future
+        encoder.writeUInt(0)
         encoder.writeData(self.keyClockEncoder.data)
         encoder.writeData(self.clientEncoder.data)
         encoder.writeData(self.leftClockEncoder.data)
         encoder.writeData(self.rightClockEncoder.data)
         encoder.writeData(self.infoEncoder.data)
-        encoder.writeData(self.StringEncoder.data)
+        encoder.writeData(self.stringEncoder.data)
         encoder.writeData(self.parentInfoEncoder.data)
         encoder.writeData(self.typeRefEncoder.data)
         encoder.writeData(self.lenEncoder.data)
-        encoder.writeData(self.restEncoder.data)
+        encoder.writeOpaqueSizeData(self.restEncoder.data)
         return encoder.data
     }
 
@@ -198,7 +198,7 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
     }
 
     public func writeString(_ s: String) {
-        self.StringEncoder.write(s)
+        self.stringEncoder.write(s)
     }
 
     public func writeParentInfo(_ isYKey: Bool) {
@@ -238,13 +238,15 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
      * We cache these keys in a Map and refer to them via a unique Int.
      */
     public func writeKey(_ key: String) {
-        if let clock = self.keyMap[key] {
-            self.keyClockEncoder.write(clock)
-        } else {
+        let clock = self.keyMap[key]
+        
+        if clock == nil {
             self.keyClockEncoder.write(self.keyClock)
             self.keyClock += 1
-            self.StringEncoder.write(key)
-        }
+            self.stringEncoder.write(key)
+        } else {
+            self.keyClockEncoder.write(clock!)
+        }        
     }
 }
 

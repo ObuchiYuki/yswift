@@ -13,6 +13,16 @@ extension [Any?]: YEventDeltaInsertType {}
 extension [String: Any?]: YEventDeltaInsertType {}
 extension AbstractType: YEventDeltaInsertType {}
 
+extension YEventDeltaInsertType {
+    public func isEqual(to other: any YEventDeltaInsertType) -> Bool {
+        if equalJSON(self, other) { return true }
+        if let a = self as? AbstractType, let b = other as? AbstractType {
+            return equalJSON(a.toJSON(), b.toJSON())
+        }
+        return false
+    }
+}
+
 public class YEventDelta {
     public var insert: YEventDeltaInsertType?
     public var retain: Int?
@@ -25,7 +35,26 @@ public class YEventDelta {
         self.delete = delete
         self.attributes = attributes
     }
-    
+}
+
+extension YEventDelta: CustomStringConvertible {
+    public var description: String {
+        var dict = [String: Any]()
+        dict["insert"] = insert
+        dict["retain"] = retain
+        dict["delete"] = delete
+        dict["attributes"] = attributes
+        return dict.description
+    }
+}
+
+extension YEventDelta: Equatable {
+    public static func == (lhs: YEventDelta, rhs: YEventDelta) -> Bool {
+        return optionalEqual(lhs.insert, rhs.insert, compare: { $0.isEqual(to: $1) })
+        && lhs.retain == rhs.retain
+        && lhs.delete == rhs.delete
+        && optionalEqual(lhs.attributes, rhs.attributes, compare: { $0.isEqual(to: $1) })
+    }
 }
 
 public enum YEventAction: String {

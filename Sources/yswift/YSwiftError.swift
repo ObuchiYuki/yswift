@@ -28,7 +28,7 @@ struct YSwiftError: LocalizedError {
 }
 
 #if DEBUG
-let __isTesting = NSClassFromString("XCText") != nil
+let __isTesting = NSClassFromString("XCTest") != nil
 #else
 let __isTesting = false
 #endif

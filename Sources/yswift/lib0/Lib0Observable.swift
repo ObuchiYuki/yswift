@@ -8,15 +8,6 @@
 import Foundation
 import Promise
 
-enum Message {
-    case a(Int)
-    case b(String)
-}
-
-open class Observable_ {
-    
-}
-
 open class Lib0Observable {
     public struct EventName<Arguments> {
         let name: String

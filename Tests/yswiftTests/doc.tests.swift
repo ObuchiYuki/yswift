@@ -59,15 +59,11 @@ final class docTests: XCTestCase {
         let doc1 = Doc(opts: .init(cliendID: 100))
         try doc1.getText("").insert(0, text: "h")
         try doc1.getText("").insert(1, text: "i")
-        
-        print(doc1.store.clients[100]!.count)
-        
+                
         let doc2 = Doc(opts: .init(cliendID: 101))
         
         let update = try encodeStateAsUpdate(doc: doc1)
-        
-        print(update.map{ $0 })
-        
+                
         try applyUpdate(ydoc: doc2, update: update)
         
         try XCTAssertEqual(doc2.getText("").toString(), "hi")
@@ -223,9 +219,6 @@ final class docTests: XCTestCase {
         var lastEvent: Doc.On.SubDocEvent? = nil
         ydoc.on(Doc.On.subdocs) { event, _ in
             lastEvent = event
-        }
-        ydoc.on(Doc.On.update) { update, _ , _ in
-            print("update", update.map{ $0 })
         }
         
         try yarray.insert(0, content: [subdoc1])

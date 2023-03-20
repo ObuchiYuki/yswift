@@ -90,7 +90,7 @@ public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
     }
 
     public func readAny() throws -> Any {
-        return try self.restDecoder.readAny()
+        return try self.restDecoder.readAny() as Any
     }
 
     public func readBuf() throws -> Data {
@@ -102,7 +102,10 @@ public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
     }
     
     public func readJSON() throws -> Any {
-        return try JSONSerialization.jsonObject(with: self.restDecoder.readVarData())
+        let data = try self.restDecoder.readVarData()
+        return try! JSONSerialization.jsonObject(
+            with: data, options: [.fragmentsAllowed]
+        )
     }
 }
 
@@ -129,17 +132,17 @@ public class DSDecoderV2: DSDecoder {
 }
 
 public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
-    private var keys: [String] = []
+    var keys: [String] = []
     
-    private let keyClockDecoder: Lib0IntDiffOptRleDecoder
-    private let clientDecoder: Lib0UintOptRleDecoder
-    private let leftClockDecoder: Lib0IntDiffOptRleDecoder
-    private let rightClockDecoder: Lib0IntDiffOptRleDecoder
-    private let infoDecoder: Lib0RleDecoder
-    private let StringDecoder: Lib0StringDecoder
-    private let parentInfoDecoder: Lib0RleDecoder
-    private let typeRefDecoder: Lib0UintOptRleDecoder
-    private let lenDecoder: Lib0UintOptRleDecoder
+    let keyClockDecoder: Lib0IntDiffOptRleDecoder
+    let clientDecoder: Lib0UintOptRleDecoder
+    let leftClockDecoder: Lib0IntDiffOptRleDecoder
+    let rightClockDecoder: Lib0IntDiffOptRleDecoder
+    let infoDecoder: Lib0RleDecoder
+    let stringDecoder: Lib0StringDecoder
+    let parentInfoDecoder: Lib0RleDecoder
+    let typeRefDecoder: Lib0UintOptRleDecoder
+    let lenDecoder: Lib0UintOptRleDecoder
 
     public override init(_ decoder: Lib0Decoder) throws {
         _ = try decoder.readUInt() // read feature flag - currently unused
@@ -148,7 +151,7 @@ public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
         self.leftClockDecoder = Lib0IntDiffOptRleDecoder(data: try decoder.readVarData())
         self.rightClockDecoder = Lib0IntDiffOptRleDecoder(data: try decoder.readVarData())
         self.infoDecoder = Lib0RleDecoder(data: try decoder.readVarData())
-        self.StringDecoder = try Lib0StringDecoder(data: try decoder.readVarData())
+        self.stringDecoder = try Lib0StringDecoder(data: try decoder.readVarData())
         self.parentInfoDecoder = Lib0RleDecoder(data: try decoder.readVarData())
         self.typeRefDecoder = Lib0UintOptRleDecoder(data: try decoder.readVarData())
         self.lenDecoder = Lib0UintOptRleDecoder(data: try decoder.readVarData())
@@ -179,7 +182,7 @@ public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
     }
 
     public func readString() throws -> String {
-        return try self.StringDecoder.read()
+        return try self.stringDecoder.read()
     }
 
     public func readParentInfo() throws -> Bool {
@@ -207,7 +210,7 @@ public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
         if keyClock < self.keys.count {
             return self.keys[keyClock]
         } else {
-            let key = try self.StringDecoder.read()
+            let key = try self.stringDecoder.read()
             self.keys.append(key)
             return key
         }

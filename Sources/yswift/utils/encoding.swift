@@ -57,9 +57,7 @@ public func writeClientsStructs(encoder: UpdateEncoder, store: StructStore, _sm:
     encoder.restEncoder.writeUInt(UInt(sm.count))
             
     try sm.sorted(by: { $0.key > $1.key }).forEach{ client, clock in
-        try writeStructs(
-            encoder: encoder, structs: store.clients[client]!, client: client, clock: clock
-        )
+        try writeStructs(encoder: encoder, structs: store.clients[client]!, client: client, clock: clock)
     }
 }
 
@@ -83,12 +81,16 @@ public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [I
         let refs: GC_or_Item_RefArray = Ref(value: Array(repeating: nil, count: numberOfStructs))
         let client = try decoder.readClient()
         var clock = try Int(decoder.restDecoder.readUInt())
-        // let start = performance.now()
-        clientRefs[client] = StructRef(i: 0, refs: refs)
         
+        clientRefs[client] = StructRef(i: 0, refs: refs)
+                
         for i in 0..<numberOfStructs {
             let info = try decoder.readInfo()
-            switch info & 0b0001_1111 {
+            let contentType = info & 0b0001_1111
+            
+            assert((0...10).contains(contentType))
+            
+            switch contentType {
             case 0:
                 let len = try decoder.readLen()
                 refs[i] = GC(id: ID(client: client, clock: clock), length: len)
@@ -114,7 +116,7 @@ public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [I
                     parentSub: cantCopyParentInfo && (info & 0b0010_0000) == 0b0010_0000 ? decoder.readString() : nil, // parentSub
                     content: readItemContent(decoder: decoder, info: info) // item content
                 )
-                refs[Array<(GC_or_Item)?>.Index(i)] = struct_
+                refs[i] = struct_
                 clock += struct_.length
             }
         }
@@ -342,7 +344,7 @@ public func writeStateAsUpdate(encoder: UpdateEncoder, doc: Doc, targetStateVect
     try DeleteSet.createFromStructStore(doc.store).encode(encoder)
 }
 
-public func encodeStateAsUpdateV2(doc: Doc, encodedTargetStateVector: Data?, encoder: UpdateEncoder = UpdateEncoderV2()) throws -> Data {
+public func encodeStateAsUpdateV2(doc: Doc, encodedTargetStateVector: Data? = nil, encoder: UpdateEncoder = UpdateEncoderV2()) throws -> Data {
     let encodedTargetStateVector = encodedTargetStateVector ?? Data([0])
     
     let targetStateVector = try decodeStateVector(decodedState: encodedTargetStateVector)

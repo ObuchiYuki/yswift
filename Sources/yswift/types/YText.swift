@@ -14,10 +14,11 @@ public enum YChangeAction: String {
 
 public protocol YTextAttributeValue {}
 extension Bool: YTextAttributeValue {}
-extension Int: YTextAttributeValue {}
+extension NSNumber: YTextAttributeValue {}
 extension String: YTextAttributeValue {}
 extension [Any?]: YTextAttributeValue {}
 extension [String: Any?]: YTextAttributeValue {}
+extension NSNull: YTextAttributeValue {}
 
 extension YTextAttributeValue {
     func jsProperty(_ name: String) -> Any? {
@@ -29,6 +30,15 @@ extension YTextAttributeValue {
 }
 
 public typealias YTextAttributes = Ref<[String: YTextAttributeValue?]>
+
+extension YTextAttributes {
+    public func isEqual(to other: YTextAttributes) -> Bool {
+        self.value.allSatisfy{ key, value in
+            equalJSON(value, other.value[key] ?? nil)
+        }
+    }
+}
+
 
 public enum YTextAction: String {
     case delete = "delete"
@@ -136,6 +146,7 @@ public func insertNegatedAttributes(
     }
     let doc = transaction.doc
     let ownClientId = doc.clientID
+        
     try negatedAttributes.forEach({ key, val in
         let left = currPos.left
         let right = currPos.right
@@ -195,11 +206,16 @@ public func insertAttributes(
     let ownClientId = doc.clientID
     let negatedAttributes: YTextAttributes = .init(value: [:])
     // insert format-start items
+
     for (key, val) in attributes {
         let currentVal = currPos.currentAttributes.value[key]
+        
+        print("== insert ==", removeDualOptional(currentVal), val)
+        
         if !equalAttributes(removeDualOptional(currentVal), val) {
             // save negated attribute (set nil if currentVal undefined)
-            negatedAttributes.value[key] = currentVal
+            negatedAttributes.value[key] = currentVal == nil ? NSNull() : currentVal
+            
             let left = currPos.left, right = currPos.right
             currPos.right = Item(
                 id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
@@ -214,6 +230,9 @@ public func insertAttributes(
             try currPos.forward()
         }
     }
+    
+    print("negatedAttributes", negatedAttributes)
+    
     return negatedAttributes
 }
 
@@ -225,6 +244,7 @@ public func insertText(
     text: YEventDeltaInsertType,
     attributes: YTextAttributes
 ) throws {
+    // TODO: remove
     currPos.currentAttributes.forEach({ key, _ in
         // TODO: ??? what is this ???
         if attributes.value[key] == nil {
@@ -263,6 +283,7 @@ public func insertText(
     currPos.right = right
     currPos.index = index
     try currPos.forward()
+        
     try insertNegatedAttributes(transaction: transaction, parent: parent, currPos: currPos, negatedAttributes: negatedAttributes)
 }
  
@@ -831,7 +852,7 @@ public class YText: AbstractType {
         computeYChange: ((YChangeAction, ID) -> YTextAttributeValue)? = nil
     ) throws -> [YEventDelta] {
         var ops: [YEventDelta] = []
-        var currentAttributes: YTextAttributes = .init(value: [:])
+        let currentAttributes: YTextAttributes = .init(value: [:])
         let doc = self.doc!
         var str = ""
         var n = self._start
@@ -839,7 +860,7 @@ public class YText: AbstractType {
         func packStr() {
             if str.count > 0 {
                 // pack str with attributes to ops
-                var attributes: YTextAttributes = .init(value: [:])
+                let attributes: YTextAttributes = .init(value: [:])
                 var addAttributes = false
                 currentAttributes.forEach({ key, value in
                     addAttributes = true
@@ -922,27 +943,26 @@ public class YText: AbstractType {
 
 
     public func insert(_ index: Int, text: String, attributes: YTextAttributes? = nil) throws {
-        var attributes = attributes
         if text.count <= 0 { return }
         
-        if self.doc != nil {
-            try self.doc!.transact({ transaction in
-                let pos = try ItemTextListPosition.find(transaction, parent: self, index: index)
-                if attributes == nil {
-                    attributes = .init(value: [:])
-                    pos.currentAttributes.forEach({ k, v in
-                        attributes!.value[k] = v
-                    })
-                }
-                                
-
-                try insertText(transaction: transaction, parent: self, currPos: pos, text: text, attributes: attributes!)
-            })
-        } else {
-            (self._pending)?.append{
-                try self.insert(index, text: text, attributes: attributes)
-            }
+        guard let doc = self.doc else {
+            self._pending?.append{ try self.insert(index, text: text, attributes: attributes) }
+            return
         }
+        
+        try doc.transact({ transaction in
+            let pos = try ItemTextListPosition.find(transaction, parent: self, index: index)
+                        
+            var attributes = attributes
+            if attributes == nil {
+                attributes = .init(value: [:])
+                pos.currentAttributes.forEach{ k, v in
+                    attributes!.value[k] = v
+                }
+            }
+
+            try insertText(transaction: transaction, parent: self, currPos: pos, text: text, attributes: attributes!)
+        })
     }
 
     // OLD: insertEmbed(_ index: Int, embed: AbstractType|object, attributes: YTextAttributes = {})

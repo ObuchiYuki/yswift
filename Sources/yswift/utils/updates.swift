@@ -247,7 +247,7 @@ public func mergeUpdatesV2(
     updates: [Data],
     YDecoder: (Lib0Decoder) throws -> UpdateDecoder = UpdateDecoderV2.init,
     YEncoder: () -> UpdateEncoder = UpdateEncoderV2.init
-) throws -> Data {
+) throws -> Data {    
     if updates.count == 1 {
         return updates[0]
     }
@@ -259,6 +259,8 @@ public func mergeUpdatesV2(
     let updateEncoder = YEncoder()
     let lazyStructEncoder = LazyStructWriter(updateEncoder)
 
+    print("== 1 ==", updateEncoder.toData())
+    
     while (true) {
         lazyStructDecoders = lazyStructDecoders.filter{
             $0.curr != nil
@@ -270,32 +272,15 @@ public func mergeUpdatesV2(
                     // @todo remove references to skip since the structDecoders must filter Skips.
                     return type(of: dec1.curr) == type(of: dec2.curr)
                         ? false
-                        : dec1.curr is Skip ? true : false // we are filtering skips anyway.
+                        : dec1.curr is Skip ? false : true // we are filtering skips anyway.
                 } else {
-                    return 0 < clockDiff
+                    return clockDiff < 0
                 }
             } else {
-                return dec2.curr!.id.client < dec1.curr!.id.client
+                return dec2.curr!.id.client - dec1.curr!.id.client < 0
             }
         })
-        
-        
-        lazyStructDecoders.sort(by: { dec1, dec2 in
-            if dec1.curr!.id.client == dec2.curr!.id.client {
-                let clockDiff = dec1.curr!.id.clock - dec2.curr!.id.clock
-                if clockDiff == 0 {
-                    // @todo remove references to skip since the structDecoders must filter Skips.
-                    return type(of: dec1.curr) == type(of: dec2.curr)
-                        ? false
-                        : dec1.curr is Skip ? true : false
-                } else {
-                    return 0 < clockDiff
-                }
-            } else {
-                return dec2.curr!.id.client < dec1.curr!.id.client
-            }
-        })
-        
+                        
         if lazyStructDecoders.count == 0 {
             break
         }
@@ -309,20 +294,30 @@ public func mergeUpdatesV2(
 
             // iterate until we find something that we haven't written already
             // remember: first the high client-ids are written
-            while (curr != nil && curr!.id.clock + curr!.length <= currWrite!.struct_.id.clock + currWrite!.struct_.length && curr!.id.client >= currWrite!.struct_.id.client) {
+            while (curr != nil
+                   && curr!.id.clock + curr!.length <= currWrite!.struct_.id.clock + currWrite!.struct_.length
+                   && curr!.id.client >= currWrite!.struct_.id.client
+            ) {
                 curr = try currDecoder.next()
                 iterated = true
             }
             if (
-                curr == nil || // current decoder is empty
-                curr!.id.client != firstClient || // check whether there is another decoder that has has updates from `firstClient`
-                (iterated && curr!.id.clock > currWrite!.struct_.id.clock + currWrite!.struct_.length) // the above while loop was used and we are potentially missing updates
+                // current decoder is empty
+                curr == nil
+                // check whether there is another decoder that has has updates from `firstClient`
+                || curr!.id.client != firstClient
+                // the above while loop was used and we are potentially missing updates
+                || (iterated && curr!.id.clock > currWrite!.struct_.id.clock + currWrite!.struct_.length)
             ) {
                 continue
             }
 
             if firstClient != currWrite!.struct_.id.client {
-                try writeStructToLazyStructWriter(lazyWriter: lazyStructEncoder, struct_: currWrite!.struct_ as! GC_or_Item, offset: Int(currWrite!.offset))
+                try writeStructToLazyStructWriter(
+                    lazyWriter: lazyStructEncoder,
+                    struct_: currWrite!.struct_ as! GC_or_Item,
+                    offset: Int(currWrite!.offset)
+                )
                 currWrite = StructWrite(struct_: curr!, offset: 0)
                 _ = try currDecoder.next()
             } else {
@@ -333,7 +328,7 @@ public func mergeUpdatesV2(
                         try writeStructToLazyStructWriter(
                             lazyWriter: lazyStructEncoder,
                             struct_: currWrite!.struct_ as! GC_or_Item,
-                            offset: Int(currWrite!.offset)
+                            offset: currWrite!.offset
                         )
                         let diff = curr!.id.clock - currWrite!.struct_.id.clock - currWrite!.struct_.length
                         let struct_ = Skip(id: ID(client: firstClient, clock: currWrite!.struct_.id.clock + currWrite!.struct_.length), length: diff)
@@ -346,14 +341,14 @@ public func mergeUpdatesV2(
                             // prefer to slice Skip because the other struct might contain more information
                             currWrite!.struct_.length -= diff
                         } else {
-                            curr = sliceStruct(left: curr!, diff: Int(diff))
+                            curr = sliceStruct(left: curr!, diff: diff)
                         }
                     }
                     if !currWrite!.struct_.merge(with: curr!) {
                         try writeStructToLazyStructWriter(
                             lazyWriter: lazyStructEncoder,
                             struct_: currWrite!.struct_ as! GC_or_Item,
-                            offset: Int(currWrite!.offset)
+                            offset: currWrite!.offset
                         )
                         currWrite = StructWrite(struct_: curr!, offset: 0)
                         _ = try currDecoder.next()
@@ -367,17 +362,21 @@ public func mergeUpdatesV2(
         var next = currDecoder.curr
         
         while(
-            next != nil && next!.id.client == firstClient && next!.id.clock == currWrite!.struct_.id.clock + currWrite!.struct_.length && !(next is Skip)
+            next != nil
+            && next!.id.client == firstClient
+            && next!.id.clock == currWrite!.struct_.id.clock + currWrite!.struct_.length
+            && !(next is Skip)
         ) {
-            try writeStructToLazyStructWriter(lazyWriter: lazyStructEncoder, struct_: currWrite!.struct_, offset: Int(currWrite!.offset))
+            try writeStructToLazyStructWriter(lazyWriter: lazyStructEncoder, struct_: currWrite!.struct_, offset: currWrite!.offset)
             currWrite = StructWrite(struct_: next!, offset: 0)
             
             next = try currDecoder.next()
         }
     }
     
+    print("== -1 ==", updateEncoder.toData().map{ $0 })
     if currWrite != nil {
-        try writeStructToLazyStructWriter(lazyWriter: lazyStructEncoder, struct_: currWrite!.struct_, offset: Int(currWrite!.offset))
+        try writeStructToLazyStructWriter(lazyWriter: lazyStructEncoder, struct_: currWrite!.struct_, offset: currWrite!.offset)
         currWrite = nil
     }
     finishLazyStructWriting(lazyWriter: lazyStructEncoder)
@@ -469,7 +468,7 @@ public func finishLazyStructWriting(lazyWriter: LazyStructWriter) {
     for i in 0..<lazyWriter.clientStructs.count {
         let partStructs = lazyWriter.clientStructs[i]
         restEncoder.writeUInt(UInt(partStructs.written))
-        restEncoder.writeData(partStructs.restEncoder)
+        restEncoder.writeOpaqueSizeData(partStructs.restEncoder)
     }
 }
 

@@ -44,7 +44,16 @@ final public class ContentFormat: Content {
     public func getRef() -> UInt8 { return 6 }
 }
 
+extension ContentFormat: CustomStringConvertible {
+    public var description: String { "ContentFormat(key: \(key), value: \(value as Any?))" }
+}
+
 func readContentFormat(_ decoder: UpdateDecoder) throws -> ContentFormat {
     // TODO: this as? may be wrong
-    return try ContentFormat(key: decoder.readKey(), value: decoder.readJSON() as? YTextAttributeValue)
+    let key = try decoder.readKey()
+    let value = try decoder.readJSON()
+    if !(value is YTextAttributeValue?) {
+        assertionFailure("'\(value as Any)' (\(type(of: value))) is not YTextAttributeValue")
+    }
+    return ContentFormat(key: key, value: value as? YTextAttributeValue)
 }

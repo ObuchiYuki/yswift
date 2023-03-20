@@ -16,6 +16,12 @@ public final class Ref<T> {
     }
 }
 
+extension Ref: CustomStringConvertible where T: CustomStringConvertible {
+    public var description: String {
+        value.description
+    }
+}
+
 extension Ref: ExpressibleByNilLiteral where T: ExpressibleByNilLiteral {
     public convenience init(nilLiteral: ()) {
         self.init(value: T(nilLiteral: ()))
@@ -149,13 +155,17 @@ extension Ref: Collection where T: Collection {
     public subscript(position: T.Index) -> T.Element {
         value[position]
     }
-
+    
     public var startIndex: T.Index {
         value.startIndex
     }
-
+    
     public var endIndex: T.Index {
         value.endIndex
+    }
+    
+    public var count: Int {
+        value.count
     }
 
     public func index(after i: T.Index) -> T.Index {

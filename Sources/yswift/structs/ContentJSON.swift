@@ -42,7 +42,14 @@ final public class ContentJSON: Content {
         encoder.writeLen(len - offset)
         for i in offset..<len {
             let c = self.arr[i]
-            encoder.writeString(c == nil ? "undefined" : String(data: try JSONSerialization.data(withJSONObject: c!), encoding: .utf8)!)
+            if let c = c {                
+                let jsonData = try JSONSerialization.data(withJSONObject: c, options: [.fragmentsAllowed])
+                let jsonString = String(data: jsonData, encoding: .utf8)!
+                encoder.writeString(jsonString)
+            } else {
+                encoder.writeString("undefined")
+            }
+            encoder.writeString(c == nil ? "undefined" : String(data: try JSONSerialization.data(withJSONObject: c!, options: [.fragmentsAllowed]), encoding: .utf8)!)
         }
     }
 
@@ -57,7 +64,7 @@ func readContentJSON(_ decoder: UpdateDecoder) throws -> ContentJSON {
         if c == "undefined" {
             cs.append(nil)
         } else {
-            try cs.append(JSONSerialization.jsonObject(with: c.data(using: .utf8)!))
+            try cs.append(JSONSerialization.jsonObject(with: c.data(using: .utf8)!, options: [.fragmentsAllowed]))
         }
     }
     return ContentJSON(cs)
