@@ -2,7 +2,7 @@ import XCTest
 import Promise
 @testable import yswift
 
-final class encodingTests: XCTestCase {
+final class EncodingTests: XCTestCase {
     
     func testStructReferences() {
         XCTAssert(contentDecoders_.count == 11)

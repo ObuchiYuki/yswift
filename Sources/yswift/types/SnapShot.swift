@@ -125,7 +125,7 @@ func equalSnapshots(snap1: Snapshot, snap2: Snapshot) -> Bool {
     }
     
     for (client, dsitems1) in ds1  {
-        let dsitems2 = ds2[client] ?? []
+        let dsitems2 = ds2[client] ?? Ref(value: [])
         if dsitems1.count != dsitems2.count {
             return false
         }

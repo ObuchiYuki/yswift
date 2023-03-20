@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class DeleteItem {
+public class DeleteItem: CustomStringConvertible {
     public let clock: Int
     public var len: Int
     
@@ -15,8 +15,12 @@ public class DeleteItem {
         self.clock = clock
         self.len = len
     }
+    
+    public var description: String {
+        "DeleteItem(clock: \(clock), len: \(len))"
+    }
 
-    static public func findIndex(_ dis: [DeleteItem], clock: Int) -> Int? {
+    static public func findIndex(_ dis: Ref<[DeleteItem]>, clock: Int) -> Int? {
         var left = 0
         var right = dis.count - 1
         
@@ -38,7 +42,7 @@ public class DeleteItem {
 }
 
 public class DeleteSet {
-    public var clients: [Int: [DeleteItem]] = [:]
+    public var clients: [Int: Ref<[DeleteItem]>] = [:]
 
     public func iterate(_ transaction: Transaction, body: (Struct) throws -> Void) throws {
         
@@ -60,8 +64,8 @@ public class DeleteSet {
     }
 
     public func sortAndMerge() {
-        self.clients.forEach{ _, _dels in
-            var dels = _dels.sorted(by: { a, b in a.clock < b.clock })
+        self.clients.forEach{ _, dels in
+            dels.value.sort(by: { a, b in a.clock < b.clock })
             var i: Int = 1, j: Int = 1
                 
             while i < dels.count {
@@ -75,16 +79,16 @@ public class DeleteSet {
                 }
                 i += 1
             }
-            dels = dels[..<j].map{ $0 }
+            dels.value = dels[..<j].map{ $0 }
         }
     }
 
     public func add(client: Int, clock: Int, length: Int) {
         if self.clients[client] == nil {
-            self.clients[client] = []
+            self.clients[client] = Ref(value: [])
         }
         
-        self.clients[client]!.append(DeleteItem(clock: clock, len: length))
+        self.clients[client]!.value.append(DeleteItem(clock: clock, len: length))
     }
     
     public func encode(_ encoder: any DSEncoder) throws {
@@ -92,7 +96,7 @@ public class DeleteSet {
     
         // Ensure that the delete set is written in a deterministic order
         try self.clients
-            .sorted(by: { $0.key < $1.key })
+            .sorted(by: { $0.key > $1.key })
             .forEach({ client, dsitems in
                 encoder.resetDsCurVal()
                 encoder.restEncoder.writeUInt(UInt(client))
@@ -167,7 +171,7 @@ public class DeleteSet {
             dss[dssI].clients.forEachMutating({ client, delsLeft in
                 if merged.clients[client] == nil {
                     for i in dssI+1..<dss.count {
-                        delsLeft += dss[i].clients[client] ?? []
+                        delsLeft.value += dss[i].clients[client] ?? Ref(value: [])
                     }
                     merged.clients[client] = delsLeft
                 }
@@ -186,10 +190,10 @@ public class DeleteSet {
             let client = try Int(decoder.restDecoder.readUInt())
             let IntOfDeletes = try decoder.restDecoder.readUInt()
             if IntOfDeletes > 0 {
-                if ds.clients[client] == nil { ds.clients[client] = [] }
+                if ds.clients[client] == nil { ds.clients[client] = Ref(value: []) }
                 
                 for _ in 0..<IntOfDeletes {
-                    ds.clients[client]!.append(DeleteItem(
+                    ds.clients[client]!.value.append(DeleteItem(
                         clock: try decoder.readDsClock(),
                         len: try decoder.readDsLen()
                     ))
@@ -203,7 +207,7 @@ public class DeleteSet {
         let ds = DeleteSet()
         
         for (client, structs) in ss.clients {
-            var dsitems: [DeleteItem] = []
+            let dsitems: Ref<[DeleteItem]> = Ref(value: [])
             
             var i = 0; while i < structs.count {
                 let struct_ = structs[i]
@@ -220,7 +224,7 @@ public class DeleteSet {
                         }
                     }
                     
-                    dsitems.append(DeleteItem(clock: clock, len: len))
+                    dsitems.value.append(DeleteItem(clock: clock, len: len))
                 }
                 i += 1
             }

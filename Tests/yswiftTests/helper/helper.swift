@@ -68,13 +68,13 @@ struct TestEnvironment {
 
 struct YTest<T> {
     let connector: TestConnector
-    let docs: Ref<[Doc]>
+    let docs: [TestDoc]
     let array: [YArray]
     let map: [YMap]
     let text: [YText]
     let testObjects: [T?]
     
-    private init(connector: TestConnector, docs: Ref<[Doc]>, array: [YArray], map: [YMap], text: [YText], testObjects: [T?]) {
+    private init(connector: TestConnector, docs: [TestDoc], array: [YArray], map: [YMap], text: [YText], testObjects: [T?]) {
         self.connector = connector
         self.docs = docs
         self.array = array
@@ -109,7 +109,7 @@ struct YTest<T> {
         let testObjects = docs.map{ initTestObject?($0) }
                         
         self.init(
-            connector: connector, docs: Ref(value: docs), array: array, map: map, text: text, testObjects: testObjects
+            connector: connector, docs: docs, array: array, map: map, text: text, testObjects: testObjects
         )
     }
     
@@ -296,21 +296,23 @@ func compareItemIDs(_ a: Item?, _ b: Item?) -> Bool {
     return a?.id == b?.id
 }
 
-func YAssertEqualDocs(_ docs: Ref<[Doc]>) throws {
-    try docs.forEach{ try ($0 as? TestDoc)?.connect() }
-    while let doc = docs[0] as? TestDoc, try doc.tc.flushAllMessages() {}
+// returns updated docs
+@discardableResult
+func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
+    try docs.forEach{ try $0.connect() }
+    while try docs[0].tc.flushAllMessages() {}
 
     let mergedDocs = try docs.map{ doc in
+        // swift add
         let ydoc = Doc()
-        if let tdoc = doc as? TestDoc {
-            let update = try TestEnvironment.currentEnvironment.mergeUpdates(tdoc.updates.value)
-                        
-            try TestEnvironment.currentEnvironment.applyUpdate(ydoc, update, nil)
-        }
+        let update = try TestEnvironment.currentEnvironment.mergeUpdates(doc.updates.value)
+        try TestEnvironment.currentEnvironment.applyUpdate(ydoc, update, nil)
         return ydoc
     }
     
-    docs.value.append(contentsOf: mergedDocs)
+    var docs = docs as [Doc]
+    
+    docs.append(contentsOf: mergedDocs)
     let userArrayValues = try XCTUnwrap(docs.map{ try $0.getArray("array").toJSON() } as? [[Any]])
     let userMapValues = try XCTUnwrap(docs.map{ try $0.getMap("map").toJSON() } as? [[String: Any]])
     let userTextValues = try XCTUnwrap(docs.map{ try $0.getText("text").toDelta() })
@@ -364,6 +366,8 @@ func YAssertEqualDocs(_ docs: Ref<[Doc]>) throws {
     }
     
     try docs.forEach{ try $0.destroy() }
+    
+    return docs
 }
 
 func YAssertEqualStructStore(_ ss1: StructStore, _ ss2: StructStore) throws {

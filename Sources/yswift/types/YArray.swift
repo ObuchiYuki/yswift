@@ -41,7 +41,7 @@ public class YArray: AbstractType {
      */
     public override func _integrate(_ y: Doc, item: Item?) throws {
         try super._integrate(y, item: item)
-        try self.insert(0, content: self._prelimContent ?? [])
+        try self.insert(0, self._prelimContent ?? [])
         self._prelimContent = nil
     }
 
@@ -49,7 +49,7 @@ public class YArray: AbstractType {
 
     public override func clone() throws -> YArray {
         let array = YArray()
-        try array.insert(0, content: self.toArray().map{ element in
+        try array.insert(0, self.toArray().map{ element in
             try element is AbstractType ? (element as! AbstractType).clone() : element
         })
         return array
@@ -70,7 +70,7 @@ public class YArray: AbstractType {
         try self.callObservers(transaction: transaction, event: YArrayEvent(self, transaction: transaction))
     }
 
-    public func insert(_ index: Int, content: [Any]) throws {
+    public func insert(_ index: Int, _ content: [Any]) throws {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
                 try self.listInsertGenerics(transaction, index: index, contents: content)
@@ -98,7 +98,7 @@ public class YArray: AbstractType {
     }
 
     public func unshift(_ content: [Any]) throws {
-        try self.insert(0, content: content)
+        try self.insert(0, content)
     }
 
     /**
@@ -133,7 +133,7 @@ public class YArray: AbstractType {
     }
 
     /** Transforms this YArray to a JavaScript Array. */
-    public func slice(_ start: Int = 0, end: Int?) -> [Any] {
+    public func slice(_ start: Int = 0, end: Int? = nil) -> [Any] {
         let end = end ?? Int(self.length)
         return self.listSlice(start, end: end)
     }

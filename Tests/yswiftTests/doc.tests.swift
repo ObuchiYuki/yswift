@@ -2,7 +2,7 @@ import XCTest
 import Promise
 @testable import yswift
 
-final class docTests: XCTestCase {
+final class DocTests: XCTestCase {
     
     func testAfterTransactionRecursion() throws { // xml -> array
         let ydoc = Doc()
@@ -50,7 +50,7 @@ final class docTests: XCTestCase {
         let doc2 = Doc()
         doc2.clientID = 0
         XCTAssertEqual(doc2.clientID, doc1.clientID)
-        try doc1.getArray("a").insert(0, content: [1, 2])
+        try doc1.getArray("a").insert(0, [1, 2])
         try applyUpdate(ydoc: doc2, update: encodeStateAsUpdate(doc: doc1))
         XCTAssertNotEqual(doc2.clientID, doc1.clientID)
     }
@@ -177,7 +177,7 @@ final class docTests: XCTestCase {
         ydoc.on(Doc.On.subdocs) { event, _ in
             lastEvent = event
         }
-        try yarray.insert(0, content: [subdoc1])
+        try yarray.insert(0, [subdoc1])
         XCTAssert(subdoc1.shouldLoad)
         XCTAssert(subdoc1.autoLoad == false)
         try XCTAssert(XCTUnwrap(lastEvent).loaded.contains(subdoc1))
@@ -221,7 +221,7 @@ final class docTests: XCTestCase {
             lastEvent = event
         }
         
-        try yarray.insert(0, content: [subdoc1])
+        try yarray.insert(0, [subdoc1])
         
         
         XCTAssertTrue(subdoc1.shouldLoad)
@@ -260,7 +260,7 @@ final class docTests: XCTestCase {
         let elems = try ydoc.getArray()
         let undoManager = UndoManager(typeScope: elems, options: .init())
         let subdoc = Doc()
-        try elems.insert(0, content: [subdoc])
+        try elems.insert(0, [subdoc])
         try undoManager.undo()
         try undoManager.redo()
         XCTAssert(elems.length == 1)
