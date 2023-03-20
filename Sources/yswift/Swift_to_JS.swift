@@ -114,22 +114,6 @@ public func equalJSON(_ a: Any?, _ b: Any?) -> Bool {
     return false
 }
 
-public func equalFlat(a: [String: Any?], b: [String: Any?]) -> Bool {
-    // TODO: may be wrong
-    if let a = a as? [String: AnyHashable?], let b = b as? [String: AnyHashable?], a == b {
-        return true
-    }
-    
-//    if a.keys.count != b.keys.count { return false }
-//
-//    for (key, value) in a {
-//        if (!(value != nil || b[key] != nil) && b[key] == value) {
-//            return false
-//        }
-//    }
-    return true
-}
-
 public func equalAttributes(_ a: Any?, _ b: Any?) -> Bool {
     var a = a, b = b
     if a is NSNull { a = nil }

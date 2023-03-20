@@ -304,9 +304,7 @@ func YAssertEqualDocs(_ docs: Ref<[Doc]>) throws {
         let ydoc = Doc()
         if let tdoc = doc as? TestDoc {
             let update = try TestEnvironment.currentEnvironment.mergeUpdates(tdoc.updates.value)
-            
-            print("update", update.map{ $0 })
-            
+                        
             try TestEnvironment.currentEnvironment.applyUpdate(ydoc, update, nil)
         }
         return ydoc
@@ -336,13 +334,6 @@ func YAssertEqualDocs(_ docs: Ref<[Doc]>) throws {
     }
     
     XCTAssertEqualJSON(userMapValues[0], mapRes)
-    
-    userTextValues.forEach{
-        print("============")
-        $0.forEach{
-            print("\t", $0)
-        }
-    }
     
     // Compare all users
     for i in 0..<docs.count-1 {

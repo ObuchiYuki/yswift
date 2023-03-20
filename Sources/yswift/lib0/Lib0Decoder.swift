@@ -153,7 +153,7 @@ public final class Lib0Decoder {
         case 119: return try readString()
         case 118:
             let count = try self.readUInt()
-            var dictionary: [String: Any] = [:]
+            var dictionary: [String: Any?] = [:]
             for _ in 0..<count {
                 let key = try self.readString()
                 dictionary[key] = try self.readAny()
@@ -161,7 +161,7 @@ public final class Lib0Decoder {
             return dictionary
         case 117:
             let length = Int(try self.readUInt())
-            var array: [Any] = []
+            var array: [Any?] = []
             array.reserveCapacity(length)
             for _ in 0..<length {
                 array.append(try self.readAny())

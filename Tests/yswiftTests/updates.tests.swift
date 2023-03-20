@@ -2,7 +2,7 @@ import XCTest
 import Promise
 @testable import yswift
 
-struct UpdateEnvironment {
+final public class UpdateEnvironment {
     let mergeUpdates: (_ updates: [Data]) throws -> Data
     let encodeStateAsUpdate: (_ doc: Doc, _ encodedTargetStateVector: Data?) throws -> Data
     let applyUpdate: (_ ydoc: Doc, _ update: Data, _ transactionOrigin: Any?) throws -> Void
@@ -14,6 +14,33 @@ struct UpdateEnvironment {
     let updateEventName: Doc.EventName<(update: Data, origin: Any?, Transaction)>
     let description: String
     let diffUpdate: (_ update: Data, _ sv: Data) throws -> Data
+    
+    init(
+        mergeUpdates: @escaping ([Data]) throws -> Data,
+        encodeStateAsUpdate: @escaping (Doc, Data?) throws -> Data,
+        applyUpdate: @escaping (Doc, Data, Any?) throws -> Void,
+        logUpdate: @escaping (Data) -> Void,
+        parseUpdateMeta: @escaping (Data) throws -> UpdateMeta,
+        encodeStateVectorFromUpdate: @escaping (Data) throws -> Data,
+        encodeStateVector_Doc: @escaping (Doc) throws -> Data,
+        encodeStateVector_SV: @escaping ([Int : Int]) throws -> Data,
+        updateEventName: Lib0Observable.EventName<(update: Data, origin: Any?, Transaction)>,
+        description: String,
+        diffUpdate: @escaping (Data, Data) throws -> Data
+    ) {
+        self.mergeUpdates = mergeUpdates
+        self.encodeStateAsUpdate = encodeStateAsUpdate
+        self.applyUpdate = applyUpdate
+        self.logUpdate = logUpdate
+        self.parseUpdateMeta = parseUpdateMeta
+        self.encodeStateVectorFromUpdate = encodeStateVectorFromUpdate
+        self.encodeStateVector_Doc = encodeStateVector_Doc
+        self.encodeStateVector_SV = encodeStateVector_SV
+        self.updateEventName = updateEventName
+        self.description = description
+        self.diffUpdate = diffUpdate
+    }
+
     
     static let v1 = UpdateEnvironment(
         mergeUpdates: { try yswift.mergeUpdates(updates: $0) },
@@ -28,7 +55,7 @@ struct UpdateEnvironment {
         description: "V1",
         diffUpdate: { try yswift.diffUpdate(update: $0, sv: $1) }
     )
-    
+
     static let v2 = UpdateEnvironment(
         mergeUpdates: { try mergeUpdatesV2(updates: $0) },
         encodeStateAsUpdate: { try encodeStateAsUpdateV2(doc: $0, encodedTargetStateVector: $1) },
@@ -42,7 +69,7 @@ struct UpdateEnvironment {
         description: "V2",
         diffUpdate: { try diffUpdateV2(update: $0, sv: $1) }
     )
-    
+
     static let doc = UpdateEnvironment(
         mergeUpdates: { updates in
             let ydoc = Doc(opts: DocOpts(gc: false))
@@ -66,7 +93,7 @@ struct UpdateEnvironment {
             return try encodeStateAsUpdateV2(doc: ydoc, encodedTargetStateVector: sv)
         }
     )
-    
+
     static let encoders = [UpdateEnvironment.v1, .v2, .doc]
     
     func docFromUpdates(_ docs: [Doc]) throws -> Doc {
@@ -123,181 +150,158 @@ final class updatesTests: XCTestCase {
         try YAssertEqualDocs(docs)
     }
     
+    func testMergeUpdates1() throws {
+        for env in UpdateEnvironment.encoders {
+            print("== Using encoder: \(env.description) ==")
+            let ydoc = Doc(opts: DocOpts(gc: false))
+            var updates = [Data]()
+            ydoc.on(env.updateEventName) { update, _, _ in updates.append(update) }
+
+            let array = try ydoc.getArray()
+            try array.insert(0, content: [1])
+            try array.insert(0, content: [2])
+            try array.insert(0, content: [3])
+            try array.insert(0, content: [4])
+
+            try checkUpdateCases(ydoc: ydoc, updates: updates, enc: env, hasDeletes: false)
+        }
+    }
+
+    func testMergeUpdates2() throws {
+        for env in UpdateEnvironment.encoders {
+            print("== Using encoder: \(env.description) ==")
+            let ydoc = Doc(opts: DocOpts(gc: false))
+            var updates: [Data] = []
+            ydoc.on(env.updateEventName) {
+                update, _, _ in updates.append(update)
+            }
+
+            let array = try ydoc.getArray()
+            try array.insert(0, content: [1, 2])
+            try array.delete(1, length: 1)
+            try array.insert(0, content: [3, 4])
+            try array.delete(1, length: 2)
+
+            try checkUpdateCases(ydoc: ydoc, updates: updates, enc: env, hasDeletes: true)
+        }
+    }
+
+    func testMergePendingUpdates() throws {
+        let yDoc = Doc()
+        var serverUpdates: [Data] = []
+        yDoc.on(Doc.On.update) { update, _, _ in
+            serverUpdates.insert(update, at: serverUpdates.count)
+        }
+        let yText = try yDoc.getText("textBlock")
+        try yText.applyDelta([ YEventDelta(insert: "r") ])
+        try yText.applyDelta([ YEventDelta(insert: "o") ])
+        try yText.applyDelta([ YEventDelta(insert: "n") ])
+        try yText.applyDelta([ YEventDelta(insert: "e") ])
+        try yText.applyDelta([ YEventDelta(insert: "n") ])
+
+        let yDoc1 = Doc()
+        try applyUpdate(ydoc: yDoc1, update: serverUpdates[0])
+        let update1 = try encodeStateAsUpdate(doc: yDoc1)
+
+        let yDoc2 = Doc()
+        try applyUpdate(ydoc: yDoc2, update: update1)
+        try applyUpdate(ydoc: yDoc2, update: serverUpdates[1])
+        let update2 = try encodeStateAsUpdate(doc: yDoc2)
+
+        let yDoc3 = Doc()
+        try applyUpdate(ydoc: yDoc3, update: update2)
+        try applyUpdate(ydoc: yDoc3, update: serverUpdates[3])
+        let update3 = try encodeStateAsUpdate(doc: yDoc3)
+
+        let yDoc4 = Doc()
+        try applyUpdate(ydoc: yDoc4, update: update3)
+        try applyUpdate(ydoc: yDoc4, update: serverUpdates[2])
+        let update4 = try encodeStateAsUpdate(doc: yDoc4)
+
+        let yDoc5 = Doc()
+        try applyUpdate(ydoc: yDoc5, update: update4)
+        try applyUpdate(ydoc: yDoc5, update: serverUpdates[4])
+        _ = try encodeStateAsUpdate(doc: yDoc5)
+
+        let yText5 = try yDoc5.getText("textBlock")
+        XCTAssertEqual(yText5.toString(), "nenor")
+    }
     
-//
-//    /**
-//     * @param {Doc} ydoc
-//     * @param {Array<Data>} updates - expecting at least 4 updates
-//     * @param {Enc} enc
-//     * @param {Bool} hasDeletes
-//     */
-//    let checkUpdateCases = (ydoc: Doc, updates: Array<Data>, enc: Enc, hasDeletes: Bool) -> {
-//        let cases: [Data] = []
-//
-//        // Case 1: Simple case, simply merge everything
-//        cases.append(enc.mergeUpdates(updates))
-//
-//        // Case 2: Overlapping updates
-//        cases.append(enc.mergeUpdates([
-//            enc.mergeUpdates(updates.slice(2)),
-//            enc.mergeUpdates(updates.slice(0, 2))
-//        ]))
-//
-//        // Case 3: Overlapping updates
-//        cases.append(enc.mergeUpdates([
-//            enc.mergeUpdates(updates.slice(2)),
-//            enc.mergeUpdates(updates.slice(1, 3)),
-//            updates[0]
-//        ]))
-//
-//        // Case 4: Separated updates (containing skips)
-//        cases.append(enc.mergeUpdates([
-//            enc.mergeUpdates([updates[0], updates[2]]),
-//            enc.mergeUpdates([updates[1], updates[3]]),
-//            enc.mergeUpdates(updates.slice(4))
-//        ]))
-//
-//        // Case 5: overlapping with mAny duplicates
-//        cases.append(enc.mergeUpdates(cases))
-//
-//        // let targetState = enc.encodeStateAsUpdate(ydoc)
-//        // t.info("Target State: ")
-//        // enc.logUpdate(targetState)
-//
-//        cases.forEach((mergedUpdates, i) -> {
-//            // t.info("State Case $" + i + ":")
-//            // enc.logUpdate(updates)
-//            let merged = Doc({ gc: false })
-//            enc.applyUpdate(merged, mergedUpdates)
-//            XCTAssertEqualArrays(merged.getArray().toArray(), ydoc.getArray().toArray())
-//            XCTAssertEqual(enc.encodeStateVector(merged), enc.encodeStateVectorFromUpdate(mergedUpdates))
-//
-//            if enc.updateEventName != "update" { // @todo should self also work on legacy updates?
-//                for ( var j = 1; j < updates.length; j++) {
-//                    let partMerged = enc.mergeUpdates(updates.slice(j))
-//                    let partMeta = enc.parseUpdateMeta(partMerged)
-//                    let targetSV = encodeStateVectorFromUpdateV2(mergeUpdatesV2(updates.slice(0, j)))
-//                    let diffed = enc.diffUpdate(mergedUpdates, targetSV)
-//                    let diffedMeta = enc.parseUpdateMeta(diffed)
-//                    XCTAssertEqual(partMeta, diffedMeta)
-//                    {
-//                        // We can"d do the following
-//                        //  - XCTAssertEqual(diffed, mergedDeletes)
-//                        // because diffed contains the set of all deletes.
-//                        // So we add all deletes from `diffed` to `partDeletes` and compare then
-//                        let decoder = Lib0Decoder(diffed)
-//                        let updateDecoder = UpdateDecoderV2(decoder)
-//                        readClientsStructRefs(updateDecoder, Doc())
-//                        let ds = DeleteSet.decode(updateDecoder)
-//                        let updateEncoder = UpdateEncoderV2()
-//                        updateEncoder.restEncoder.writeUInt(0) // 0 structs
-//                        ds.encode(updateEncoder)
-//                        let deletesUpdate = updateEncoder.data
-//                        let mergedDeletes = mergeUpdatesV2([deletesUpdate, partMerged])
-//                        if !hasDeletes || enc != encDoc {
-//                            // deletes will almost definitely lead to different encoders because of the mergeStruct feature that is present in encDoc
-//                            XCTAssertEqual(diffed, mergedDeletes)
-//                        }
-//                    }
-//                }
-//            }
-//
-//            let meta = enc.parseUpdateMeta(mergedUpdates)
-//            meta.from.forEach((clock, client) -> XCTAssert(clock == 0))
-//            meta.to.forEach((clock, client) -> {
-//                let structs = merged.store.clients.get(client) as Item[]
-//                let lastStruct = structs[structs.length - 1]
-//                XCTAssert(lastStruct.id.clock + lastStruct.length == clock)
-//            })
-//        })
-//    }
-//
-//    /**
-//     * @param {t.TestCase} tc
-//     */
-//    export let testMergeUpdates1 = (tc: t.TestCase) -> {
-//        encoders.forEach((enc, i) -> {
-//            t.info(`Using encoder: ${enc.description}`)
-//            let ydoc = Doc({ gc: false })
-//            let updates: [Data] = []
-//            ydoc.on(enc.updateEventName, (update: Data) -> { updates.append(update) })
-//
-//            let array = ydoc.getArray()
-//            array.insert(0, [1])
-//            array.insert(0, [2])
-//            array.insert(0, [3])
-//            array.insert(0, [4])
-//
-//            checkUpdateCases(ydoc, updates, enc, false)
-//        })
-//    }
-//
-//    /**
-//     * @param {t.TestCase} tc
-//     */
-//    export let testMergeUpdates2 = (tc: t.TestCase) -> {
-//        encoders.forEach((enc, i) -> {
-//            t.info(`Using encoder: ${enc.description}`)
-//            let ydoc = Doc({ gc: false })
-//            let updates: [Data] = []
-//            ydoc.on(enc.updateEventName, (update: Data) -> { updates.append(update) })
-//
-//            let array = ydoc.getArray()
-//            array.insert(0, [1, 2])
-//            array.delete(1, 1)
-//            array.insert(0, [3, 4])
-//            array.delete(1, 2)
-//
-//            checkUpdateCases(ydoc, updates, enc, true)
-//        })
-//    }
-//
-//    /**
-//     * @param {t.TestCase} tc
-//     */
-//    export let testMergePendingUpdates = (tc: t.TestCase) -> {
-//        let yDoc = Doc()
-//        /**
-//         * @type {Array<>}
-//         */
-//        let serverUpdates: [Data] = []
-//        yDoc.on("update", (update: Data, origin: Any, c: Any) -> {
-//            serverUpdates.splice(serverUpdates.length, 0, update)
-//        })
-//        let yText = yDoc.getText("textBlock")
-//        yText.applyDelta([{ insert: "r" }])
-//        yText.applyDelta([{ insert: "o" }])
-//        yText.applyDelta([{ insert: "n" }])
-//        yText.applyDelta([{ insert: "e" }])
-//        yText.applyDelta([{ insert: "n" }])
-//
-//        let yDoc1 = Doc()
-//        applyUpdate(yDoc1, serverUpdates[0])
-//        let update1 = encodeStateAsUpdate(yDoc1)
-//
-//        let yDoc2 = Doc()
-//        applyUpdate(yDoc2, update1)
-//        applyUpdate(yDoc2, serverUpdates[1])
-//        let update2 = encodeStateAsUpdate(yDoc2)
-//
-//        let yDoc3 = Doc()
-//        applyUpdate(yDoc3, update2)
-//        applyUpdate(yDoc3, serverUpdates[3])
-//        let update3 = encodeStateAsUpdate(yDoc3)
-//
-//        let yDoc4 = Doc()
-//        applyUpdate(yDoc4, update3)
-//        applyUpdate(yDoc4, serverUpdates[2])
-//        let update4 = encodeStateAsUpdate(yDoc4)
-//
-//        let yDoc5 = Doc()
-//        applyUpdate(yDoc5, update4)
-//        applyUpdate(yDoc5, serverUpdates[4])
-//        // @ts-ignore
-//        let update5 = encodeStateAsUpdate(yDoc5) // eslint-disable-line
-//
-//        let yText5 = yDoc5.getText("textBlock")
-//        XCTAssertEqualStrings(yText5.toString(), "nenor")
-//    }
-//
+    private func checkUpdateCases(ydoc: Doc, updates: [Data], enc: UpdateEnvironment, hasDeletes: Bool) throws {
+        var cases: [Data] = []
+
+        // Case 1: Simple case, simply merge everything
+        try cases.append(enc.mergeUpdates(updates))
+
+        // Case 2: Overlapping updates
+        try cases.append(enc.mergeUpdates([
+            enc.mergeUpdates(updates[2...].map{ $0 }),
+            enc.mergeUpdates(updates[..<2].map{ $0 })
+        ]))
+
+        // Case 3: Overlapping updates
+        try cases.append(enc.mergeUpdates([
+            enc.mergeUpdates(updates[2...].map{ $0 }),
+            enc.mergeUpdates(updates[1..<3].map{ $0 }),
+            updates[0]
+        ]))
+
+        // Case 4: Separated updates (containing skips)
+        try cases.append(enc.mergeUpdates([
+            enc.mergeUpdates([updates[0], updates[2]]),
+            enc.mergeUpdates([updates[1], updates[3]]),
+            enc.mergeUpdates(updates[4...].map{ $0 })
+        ]))
+
+        // Case 5: overlapping with mAny duplicates
+        try cases.append(enc.mergeUpdates(cases))
+
+
+        for mergedUpdates in cases {
+            let merged = Doc(opts: DocOpts(gc: false))
+            try enc.applyUpdate(merged, mergedUpdates, nil)
+            try XCTAssertEqualJSON(merged.getArray().toArray(), ydoc.getArray().toArray())
+            
+            try XCTAssertEqual(
+                enc.encodeStateVector_Doc(merged).map{ $0 },
+                enc.encodeStateVectorFromUpdate(mergedUpdates).map{ $0 }
+            )
+
+            if enc.updateEventName.name != "update" {
+                for j in 1..<updates.count {
+                    let partMerged = try enc.mergeUpdates(updates[j...].map{ $0 })
+                    let partMeta = try enc.parseUpdateMeta(partMerged)
+                    let targetSV = try encodeStateVectorFromUpdateV2(update: mergeUpdatesV2(updates: updates[..<j].map{ $0 }))
+                    let diffed = try enc.diffUpdate(mergedUpdates, targetSV)
+                    let diffedMeta = try enc.parseUpdateMeta(diffed)
+                    XCTAssertEqual(partMeta, diffedMeta)
+                    do {
+                        let decoder = Lib0Decoder(data: diffed)
+                        let updateDecoder = try UpdateDecoderV2(decoder)
+                        _ = try readClientsStructRefs(decoder: updateDecoder, doc: Doc())
+                        let ds = try DeleteSet.decode(decoder: updateDecoder)
+                        let updateEncoder = UpdateEncoderV2()
+                        updateEncoder.restEncoder.writeUInt(0) // 0 structs
+                        try ds.encode(updateEncoder)
+                        let deletesUpdate = updateEncoder.toData()
+                        let mergedDeletes = try mergeUpdatesV2(updates: [deletesUpdate, partMerged])
+                        if !hasDeletes || enc !== UpdateEnvironment.doc {
+                            // deletes will almost definitely lead to different encoders because of the mergeStruct feature that is present in encDoc
+                            XCTAssertEqual(diffed, mergedDeletes)
+                        }
+                    }
+                }
+            }
+
+            let meta = try enc.parseUpdateMeta(mergedUpdates)
+            meta.from.forEach{ client, clock in
+                XCTAssert(clock == 0)
+            }
+            meta.to.forEach{ client, clock in
+                let structs = merged.store.clients[client]?.value as! [Item]
+                let lastStruct = structs[structs.count - 1]
+                XCTAssert(lastStruct.id.clock + lastStruct.length == clock)
+            }
+        }
+    }
 }

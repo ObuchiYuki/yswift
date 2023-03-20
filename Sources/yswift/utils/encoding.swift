@@ -55,7 +55,7 @@ public func writeClientsStructs(encoder: UpdateEncoder, store: StructStore, _sm:
         
     // write # states that were updated
     encoder.restEncoder.writeUInt(UInt(sm.count))
-            
+    
     try sm.sorted(by: { $0.key > $1.key }).forEach{ client, clock in
         try writeStructs(encoder: encoder, structs: store.clients[client]!, client: client, clock: clock)
     }
@@ -393,7 +393,7 @@ public func decodeStateVector(decodedState: Data) throws -> [Int: Int] {
 
 public func writeStateVector(encoder: DSEncoder, sv: [Int: Int]) throws -> DSEncoder {
     encoder.restEncoder.writeUInt(UInt(sv.count))
-    sv.sorted(by: { $0.key > $1.key }).forEach{ clock, client in
+    sv.sorted(by: { $0.key > $1.key }).forEach{ client, clock in
         encoder.restEncoder.writeUInt(UInt(client))
         encoder.restEncoder.writeUInt(UInt(clock))
     }

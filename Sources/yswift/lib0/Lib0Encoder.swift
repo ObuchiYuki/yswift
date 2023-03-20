@@ -119,10 +119,6 @@ public final class Lib0Encoder {
 
     public func writeAny(_ data: Any?) {
         if data == nil || data is NSNull { // null
-            print("write nil")
-            
-            
-            
             self.writeUInt8(126)
             return
         }

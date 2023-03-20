@@ -168,7 +168,7 @@ public func insertNegatedAttributes(
 
 public func updateCurrentAttributes(currentAttributes: YTextAttributes, format: ContentFormat) {
     let key = format.key, value = format.value
-    if value == nil {
+    if value == nil || value is NSNull {
         currentAttributes.value.removeValue(forKey: key)
     } else {
         currentAttributes.value[key] = value
@@ -210,12 +210,13 @@ public func insertAttributes(
     for (key, val) in attributes {
         let currentVal = currPos.currentAttributes.value[key]
         
-        print("== insert ==", removeDualOptional(currentVal), val)
-        
         if !equalAttributes(removeDualOptional(currentVal), val) {
-            // save negated attribute (set nil if currentVal undefined)
+            // save negated attribute (set NSNull if currentVal undefined)
+            if currentVal == nil {
+                
+            }
             negatedAttributes.value[key] = currentVal == nil ? NSNull() : currentVal
-            
+                        
             let left = currPos.left, right = currPos.right
             currPos.right = Item(
                 id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
@@ -230,9 +231,7 @@ public func insertAttributes(
             try currPos.forward()
         }
     }
-    
-    print("negatedAttributes", negatedAttributes)
-    
+        
     return negatedAttributes
 }
 
@@ -244,11 +243,9 @@ public func insertText(
     text: YEventDeltaInsertType,
     attributes: YTextAttributes
 ) throws {
-    // TODO: remove
     currPos.currentAttributes.forEach({ key, _ in
-        // TODO: ??? what is this ???
         if attributes.value[key] == nil {
-            attributes.value[key] = nil
+            attributes.value[key] = NSNull()
         }
     })
     
@@ -852,7 +849,8 @@ public class YText: AbstractType {
         computeYChange: ((YChangeAction, ID) -> YTextAttributeValue)? = nil
     ) throws -> [YEventDelta] {
         var ops: [YEventDelta] = []
-        let currentAttributes: YTextAttributes = .init(value: [:])
+        let currentAttributes: YTextAttributes = Ref(value: [:])
+        
         let doc = self.doc!
         var str = ""
         var n = self._start

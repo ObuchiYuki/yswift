@@ -167,7 +167,11 @@ public func encodeStateVectorFromUpdate(update: Data) throws -> Data {
     return try encodeStateVectorFromUpdateV2(update: update, YEncoder: DSEncoderV1.init, YDecoder: UpdateDecoderV1.init)
 }
 
-public class UpdateMeta {
+public class UpdateMeta: Equatable {
+    public static func == (lhs: UpdateMeta, rhs: UpdateMeta) -> Bool {
+        lhs.from == rhs.from && lhs.to == rhs.to
+    }
+    
     public var from: [Int: Int]
     public var to: [Int: Int]
     
@@ -258,8 +262,6 @@ public func mergeUpdatesV2(
 
     let updateEncoder = YEncoder()
     let lazyStructEncoder = LazyStructWriter(updateEncoder)
-
-    print("== 1 ==", updateEncoder.toData())
     
     while (true) {
         lazyStructDecoders = lazyStructDecoders.filter{
@@ -374,7 +376,6 @@ public func mergeUpdatesV2(
         }
     }
     
-    print("== -1 ==", updateEncoder.toData().map{ $0 })
     if currWrite != nil {
         try writeStructToLazyStructWriter(lazyWriter: lazyStructEncoder, struct_: currWrite!.struct_, offset: currWrite!.offset)
         currWrite = nil
