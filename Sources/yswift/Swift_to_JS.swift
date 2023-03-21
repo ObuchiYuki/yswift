@@ -37,6 +37,12 @@ func removeDualOptional<T>(_ value: T??) -> T? {
     }
 }
 
+extension Array {
+    func at(_ index: Int) -> Element? {
+        self.indices.contains(index) ? self[index] : nil
+    }
+}
+
 extension NSRange {
     public init(from: Int, to: Int) {
         self.init(location: from, length: to-from)

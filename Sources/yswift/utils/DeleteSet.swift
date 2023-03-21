@@ -214,13 +214,14 @@ public class DeleteSet {
                 if struct_.deleted {
                     let clock = struct_.id.clock
                     var len = struct_.length
+                    
                     if i + 1 < structs.count {
-                        var next = structs[i + 1]
+                        var next: Struct? = structs[i + 1]
                         
-                        while i + 1 < structs.count && next.deleted {
-                            len += next.length
-                            next = structs[i + 1]
+                        while next != nil && i + 1 < structs.count && next!.deleted {
+                            len += next!.length
                             i += 1
+                            next = structs.value.at(i + 1)
                         }
                     }
                     
@@ -249,8 +250,11 @@ public class DeleteSet {
             
             for _ in 0..<numberOfDeletes {
                 let clock = try decoder.readDsClock()
-                let clockEnd = try clock + decoder.readDsLen()
+                let dsLen = try decoder.readDsLen()
+                let clockEnd = clock + dsLen
+                
                 if clock < state {
+
                     if state < clockEnd {
                         unappliedDS.add(client: client, clock: state, length: clockEnd - state)
                     }
@@ -265,12 +269,12 @@ public class DeleteSet {
                     while (index < structs.count) {
                         struct_ = structs[index]
                         index += 1
+                        
                         if struct_.id.clock < clockEnd {
                             if !struct_.deleted {
                                 if clockEnd < struct_.id.clock + struct_.length {
                                     structs.value
-                                        .insert((struct_ as! Item)
-                                            .split(transaction, diff: clockEnd - struct_.id.clock), at: index)
+                                        .insert((struct_ as! Item).split(transaction, diff: clockEnd - struct_.id.clock), at: index)
                                 }
                                 (struct_ as! Item).delete(transaction)
                             }
@@ -283,13 +287,14 @@ public class DeleteSet {
                 }
             }
         }
+        
         if unappliedDS.clients.count > 0 {
             let ds = UpdateEncoderV2()
             ds.restEncoder.writeUInt(0) // encode 0 structs
             try unappliedDS.encode(ds)
             return ds.toData()
         }
+        
         return nil
     }
-
 }

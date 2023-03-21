@@ -125,19 +125,20 @@ struct YTest<T> {
         for _ in 0..<iterations {
             if randomGenerator.int(in: 0...100) <= 2 {
                 if randomGenerator.bool() {
-                    print("disconnectRandom")
+//                    print("disconnectRandom")
                     self.connector.disconnectRandom()
                 } else {
-                    print("reconnectRandom")
+//                    print("reconnectRandom")
                     try self.connector.reconnectRandom()
                 }
             } else if randomGenerator.int(in: 0...100) <= 1 {
                 // 1% chance to flush all
-                print("flushAllMessages")
+//                print("== flushAllMessages ==")
                 try self.connector.flushAllMessages()
+//                print("== flushAllMessages end ==")
             } else if randomGenerator.int(in: 0...100) <= 50 {
                 // 50% chance to flush a random message
-                print("flushRandomMessage")
+//                print("flushRandomMessage")
                 try self.connector.flushRandomMessage()
             }
             let doc = randomGenerator.int(in: 0...docs.count-1)
@@ -214,7 +215,7 @@ class TestConnector: JSHashable {
         self.onlineConnections = Set()
         self.randomGenerator = randomGenerator
     }
-
+    
     @discardableResult
     func flushRandomMessage() throws -> Bool {
         let connections = self.onlineConnections.filter{ $0.receiving.count > 0 }
@@ -222,7 +223,7 @@ class TestConnector: JSHashable {
         guard let receiver = connections.min(by: { $0.clientID < $1.clientID }) else {
             return false
         }
-            
+                    
         // to remove randomness
         let sender = receiver.receiving.keys.min(by: { $0.clientID < $1.clientID })!
         let messages = receiver.receiving[sender]!
@@ -238,7 +239,8 @@ class TestConnector: JSHashable {
         let encoder = Lib0Encoder()
                 
         try Sync.readSyncMessage(
-            decoder: Lib0Decoder(data: receivedData), encoder: encoder, doc: receiver, transactionOrigin: receiver.connector
+            decoder: Lib0Decoder(data: receivedData),
+            encoder: encoder, doc: receiver, transactionOrigin: receiver.connector
         )
         
         if encoder.count > 0 { sender._receive(encoder.data, remoteClient: receiver) }

@@ -8,7 +8,7 @@
 import Foundation
 
 
-public class PendingStrcut {
+public class PendingStrcut: CustomStringConvertible {
     public var missing: [Int: Int]
     public var update: Data
     
@@ -16,17 +16,13 @@ public class PendingStrcut {
         self.missing = missing
         self.update = update
     }
+    
+    public var description: String { "PendingStrcut(missing: \(missing), update: \(update.map{ $0 }))" }
 }
 
 public class StructStore {
     public var clients: [Int: Ref<[Struct]>] = [:]
-    public var pendingStructs: PendingStrcut? = nil {
-        didSet {
-            if pendingStructs != nil {
-                
-            }
-        }
-    }
+    public var pendingStructs: PendingStrcut? = nil 
     public var pendingDs: Data? = nil
 
     public init() {}

@@ -61,19 +61,28 @@ public func writeClientsStructs(encoder: UpdateEncoder, store: StructStore, _sm:
     }
 }
 
-public class StructRef {
-    public var i: Int
+public class StructRef: CustomStringConvertible {
+    public var i: Int {
+        didSet {
+            if i == 1 {
+                
+            }
+        }
+    }
     public var refs: GC_or_Item_RefArray
     
     init(i: Int, refs: GC_or_Item_RefArray) {
         self.i = i
         self.refs = refs
     }
+    
+    public var description: String { "StructRef(i: \(i), refs: \(refs))" }
 }
+
 public typealias GC_or_Item_RefArray = Ref<[Struct?]>
 
 public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> Ref<[Int: StructRef]> {
-    var clientRefs = Ref<[Int: StructRef]>(value: [:])
+    let clientRefs = Ref<[Int: StructRef]>(value: [:])
     let numOfStateUpdates = try Int(decoder.restDecoder.readUInt())
     
     for _ in 0..<numOfStateUpdates {
@@ -166,7 +175,7 @@ public func integrateStructs(
             missingSV[client] = clock
         }
     }
-    
+
     var stackHead: Struct = curStructsTarget!.refs.value[curStructsTarget!.i]!
     curStructsTarget!.i += 1
     var state = [Int: Int]()
@@ -210,7 +219,7 @@ public func integrateStructs(
                     stack.append(stackHead)
                     
                     let structRefs: StructRef = clientsStructRefs.value[missing!] ?? StructRef(i: 0, refs: .init(value: []))
-
+                    
                     if structRefs.refs.count == structRefs.i {
                         updateMissingSv(client: missing!, clock: store.getState(missing!))
                         addStackToRestSS()
@@ -228,12 +237,13 @@ public func integrateStructs(
         }
         // iterate to next stackHead
         if stack.count > 0 {
-            stackHead = stack.removeFirst()
+            stackHead = stack.removeLast()
         } else if curStructsTarget != nil && curStructsTarget!.i < curStructsTarget!.refs.count {
             stackHead = curStructsTarget!.refs.value[curStructsTarget!.i]!
             curStructsTarget!.i += 1
         } else {
             curStructsTarget = getNextStructTarget()
+                        
             if curStructsTarget == nil {
                 // we are done!
                 break
@@ -276,6 +286,7 @@ public func readUpdateV2(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any
         let uss = try readClientsStructRefs(decoder: structDecoder, doc: doc)
         
         let restStructs = try integrateStructs(transaction: transaction, store: store, clientsStructRefs: uss)
+                
         let pending = store.pendingStructs
         if (pending != nil) {
             // check if we can apply something
@@ -298,9 +309,9 @@ public func readUpdateV2(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any
         } else {
             store.pendingStructs = restStructs
         }
-        // console.log('time to integrate: ', performance.now() - start) // @todo remove
-        // start = performance.now()
+
         let dsRest = try DeleteSet.decodeAndApply(structDecoder, transaction: transaction, store: store)
+        
         if store.pendingDs != nil {
             let pendingDSUpdate = try UpdateDecoderV2(Lib0Decoder(data: store.pendingDs!))
             _ = try pendingDSUpdate.restDecoder.readUInt() // read 0 structs, because we only encode deletes in pendingdsupdate
@@ -314,11 +325,7 @@ public func readUpdateV2(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any
             // Either dsRest == nil && pendingDs == nil OR dsRest != nil
             store.pendingDs = dsRest
         }
-        // console.log('time to cleanup: ', performance.now() - start) // @todo remove
-        // start = performance.now()
-
-        // console.log('time to resume delete readers: ', performance.now() - start) // @todo remove
-        // start = performance.now()
+        
         if retry {
             let update = store.pendingStructs!.update
             store.pendingStructs = nil
@@ -354,12 +361,15 @@ public func encodeStateAsUpdateV2(doc: Doc, encodedTargetStateVector: Data? = ni
         
     var updates = [encoder.toData()]
     // also add the pending updates (if there are any)
+    
     if doc.store.pendingDs != nil {
         updates.append(doc.store.pendingDs!)
     }
     if doc.store.pendingStructs != nil {
         updates.append(try diffUpdateV2(update: doc.store.pendingStructs!.update, sv: encodedTargetStateVector))
     }
+    
+    
     if updates.count > 1 {
         if encoder is UpdateEncoderV1 {
             return try mergeUpdates(updates: updates.enumerated().map{ i, update in
@@ -369,6 +379,7 @@ public func encodeStateAsUpdateV2(doc: Doc, encodedTargetStateVector: Data? = ni
             return try mergeUpdatesV2(updates: updates)
         }
     }
+
     return updates[0]
 }
 
