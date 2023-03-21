@@ -331,191 +331,225 @@ final class YArrayTests: XCTestCase {
         var changes: YEventChange? = nil
         array0.observe{ e, _ in changes = try e.changes() }
         
-        let newArr = Array<Int>()
+        let newArr = YArray()
         try array0.insert(0, [newArr, 4, "dtrn"])
         
         var wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 2)
         XCTAssertEqual(wchanges.deleted.count, 0)
         XCTAssertEqual(wchanges.delta, [YEventDelta(insert: [newArr, 4, "dtrn"])])
-        
-        
+
+
         changes = nil
         try array0.delete(0, length: 2)
-        
+
         wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 0)
         XCTAssertEqual(wchanges.deleted.count, 2)
         XCTAssertEqual(wchanges.delta, [YEventDelta(delete: 2)])
-        
+
         changes = nil
         try array0.insert(1, [0.1])
-        
+
         wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 1)
         XCTAssertEqual(wchanges.deleted.count, 0)
         XCTAssertEqual(wchanges.delta, [YEventDelta(retain: 1), YEventDelta(insert: [0.1])])
-        
+
         try YAssertEqualDocs(docs)
     }
     
-//
-//    func testInsertAndDeleteEventsForTypes2() throws {
-//        let { array0, users } = init(tc, { users: 2 })
-//
-//        let events: Array<{ [s: String]: Any }> = []
-//        array0.observe(e -> {
-//            events.push(e)
-//        })
-//        array0.insert(0, ["hi", Map()])
-//        XCTAssert(events.length == 1, "Event is triggered exactly once for insertion of two elements")
-//        array0.delete(1)
-//        XCTAssert(events.length == 2, "Event is triggered exactly once for deletion")
-//        compare(users)
-//    }
-//
-//    /**
-//     * This issue has been reported here https://github.com/yjs/yjs/issues/155
-//     * @param {t.TestCase} tc
-//     */
-//    func testNewChildDoesNotEmitEventInTransaction() throws {
-//        let { array0, users } = init(tc, { users: 2 })
-//        var fired = false
-//        users[0].transact(() -> {
-//            let newMap = Map()
-//            newMap.observe(() -> {
-//                fired = true
-//            })
-//            array0.insert(0, [newMap])
-//            newMap.set("tst", 42)
-//        })
-//        XCTAssert(!fired, "Event does not trigger")
-//    }
-//
-//    func testGarbageCollector() throws {
-//        let { testConnector, users, array0 } = init(tc, { users: 3 })
-//        array0.insert(0, ["x", "y", "z"])
-//        testConnector.flushAllMessages()
-//        users[0].disconnect()
-//        array0.delete(0, 3)
-//        users[0].connect()
-//        testConnector.flushAllMessages()
-//        compare(users)
-//    }
-//
-//    func testEventTargetIsSetCorrectlyOnLocal() throws {
-//        let { array0, users } = init(tc, { users: 3 })
-//
-//        var event: Any
-//        array0.observe(e -> {
-//            event = e
-//        })
-//        array0.insert(0, ["stuff"])
-//        XCTAssert(event.target == array0, ""target" property is set correctly")
-//        compare(users)
-//    }
-//
-//    func testEventTargetIsSetCorrectlyOnRemote() throws {
-//        let { testConnector, array0, array1, users } = init(tc, { users: 3 })
-//
-//        var event: Any
-//        array0.observe(e -> {
-//            event = e
-//        })
-//        array1.insert(0, ["stuff"])
-//        testConnector.flushAllMessages()
-//        XCTAssert(event.target == array0, ""target" property is set correctly")
-//        compare(users)
-//    }
-//
-//    func testIteratingArrayContainingTypes() throws {
-//        let y = Doc()
-//        let arr = y.getArray<Map<Int>>("arr")
-//        let numItems = 10
-//        for ( var i = 0; i < numItems; i++) {
-//            let map = Map<Int>()
-//            map.set("value", i)
-//            arr.push([map])
-//        }
-//        var cnt = 0
-//        for ( let item of arr) {
-//            XCTAssert(item.get("value") == cnt++, "value is correct")
-//        }
-//        y.destroy()
-//    }
-//
-//    var _uniqueNumber = 0
-//    let getUniqueNumber = () -> _uniqueNumber++
-//
-//    let arrayTransactions: Array<((arg0: Doc, arg1: prng.PRNG, arg2: Any) -> Void)> = [
-//        func insert(_ user, gen) {
-//            let yarray = user.getArray<Int>("array")
-//            let uniqueNumber = getUniqueNumber()
-//            let content: [Int] = []
-//            let len = prng.int32(gen, 1, 4)
-//            for ( var i = 0; i < len; i++) {
-//                content.push(uniqueNumber)
-//            }
-//            let pos = prng.int32(gen, 0, yarray.length)
-//            let oldContent = yarray.toArray()
-//            yarray.insert(pos, content)
-//            oldContent.splice(pos, 0, ...content)
-//            XCTAssertEqualArrays(yarray.toArray(), oldContent) // we want to make sure that fastSearch markers insert at the correct position
-//        },
-//        func insertTypeArray(_ user, gen) {
-//            let yarray = user.getArray<Array<Int>>("array")
-//            let pos = prng.int32(gen, 0, yarray.length)
-//            yarray.insert(pos, [Array()])
-//            let array2 = yarray.get(pos)
-//            array2.insert(0, [1, 2, 3, 4])
-//        },
-//        func insertTypeMap(_ user, gen) {
-//            let yarray = user.getArray<Map<Int>>("array")
-//            let pos = prng.int32(gen, 0, yarray.length)
-//            yarray.insert(pos, [Map()])
-//            let map = yarray.get(pos)
-//            map.set("someprop", 42)
-//            map.set("someprop", 43)
-//            map.set("someprop", 44)
-//        },
-//        func insertTypeNull(_ user, gen) {
-//            let yarray = user.getArray("array")
-//            let pos = prng.int32(gen, 0, yarray.length)
-//            yarray.insert(pos, [nil])
-//        },
-//        func _delete(_ user, gen) {
-//            let yarray = user.getArray("array")
-//            let length = yarray.length
-//            if length > 0 {
-//                var somePos = prng.int32(gen, 0, length - 1)
-//                var delLength = prng.int32(gen, 1, math.min(2, length - somePos))
-//                if prng.bool(gen) {
-//                    let type = yarray.get(somePos)
-//                    if type instanceof Array && type.length > 0 {
-//                        somePos = prng.int32(gen, 0, type.length - 1)
-//                        delLength = prng.int32(gen, 0, math.min(2, type.length - somePos))
-//                        type.delete(somePos, delLength)
-//                    }
-//                } else {
-//                    let oldContent = yarray.toArray()
-//                    yarray.delete(somePos, delLength)
-//                    oldContent.splice(somePos, delLength)
-//                    XCTAssertEqualArrays(yarray.toArray(), oldContent)
-//                }
-//            }
-//        }
-//    ]
-//
+
+    func testInsertAndDeleteEventsForTypes2() throws {
+        let test = try YTest<Any>(docs: 2)
+        let array0 = test.array[0], docs = test.docs
+
+        var events: [YEvent] = []
+        array0.observe{ e, _ in events.append(e) }
+        
+        try array0.insert(0, ["hi", YMap()])
+        XCTAssert(events.count == 1, "Event is triggered exactly once for insertion of two elements")
+        
+        try array0.delete(1)
+        XCTAssert(events.count == 2, "Event is triggered exactly once for deletion")
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    /**
+     * This issue has been reported here https://github.com/yjs/yjs/issues/155
+     * @param {t.TestCase} tc
+     */
+    func testNewChildDoesNotEmitEventInTransaction() throws {
+        let test = try YTest<Any>(docs: 2)
+        let array0 = test.array[0], docs = test.docs
+        var fired = false
+        try docs[0].transact{ _ in
+            let newMap = YMap()
+            newMap.observe{ _, _ in fired = true }
+            try array0.insert(0, [newMap])
+            try newMap.set("tst", value: 42)
+        }
+        
+        XCTAssertFalse(fired, "Event does not trigger")
+    }
+
+    func testGarbageCollector() throws {
+        let test = try YTest<Any>(docs: 3)
+        
+        let connector = test.connector, docs = test.docs, array0 = test.array[0]
+        
+        try array0.insert(0, ["x", "y", "z"])
+        try connector.flushAllMessages()
+        docs[0].disconnect()
+        
+        try array0.delete(0, length: 3)
+        try docs[0].connect()
+        try connector.flushAllMessages()
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    func testEventTargetIsSetCorrectlyOnLocal() throws {
+        let test = try YTest<Any>(docs: 3)
+        let array0 = test.array[0], docs = test.docs
+
+        var event: YEvent?
+        array0.observe{ e, _ in event = e }
+        
+        try array0.insert(0, ["stuff"])
+        XCTAssert(
+            try XCTUnwrap(event).target === array0,
+            "\"target\" property is set correctly"
+        )
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    func testEventTargetIsSetCorrectlyOnRemote() throws {
+        let test = try YTest<Any>(docs: 3)
+        let connector = test.connector, array0 = test.array[0], array1 = test.array[1], docs = test.docs
+
+        var event: YEvent?
+        array0.observe{ e, _ in event = e }
+        
+        try array1.insert(0, ["stuff"])
+        try connector.flushAllMessages()
+        
+        XCTAssert(
+            try XCTUnwrap(event).target === array0,
+            "\"target\" property is set correctly"
+        )
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    func testIteratingArrayContainingTypes() throws {
+        let y = Doc()
+        let arr = try y.getArray("arr") // YArray<YMap<Int>>
+        let numItems = 10
+        for i in 0..<numItems {
+            let map = YMap()
+            try map.set("value", value: i)
+            try arr.push([map])
+        }
+        var cnt = 0
+        for item in arr.toArray() {
+            let map = try XCTUnwrap(item as? YMap)
+            let value = try XCTUnwrap(map.get("value") as? Int)
+            XCTAssertEqual(value, cnt, "value is correct")
+            cnt += 1
+        }
+        try y.destroy()
+    }
+    
+    private func getUniqueNumber() -> Int {
+        enum __ { static var _uniqueNumber = 0 }
+        defer { __._uniqueNumber += 1 }
+        return __._uniqueNumber
+    }
+
+    private lazy var arrayTransactions: [(Doc, RandomGenerator, Any?) throws -> Void] = [
+        { doc, gen, _ in // insert
+            print("insert")
+            let yarray = try doc.getArray("array")
+            let uniqueNumber = self.getUniqueNumber()
+            var content: [Int] = []
+            let len = gen.int(in: 0...4)
+            for _ in 0..<len {
+                content.append(uniqueNumber)
+            }
+            let pos = gen.int(in: 0...yarray.length)
+            var oldContent = yarray.toArray()
+            try yarray.insert(pos, content)
+            oldContent.insert(contentsOf: content, at: pos)
+            XCTAssertEqualJSON(yarray.toArray(), oldContent)
+        },
+        { doc, gen, _ in // insertTypeArray
+            print("insertTypeArray")
+            let yarray = try doc.getArray("array")
+            let pos = gen.int(in: 0...yarray.length)
+            try yarray.insert(pos, [YArray()])
+            let array2 = try XCTUnwrap(yarray.get(pos) as? YArray)
+            try array2.insert(0, [1, 2, 3, 4])
+        },
+        { doc, gen, _ in // insertTypeMap
+            print("insertTypeMap")
+            let yarray = try doc.getArray("array")
+            let pos = gen.int(in: 0...yarray.length)
+            try yarray.insert(pos, [YMap()])
+            let map = try XCTUnwrap(yarray.get(pos) as? YMap)
+            try map.set("someprop", value: 42)
+            try map.set("someprop", value: 43)
+            try map.set("someprop", value: 44)
+        },
+        { doc, gen, _ in // insertTypeNull
+            print("insertTypeNull")
+            let yarray = try doc.getArray("array")
+            let pos = gen.int(in: 0...yarray.length)
+            try yarray.insert(pos, [nil])
+        },
+        { doc, gen, _ in // delete
+            let yarray = try doc.getArray("array")
+            let length = yarray.length
+            guard length > 0 else { print("no delete"); return }
+            
+            print("delete")
+            
+            var somePos = gen.int(in: 0...length-1)
+            var delLength = gen.int(in: 1...min(2, length-somePos))
+            
+            if gen.bool() {
+                let type = yarray.get(somePos)
+                if let type = type as? YArray, type.length > 0 {
+                    somePos = gen.int(in: 0...type.length-1)
+                    delLength = gen.int(in: 0...min(2, type.length - somePos))
+                    try type.delete(somePos, length: delLength)
+                }
+            } else {
+                var oldContent = yarray.toArray()
+                try yarray.delete(somePos, length: delLength)
+                oldContent.removeSubrange(somePos..<somePos+delLength)
+                XCTAssertEqualJSON(yarray.toArray(), oldContent)
+            }
+        }
+    ]
+    
+    func testRepeatGeneratingYarrayTests_fail_seed() throws {
+        try YTest<Any>(docs: 5, seed: 167374120)
+            .randomTests(self.arrayTransactions, iterations: 5)
+    }
+
 //    func testRepeatGeneratingYarrayTests6() throws {
-//        applyRandomTests(tc, arrayTransactions, 6)
+//        try YTest<Any>(docs: 5).randomTests(self.arrayTransactions, iterations: 6)
 //    }
-//
+
 //    func testRepeatGeneratingYarrayTests40() throws {
-//        applyRandomTests(tc, arrayTransactions, 40)
+//        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 40)
 //    }
 //
 //    func testRepeatGeneratingYarrayTests42() throws {
-//        applyRandomTests(tc, arrayTransactions, 42)
+//        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 42)
 //    }
 //
 //    func testRepeatGeneratingYarrayTests43() throws {

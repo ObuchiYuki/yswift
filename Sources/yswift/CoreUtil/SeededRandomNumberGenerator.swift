@@ -5,31 +5,35 @@
 //  Created by yuki on 2023/03/18.
 //
 
-// XorShift
-public struct SeededRandomNumberGenerator: RandomNumberGenerator {
-    private var x: UInt32 = 123456789
-    private var y: UInt32 = 362436069
-    private var z: UInt32 = 521288629
-    private var w: UInt32
+public class RandomGenerator {
+    private var x: Int32 = 123456789
+    private var y: Int32 = 362436069
+    private var z: Int32 = 521288629
+    private var w: Int32
     
-    public init(seed: UInt32) {
+    public init(seed: Int32) {
         self.w = seed
     }
     
-    private mutating func make() -> UInt32 {
+    func next() -> Double {
         let t = self.x ^ (self.x << 11)
         self.x = self.y
         self.y = self.z
         self.z = self.w
         self.w = (self.w ^ (self.w >> 19)) ^ (t ^ (t >> 8))
-        return self.w
+        return Double(self.w) / Double(0x7FFFFFFF)
     }
     
-    public mutating func next() -> UInt64 {
-        print("have random")
-        let lower = UInt64(make())
-        let upper = UInt64(make())
-        
-        return lower << 32 + upper
+    func bool() -> Bool {
+        return self.next() >= 0.5
+    }
+    func int(min: Int, max: Int) -> Int {
+        Int(self.next() * Double(max + 1 - min)) + min
+    }
+    func int(in range: ClosedRange<Int>) -> Int {
+        return int(min: range.lowerBound, max: range.upperBound)
+    }
+    func oneOf<T>(_ elements: [T]) -> T {
+        elements[self.int(in: 0...elements.count-1)]
     }
 }

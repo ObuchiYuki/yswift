@@ -10,20 +10,25 @@ import XCTest
 @testable import yswift
 
 func XCTAssertEqualJSON(_ a: Any, _ b : Any, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) {
-    XCTAssert(equalJSON(a, b), "(\(a)) is not equal to (\(b)) - \(message())", file: file, line: line)
+    XCTAssert(equalJSON(a, b), "(\(toJSON(a))) is not equal to (\(toJSON(b))) - \(message())", file: file, line: line)
+}
+
+func toJSON(_ a: Any) -> Any {
+    guard let data = try? JSONSerialization.data(withJSONObject: a, options: [.fragmentsAllowed, .sortedKeys, .withoutEscapingSlashes]) else {
+        return a
+    }
+    return String(data: data, encoding: .utf8)!
 }
 
 func broadcastMessage(_ y: TestDoc, _ m: Data) {
-    if y.tc.onlineConnections.contains(y) {
-        y.tc.onlineConnections.forEach{ remoteYInstance in
+    if y.connector.onlineConnections.contains(y) {
+        y.connector.onlineConnections.forEach{ remoteYInstance in
             if remoteYInstance != y {
                 remoteYInstance._receive(m, remoteClient: y)
             }
         }
     }
 }
-
-typealias RandomGenerator = Ref<SeededRandomNumberGenerator>
 
 struct TestEnvironment {
     let encodeStateAsUpdate: (Doc, Data) throws -> Data
@@ -73,21 +78,24 @@ struct YTest<T> {
     let map: [YMap]
     let text: [YText]
     let testObjects: [T?]
+    let randomGenerator: RandomGenerator
     
-    private init(connector: TestConnector, docs: [TestDoc], array: [YArray], map: [YMap], text: [YText], testObjects: [T?]) {
+    private init(connector: TestConnector, docs: [TestDoc], array: [YArray], map: [YMap], text: [YText], testObjects: [T?], randomGenerator: RandomGenerator) {
         self.connector = connector
         self.docs = docs
         self.array = array
         self.map = map
         self.text = text
         self.testObjects = testObjects
+        self.randomGenerator = randomGenerator
     }
 
     init(
         docs doccount: Int,
-        randomGenerator: RandomGenerator = RandomGenerator(value: SeededRandomNumberGenerator(seed: 0)),
+        seed: Int32 = 0,
         initTestObject: ((TestDoc) -> T)? = nil
     ) throws {
+        let randomGenerator = RandomGenerator(seed: seed)
         let connector = TestConnector(randomGenerator)
         
         var docs = [TestDoc]()
@@ -109,54 +117,48 @@ struct YTest<T> {
         let testObjects = docs.map{ initTestObject?($0) }
                         
         self.init(
-            connector: connector, docs: docs, array: array, map: map, text: text, testObjects: testObjects
+            connector: connector, docs: docs, array: array, map: map, text: text, testObjects: testObjects, randomGenerator: randomGenerator
         )
     }
     
-    @discardableResult
-    static func randomTests(
-        randomGenerator: RandomGenerator,
-        mods: [(Doc, RandomGenerator, T?) -> Void],
-        iterations: Int,
-        initTestObject: ((TestDoc) -> T)? = nil
-    ) throws -> YTest<T> {
-        let test = try YTest(docs: 6, randomGenerator: randomGenerator, initTestObject: initTestObject)
-        let connector = test.connector, docs = test.docs
-        
+    func randomTests(_ mods: [(Doc, RandomGenerator, T?) throws -> Void], iterations: Int, initTestObject: ((TestDoc) -> T)? = nil) throws {
         for _ in 0..<iterations {
-            if Int.random(in: 0..<100, using: &randomGenerator.value) <= 2 {
-                if Bool.random(using: &randomGenerator.value) {
-                    connector.disconnectRandom()
+            if randomGenerator.int(in: 0...100) <= 2 {
+                if randomGenerator.bool() {
+                    print("disconnectRandom")
+                    self.connector.disconnectRandom()
                 } else {
-                    try connector.reconnectRandom()
+                    print("reconnectRandom")
+                    try self.connector.reconnectRandom()
                 }
-            } else if Int.random(in: 0..<100, using: &randomGenerator.value) <= 1 {
+            } else if randomGenerator.int(in: 0...100) <= 1 {
                 // 1% chance to flush all
-                 try connector.flushAllMessages()
-            } else if Int.random(in: 0..<100, using: &randomGenerator.value) <= 50 {
+                print("flushAllMessages")
+                try self.connector.flushAllMessages()
+            } else if randomGenerator.int(in: 0...100) <= 50 {
                 // 50% chance to flush a random message
-                try connector.flushRandomMessage()
+                print("flushRandomMessage")
+                try self.connector.flushRandomMessage()
             }
-            let doc = Int.random(in: 0..<docs.count, using: &randomGenerator.value)
-            let dotest = mods.randomElement(using: &randomGenerator.value)!
+            let doc = randomGenerator.int(in: 0...docs.count-1)
+            let dotest = randomGenerator.oneOf(mods)
             
-            dotest(docs[doc], randomGenerator, test.testObjects[doc])
+            try dotest(docs[doc], randomGenerator, self.testObjects[doc])
         }
         
         try YAssertEqualDocs(docs)
-        return test
     }
 }
 
 class TestDoc: Doc {
-    var tc: TestConnector
+    var connector: TestConnector
     var userID: Int
     var receiving: [TestDoc: Ref<[Data]>] = [:]
     var updates: Ref<[Data]> = Ref(value: [])
     
     init(userID: Int, connector: TestConnector) throws {
         self.userID = userID
-        self.tc = connector
+        self.connector = connector
         
         super.init()
         
@@ -175,19 +177,19 @@ class TestDoc: Doc {
 
     func disconnect() {
         self.receiving = [:]
-        self.tc.onlineConnections.remove(self)
+        self.connector.onlineConnections.remove(self)
     }
 
     func connect() throws {
-        if !self.tc.onlineConnections.contains(self) {
-            self.tc.onlineConnections.insert(self)
+        if !self.connector.onlineConnections.contains(self) {
+            self.connector.onlineConnections.insert(self)
             let encoder = Lib0Encoder()
             
             try Sync.writeSyncStep1(encoder: encoder, doc: self)
             
             broadcastMessage(self, encoder.data)
             
-            try self.tc.onlineConnections.forEach({ remoteYInstance in
+            try self.connector.onlineConnections.forEach({ remoteYInstance in
                 if remoteYInstance !== self {
                     let encoder = Lib0Encoder()
                     try Sync.writeSyncStep1(encoder: encoder, doc: remoteYInstance)
@@ -217,7 +219,7 @@ class TestConnector: JSHashable {
     func flushRandomMessage() throws -> Bool {
         let connections = self.onlineConnections.filter{ $0.receiving.count > 0 }
         
-        guard let receiver = connections.first else {
+        guard let receiver = connections.min(by: { $0.clientID < $1.clientID }) else {
             return false
         }
             
@@ -236,7 +238,7 @@ class TestConnector: JSHashable {
         let encoder = Lib0Encoder()
                 
         try Sync.readSyncMessage(
-            decoder: Lib0Decoder(data: receivedData), encoder: encoder, doc: receiver, transactionOrigin: receiver.tc
+            decoder: Lib0Decoder(data: receivedData), encoder: encoder, doc: receiver, transactionOrigin: receiver.connector
         )
         
         if encoder.count > 0 { sender._receive(encoder.data, remoteClient: receiver) }
@@ -270,7 +272,7 @@ class TestConnector: JSHashable {
     func disconnectRandom() -> Bool {
         if self.onlineConnections.isEmpty { return false }
         
-        self.onlineConnections.randomElement(using: &self.randomGenerator.value)?.disconnect()
+        randomGenerator.oneOf(self.onlineConnections.sorted(by: { $0.clientID < $1.clientID })).disconnect()
         
         return true
     }
@@ -279,14 +281,14 @@ class TestConnector: JSHashable {
     func reconnectRandom() throws -> Bool {
         var reconnectable = [TestDoc]()
         
-        self.connections.forEach{
+        self.connections.sorted(by: { $0.clientID < $1.clientID }).forEach{
             if !self.onlineConnections.contains($0) {
                 reconnectable.append($0)
             }
         }
         
         if reconnectable.isEmpty { return false }
-        try reconnectable.randomElement(using: &self.randomGenerator.value)?.connect()
+        try self.randomGenerator.oneOf(reconnectable).connect()
         return true
     }
 }
@@ -300,7 +302,7 @@ func compareItemIDs(_ a: Item?, _ b: Item?) -> Bool {
 @discardableResult
 func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
     try docs.forEach{ try $0.connect() }
-    while try docs[0].tc.flushAllMessages() {}
+    while try docs[0].connector.flushAllMessages() {}
 
     let mergedDocs = try docs.map{ doc in
         // swift add
@@ -360,7 +362,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
         )
         try YAssertEqualDeleteSet(
             DeleteSet.createFromStructStore(docs[i].store),
-            DeleteSet.createFromStructStore(docs[i + 1].store)
+            DeleteSet.createFromStructStore(docs[i+1].store)
         )
         try YAssertEqualStructStore(docs[i].store, docs[i + 1].store)
     }
@@ -412,10 +414,10 @@ func YAssertEqualStructStore(_ ss1: StructStore, _ ss2: StructStore) throws {
     }
 }
 
-func YAssertEqualDeleteSet(_ ds1: DeleteSet, _ ds2: DeleteSet)  throws {
+func YAssertEqualDeleteSet(_ ds1: DeleteSet, _ ds2: DeleteSet) throws {
     XCTAssertEqual(ds1.clients.count, ds2.clients.count)
     
-    try ds1.clients.forEach({ client, deleteItems1 in
+    for (client, deleteItems1) in ds1.clients {
         let deleteItems2 = try XCTUnwrap(ds2.clients[client])
         
         XCTAssertEqual(deleteItems1.count, deleteItems2.count)
@@ -427,6 +429,6 @@ func YAssertEqualDeleteSet(_ ds1: DeleteSet, _ ds2: DeleteSet)  throws {
                 XCTFail("DeleteSets dont match")
             }
         }
-    })
+    }
 }
 

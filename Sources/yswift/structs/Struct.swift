@@ -22,7 +22,7 @@ public class Struct {
 
     public func integrate(transaction: Transaction, offset: Int) throws -> Void { fatalError() }
     
-    public func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? { fatalError() }
+    public func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? { nil }
 
     static public func tryMerge(withLeft structs: Ref<[Struct]>, pos: Int) {
         let left = structs[pos - 1]

@@ -244,40 +244,35 @@ public class AbstractType: JSHashable {
             jsonContent = []
         }
 
-        try contents.forEach{ content in
-            if content == nil {
+        for content in contents {
+            guard let content = content else {
+                jsonContent.append(content)
+                continue
+            }
+            
+            if content is NSNumber || content is String || content is NSDictionary || content is NSArray {
                 jsonContent.append(content)
             } else {
-                if (
-                    content is Bool ||
-                    content is Int ||
-                    content is String ||
-                    content is [String: Any] ||
-                    content is [Any?]
-                ) {
-                    jsonContent.append(content)
+                try packJsonContent()
+                if (content is Data) {
+                    let id = ID(client: ownClientId, clock: store.getState(ownClientId))
+                    let icontent = ContentBinary(content as! Data)
+                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                    try left!.integrate(transaction: transaction, offset: 0)
+                } else if content is Doc {
+                    let id = ID(client: ownClientId, clock: store.getState(ownClientId))
+                    let icontent = ContentDoc(content as! Doc)
+                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                    
+                    try left!.integrate(transaction: transaction, offset: 0)
+                    
+                } else if content is AbstractType {
+                    let id = ID(client: ownClientId, clock: store.getState(ownClientId))
+                    let icontent = ContentType(content as! AbstractType)
+                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                    try left!.integrate(transaction: transaction, offset: 0)
                 } else {
-                    try packJsonContent()
-                    if (content is Data) {
-                        let id = ID(client: ownClientId, clock: store.getState(ownClientId))
-                        let icontent = ContentBinary(content as! Data)
-                        left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
-                        try left!.integrate(transaction: transaction, offset: 0)
-                    } else if content is Doc {
-                        let id = ID(client: ownClientId, clock: store.getState(ownClientId))
-                        let icontent = ContentDoc(content as! Doc)
-                        left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
-                        
-                        try left!.integrate(transaction: transaction, offset: 0)
-                        
-                    } else if content is AbstractType {
-                        let id = ID(client: ownClientId, clock: store.getState(ownClientId))
-                        let icontent = ContentType(content as! AbstractType)
-                        left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
-                        try left!.integrate(transaction: transaction, offset: 0)
-                    } else {
-                        throw YSwiftError.unexpectedContentType
-                    }
+                    throw YSwiftError.unexpectedContentType
                 }
             }
         }
@@ -286,7 +281,7 @@ public class AbstractType: JSHashable {
     }
 
     // this -> parent
-    public func listInsertGenerics(_ transaction: Transaction, index: Int, contents: [Any]) throws {
+    public func listInsertGenerics(_ transaction: Transaction, index: Int, contents: [Any?]) throws {
         var index = index
         if index > self._length { throw YSwiftError.lengthExceeded }
 
@@ -331,7 +326,7 @@ public class AbstractType: JSHashable {
         return try self.listInsertGenericsAfter(transaction, referenceItem: n, contents: contents)
     }
     
-    public func listPushGenerics(_ transaction: Transaction, contents: [Any]) throws {
+    public func listPushGenerics(_ transaction: Transaction, contents: [Any?]) throws {
         
         let marker = (self._searchMarker ?? .init(value: []))
             .reduce(ArraySearchMarker(item: self._start, index: 0)) { maxMarker, currMarker in

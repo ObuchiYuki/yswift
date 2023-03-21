@@ -90,6 +90,7 @@ public func generateDocGuid() -> String {
         __.cliendID += 1
         return String(__.cliendID)
     }
+    print("THIS RUN HAS RANDOMNESS")
     #endif
     return UUID().uuidString
 }
@@ -101,7 +102,9 @@ public func generateNewClientID() -> Int {
         __.cliendID += 1
         return __.cliendID
     }
+    print("THIS RUN HAS RANDOMNESS")
     #endif
+    
     return Int(UInt32.random(in: UInt32.min...UInt32.max))
 }
 

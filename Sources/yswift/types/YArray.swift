@@ -18,7 +18,7 @@ public class YArrayEvent: YEvent {
 
 /** A shared Array implementation. */
 public class YArray: AbstractType {
-    public var _prelimContent: [Any]? = []
+    public var _prelimContent: [Any?]? = []
 
     public override init() {
         super.init()
@@ -70,7 +70,7 @@ public class YArray: AbstractType {
         try self.callObservers(transaction: transaction, event: YArrayEvent(self, transaction: transaction))
     }
 
-    public func insert(_ index: Int, _ content: [Any]) throws {
+    public func insert(_ index: Int, _ content: [Any?]) throws {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
                 try self.listInsertGenerics(transaction, index: index, contents: content)
@@ -87,7 +87,7 @@ public class YArray: AbstractType {
      *
      * @todo Use the following implementation in all types.
      */
-    public func push(_ content: [Any]) throws {
+    public func push(_ content: [Any?]) throws {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
                 try self.listPushGenerics(transaction, contents: content)

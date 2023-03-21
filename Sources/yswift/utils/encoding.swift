@@ -72,8 +72,8 @@ public class StructRef {
 }
 public typealias GC_or_Item_RefArray = Ref<[Struct?]>
 
-public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [Int: StructRef] {
-    var clientRefs = [Int: StructRef]()
+public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> Ref<[Int: StructRef]> {
+    var clientRefs = Ref<[Int: StructRef]>(value: [:])
     let numOfStateUpdates = try Int(decoder.restDecoder.readUInt())
     
     for _ in 0..<numOfStateUpdates {
@@ -82,7 +82,7 @@ public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [I
         let client = try decoder.readClient()
         var clock = try Int(decoder.restDecoder.readUInt())
         
-        clientRefs[client] = StructRef(i: 0, refs: refs)
+        clientRefs.value[client] = StructRef(i: 0, refs: refs)
                 
         for i in 0..<numberOfStructs {
             let info = try decoder.readInfo()
@@ -129,10 +129,10 @@ public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> [I
 public func integrateStructs(
     transaction: Transaction,
     store: StructStore,
-    clientsStructRefs: inout [Int: StructRef]
+    clientsStructRefs: Ref<[Int: StructRef]>
 ) throws -> PendingStrcut? {
     var stack: [Struct] = []
-    var clientsStructRefsIds = clientsStructRefs.keys.sorted(by: <)
+    var clientsStructRefsIds = clientsStructRefs.value.keys.sorted(by: <)
     if clientsStructRefsIds.count == 0 {
         return nil
     }
@@ -141,12 +141,12 @@ public func integrateStructs(
         if clientsStructRefsIds.count == 0 {
             return nil
         }
-        var nextStructsTarget = clientsStructRefs[clientsStructRefsIds.last!]!
+        var nextStructsTarget = clientsStructRefs.value[clientsStructRefsIds.last!]!
             
         while nextStructsTarget.refs.count == nextStructsTarget.i {
             clientsStructRefsIds.removeLast()
             if clientsStructRefsIds.count > 0 {
-                nextStructsTarget = clientsStructRefs[clientsStructRefsIds.last!]!
+                nextStructsTarget = clientsStructRefs.value[clientsStructRefsIds.last!]!
             } else {
                 return nil
             }
@@ -174,14 +174,14 @@ public func integrateStructs(
     func addStackToRestSS() {
         for item in stack {
             let client = item.id.client
-            let unapplicableItems = clientsStructRefs[client]
+            let unapplicableItems = clientsStructRefs.value[client]
             if unapplicableItems != nil {
                 // decrement because we weren't able to apply previous operation
                 unapplicableItems!.i -= 1
                 restStructs.clients[client] = Ref(
-                    value: unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! as! Struct }
+                    value: unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! }
                 )
-                clientsStructRefs.removeValue(forKey: client)
+                clientsStructRefs.value.removeValue(forKey: client)
                 unapplicableItems!.i = 0
                 unapplicableItems!.refs = .init(value: [])
             } else {
@@ -205,11 +205,11 @@ public func integrateStructs(
                 // hid a dead wall, add all items from stack to restSS
                 addStackToRestSS()
             } else {
-                let missing = try (stackHead as! Item).getMissing(transaction, store: store)
+                let missing = try stackHead.getMissing(transaction, store: store)
                 if missing != nil {
                     stack.append(stackHead)
                     
-                    let structRefs: StructRef = clientsStructRefs[missing!] ?? StructRef(i: 0, refs: .init(value: []))
+                    let structRefs: StructRef = clientsStructRefs.value[missing!] ?? StructRef(i: 0, refs: .init(value: []))
 
                     if structRefs.refs.count == structRefs.i {
                         updateMissingSv(client: missing!, clock: store.getState(missing!))
@@ -243,6 +243,7 @@ public func integrateStructs(
             }
         }
     }
+    
     if restStructs.clients.count > 0 {
         let encoder = UpdateEncoderV2()
         try writeClientsStructs(encoder: encoder, store: restStructs, _sm: [:])
@@ -272,9 +273,9 @@ public func readUpdateV2(decoder: Lib0Decoder, ydoc: Doc, transactionOrigin: Any
         let doc = transaction.doc
         
         let store = doc.store
-        var ss = try readClientsStructRefs(decoder: structDecoder, doc: doc)
+        let uss = try readClientsStructRefs(decoder: structDecoder, doc: doc)
         
-        let restStructs = try integrateStructs(transaction: transaction, store: store, clientsStructRefs: &ss)
+        let restStructs = try integrateStructs(transaction: transaction, store: store, clientsStructRefs: uss)
         let pending = store.pendingStructs
         if (pending != nil) {
             // check if we can apply something

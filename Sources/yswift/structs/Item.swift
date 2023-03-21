@@ -269,7 +269,7 @@ public class Item: Struct, JSHashable {
         // We have all missing ids, now find the items
         if self.origin != nil {
             self.left = try store.getItemCleanEnd(transaction, id: self.origin!)
-            self.origin = (self.left as! Item).lastID
+            self.origin = (self.left as? Item)?.lastID
         }
         if self.rightOrigin != nil {
             self.right = try StructStore.getItemCleanStart(transaction, id: self.rightOrigin!)
@@ -293,7 +293,7 @@ public class Item: Struct, JSHashable {
             if parentItem is GC {
                 self.parent = nil
             } else {
-                self.parent = ((parentItem as! Item).content as! ContentType).type
+                self.parent = ((parentItem as! Item).content as? ContentType)?.type
             }
         }
         return nil
@@ -440,7 +440,8 @@ public class Item: Struct, JSHashable {
     }
 
     public override func merge(with right: Struct) -> Bool {
-        let right = right as! Item
+        guard let right = right as? Item else { return false }
+        
         if (
             type(of: self) == type(of: right) &&
             right.origin == self.lastID &&

@@ -20,7 +20,13 @@ public class PendingStrcut {
 
 public class StructStore {
     public var clients: [Int: Ref<[Struct]>] = [:]
-    public var pendingStructs: PendingStrcut? = nil
+    public var pendingStructs: PendingStrcut? = nil {
+        didSet {
+            if pendingStructs != nil {
+                
+            }
+        }
+    }
     public var pendingDs: Data? = nil
 
     public init() {}
