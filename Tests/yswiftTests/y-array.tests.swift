@@ -1,6 +1,6 @@
 import XCTest
 import Promise
-@testable import yswift
+import yswift
 
 final class YArrayTests: XCTestCase {
     func testBasicUpdate() throws {
@@ -469,38 +469,38 @@ final class YArrayTests: XCTestCase {
         return __._uniqueNumber
     }
 
-    private lazy var arrayTransactions: [(Doc, RandomGenerator, Any?) throws -> Void] = [
-        { doc, gen, _ in // insert
+    private lazy var arrayTransactions: [(Doc, YTest<Any>, Any?) throws -> Void] = [
+        { doc, test, _ in // insert
             let yarray = try doc.getArray("array")
             let uniqueNumber = self.getUniqueNumber()
             var content: [Int] = []
-            let len = gen.int(in: 1...4)
+            let len = test.gen.int(in: 1...4)
             for _ in 0..<len {
                 content.append(uniqueNumber)
             }
-            let pos = gen.int(in: 0...yarray.length)
+            let pos = test.gen.int(in: 0...yarray.length)
             var oldContent = yarray.toArray()
-//            print("insert \(content) at '\(pos)'")
+            test.log("insert \(content) at '\(pos)'")
             
             try yarray.insert(pos, content)
             oldContent.insert(contentsOf: content, at: pos)
             XCTAssertEqualJSON(yarray.toArray(), oldContent)
         },
-        { doc, gen, _ in // insertTypeArray
-            
-//            print("insertTypeArray")
-            
+        { doc, test, _ in // insertTypeArray
             let yarray = try doc.getArray("array")
-            let pos = gen.int(in: 0...yarray.length)
+            let pos = test.gen.int(in: 0...yarray.length)
             try yarray.insert(pos, [YArray()])
+            
+            test.log("insert YArray at '\(pos)'")
+            
             let array2 = try XCTUnwrap(yarray.get(pos) as? YArray)
             try array2.insert(0, [1, 2, 3, 4])
         },
-        { doc, gen, _ in // insertTypeMap
+        { doc, test, _ in // insertTypeMap
             let yarray = try doc.getArray("array")
-            let pos = gen.int(in: 0...yarray.length)
+            let pos = test.gen.int(in: 0...yarray.length)
             
-//            print("insert map at '\(pos)'")
+            test.log("insert YMap at '\(pos)'")
             
             try yarray.insert(pos, [YMap()])
             let map = try XCTUnwrap(yarray.get(pos) as? YMap)
@@ -508,35 +508,35 @@ final class YArrayTests: XCTestCase {
             try map.set("someprop", value: 43)
             try map.set("someprop", value: 44)
         },
-        { doc, gen, _ in // insertTypeNull
+        { doc, test, _ in // insertTypeNull
             let yarray = try doc.getArray("array")
-            let pos = gen.int(in: 0...yarray.length)
-//            print("insert 'nil' at '\(pos)'")
+            let pos = test.gen.int(in: 0...yarray.length)
+            test.log("insert 'nil' at '\(pos)'")
             try yarray.insert(pos, [nil])
         },
-        { doc, gen, _ in // delete
+        { doc, test, _ in // delete
             let yarray = try doc.getArray("array")
             let length = yarray.length
             guard length > 0 else {
-//                print("no delete")
+                test.log("no delete")
                 return
             }
                         
-            var somePos = gen.int(in: 0...length-1)
-            var delLength = gen.int(in: 1...min(2, length-somePos))
+            var somePos = test.gen.int(in: 0...length-1)
+            var delLength = test.gen.int(in: 1...min(2, length-somePos))
             
-            if gen.bool() {
+            if test.gen.bool() {
                 let type = yarray.get(somePos)
                 if let type = type as? YArray, type.length > 0 {
-                    somePos = gen.int(in: 0...type.length-1)
-                    delLength = gen.int(in: 0...min(2, type.length - somePos))
+                    somePos = test.gen.int(in: 0...type.length-1)
+                    delLength = test.gen.int(in: 0...min(2, type.length - somePos))
                     
-//                    print("delete nested YArray at '\(somePos)..<\(somePos+delLength)'")
+                    test.log("delete nested YArray at '\(somePos)..<\(somePos+delLength)'")
                     try type.delete(somePos, length: delLength)
                 }
             } else {
                 var oldContent = yarray.toArray()
-//                print("delete at '\(somePos)..<\(somePos+delLength)'")
+                test.log("delete at '\(somePos)..<\(somePos+delLength)'")
                 try yarray.delete(somePos, length: delLength)
                 oldContent.removeSubrange(somePos..<somePos+delLength)
                 XCTAssertEqualJSON(yarray.toArray(), oldContent)
@@ -581,39 +581,38 @@ final class YArrayTests: XCTestCase {
         try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 300)
     }
 
-//    func testRepeatGeneratingYarrayTests400() throws {
-//        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 400)
-//    }
-//
-//    func testRepeatGeneratingYarrayTests500() throws {
-//        applyRandomTests(tc, arrayTransactions, 500)
-//    }
-//
-//    func testRepeatGeneratingYarrayTests600() throws {
-//        applyRandomTests(tc, arrayTransactions, 600)
-//    }
-//
-//    func testRepeatGeneratingYarrayTests1000() throws {
-//        applyRandomTests(tc, arrayTransactions, 1000)
-//    }
-//
-//    func testRepeatGeneratingYarrayTests1800() throws {
-//        applyRandomTests(tc, arrayTransactions, 1800)
-//    }
-//
-//    func testRepeatGeneratingYarrayTests3000() throws {
-//        t.skip(!t.production)
-//        applyRandomTests(tc, arrayTransactions, 3000)
-//    }
-//
-//    func testRepeatGeneratingYarrayTests5000() throws {
-//        t.skip(!t.production)
-//        applyRandomTests(tc, arrayTransactions, 5000)
-//    }
-//
-//    func testRepeatGeneratingYarrayTests30000() throws {
-//        t.skip(!t.production)
-//        applyRandomTests(tc, arrayTransactions, 30000)
-//    }
-    
+    func testRepeatGeneratingYarrayTests400() throws {
+        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 400)
+    }
+
+    func testRepeatGeneratingYarrayTests500() throws {
+        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 500)
+    }
+
+    func testRepeatGeneratingYarrayTests600() throws {
+        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 600)
+    }
+
+    func testRepeatGeneratingYarrayTests1000() throws {
+        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 1000)
+    }
+
+    func testRepeatGeneratingYarrayTests1800() throws {
+        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 1800)
+    }
+
+    func testRepeatGeneratingYarrayTests3000() throws {
+        try XCTSkipIf(!isProductionTest)
+        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 3000)
+    }
+
+    func testRepeatGeneratingYarrayTests5000() throws {
+        try XCTSkipIf(!isProductionTest)
+        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 5000)
+    }
+
+    func testRepeatGeneratingYarrayTests30000() throws {
+        try XCTSkipIf(!isProductionTest)
+        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 30000)
+    }
 }

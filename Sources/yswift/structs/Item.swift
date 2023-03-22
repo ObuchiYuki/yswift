@@ -150,7 +150,7 @@ public class Item: Struct, JSHashable {
             (rightItem.right as! Item).left = rightItem
         }
         // right is more specific.
-        transaction._mergeStructs.append(rightItem)
+        transaction._mergeStructs.value.append(rightItem)
         // update parent._map
         if rightItem.parentSub != nil && rightItem.right == nil {
             (rightItem.parent as! AbstractType)._map[rightItem.parentSub!] = rightItem
@@ -438,9 +438,11 @@ public class Item: Struct, JSHashable {
             clock: self.id.clock + self.length - 1
         )
     }
-
+    
     public override func merge(with right: Struct) -> Bool {
-        guard let right = right as? Item else { return false }
+        guard let right = right as? Item else {
+            return false
+        }
         
         if (
             type(of: self) == type(of: right) &&
@@ -560,7 +562,7 @@ func readItemContent(decoder: UpdateDecoder, info: UInt8) throws -> any Content 
 }
 
 /** A lookup map for reading Item content. */
-internal let contentDecoders_: [(UpdateDecoder) throws -> any Content] = [
+public let contentDecoders_: [(UpdateDecoder) throws -> any Content] = [
     {_ in throw YSwiftError.unexpectedCase }, // GC is not ItemContent
     readContentDeleted, // 1
     readContentJSON, // 2

@@ -28,10 +28,7 @@ final public class ContentString: Content {
 
     public func getLength() -> Int { return self.str.length }
 
-    public func getContent() -> [Any] {
-        self.str.utf16Array
-        
-    }
+    public func getContent() -> [Any?] { self.str.utf16Array }
 
     public func isCountable() -> Bool { return true }
 

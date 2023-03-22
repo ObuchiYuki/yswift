@@ -9,7 +9,11 @@ import Foundation
 
 /// structを参照型にするため
 public final class Ref<T> {
+    #if DEBUG
+    @Observable public var value: T
+    #else
     public var value: T
+    #endif
 
     public init(value: T) {
         self.value = value

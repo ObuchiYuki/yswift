@@ -116,6 +116,8 @@ public func generateNewClientID() -> Int {
 
 public func equalJSON(_ a: Any?, _ b: Any?) -> Bool {
     if a == nil && b == nil { return true }
+    if a is NSNull && b is NSNull { return true }
+    if let a = a as? AnyObject, let b = b as? AnyObject, a === b { return true }
     if let a = a as? NSDictionary, let b = b as? NSDictionary { return a == b }
     if let a = a as? NSArray, let b = b as? NSArray { return a == b }
     if let a = a as? NSNumber, let b = b as? NSNumber { return a == b }

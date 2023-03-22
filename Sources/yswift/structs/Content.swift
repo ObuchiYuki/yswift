@@ -10,7 +10,7 @@ import Foundation
 public protocol Content: AnyObject {
     func getLength() -> Int
     
-    func getContent() -> [Any]
+    func getContent() -> [Any?]
     
     func isCountable() -> Bool
     

@@ -24,16 +24,16 @@ public class RandomGenerator {
         return Double(self.w) / Double(0x7FFFFFFF)
     }
     
-    func bool() -> Bool {
+    public func bool() -> Bool {
         return self.next() >= 0.5
     }
-    func int(min: Int, max: Int) -> Int {
+    public func int(min: Int, max: Int) -> Int {
         Int(self.next() * Double(max + 1 - min)) + min
     }
-    func int(in range: ClosedRange<Int>) -> Int {
+    public func int(in range: ClosedRange<Int>) -> Int {
         return int(min: range.lowerBound, max: range.upperBound)
     }
-    func oneOf<T>(_ elements: [T]) -> T {
+    public func oneOf<T>(_ elements: [T]) -> T {
         elements[self.int(in: 0...elements.count-1)]
     }
 }

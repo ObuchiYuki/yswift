@@ -14,7 +14,7 @@ final public class ContentJSON: Content {
 
     public func getLength() -> Int { return self.arr.count }
 
-    public func getContent() -> [Any] { return self.arr as [Any] }
+    public func getContent() -> [Any?] { return self.arr as [Any] }
 
     public func isCountable() -> Bool { return true }
 

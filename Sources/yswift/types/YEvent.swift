@@ -29,7 +29,7 @@ public class YEventDelta {
     public var delete: Int?
     public var attributes: YTextAttributes? 
     
-    init(insert: YEventDeltaInsertType? = nil, retain: Int? = nil, delete: Int? = nil, attributes: YTextAttributes? = nil) {
+    public init(insert: YEventDeltaInsertType? = nil, retain: Int? = nil, delete: Int? = nil, attributes: YTextAttributes? = nil) {
         self.insert = insert
         self.retain = retain
         self.delete = delete

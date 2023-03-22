@@ -15,7 +15,7 @@ final public class ContentEmbed: Content {
 
     public func getLength() -> Int { return 1 }
 
-    public func getContent() -> [Any] { return [self.embed] }
+    public func getContent() -> [Any?] { return [self.embed] }
 
     public func isCountable() -> Bool { return true }
 

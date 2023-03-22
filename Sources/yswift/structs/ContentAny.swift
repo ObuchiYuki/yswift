@@ -16,7 +16,7 @@ final public class ContentAny: Content {
 
     public func getLength() -> Int { return self.array.count }
 
-    public func getContent() -> [Any] { return self.array as [Any] }
+    public func getContent() -> [Any?] { return self.array }
 
     public func isCountable() -> Bool { return true }
 

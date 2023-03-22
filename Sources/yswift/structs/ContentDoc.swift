@@ -66,7 +66,7 @@ final public class ContentDoc: Content {
 
     public func getLength() -> Int { return 1 }
 
-    public func getContent() -> [Any] { return [self.doc] }
+    public func getContent() -> [Any?] { return [self.doc] }
 
     public func isCountable() -> Bool { return true }
     

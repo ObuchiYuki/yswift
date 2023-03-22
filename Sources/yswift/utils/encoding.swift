@@ -62,13 +62,7 @@ public func writeClientsStructs(encoder: UpdateEncoder, store: StructStore, _sm:
 }
 
 public class StructRef: CustomStringConvertible {
-    public var i: Int {
-        didSet {
-            if i == 1 {
-                
-            }
-        }
-    }
+    public var i: Int
     public var refs: GC_or_Item_RefArray
     
     init(i: Int, refs: GC_or_Item_RefArray) {

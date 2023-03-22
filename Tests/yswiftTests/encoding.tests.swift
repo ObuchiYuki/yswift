@@ -1,6 +1,6 @@
 import XCTest
 import Promise
-@testable import yswift
+import yswift
 
 final class EncodingTests: XCTestCase {
     

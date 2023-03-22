@@ -18,7 +18,7 @@ final public class ContentFormat: Content {
 
     public func getLength() -> Int { return 1 }
     
-    public func getContent() -> [Any] { return [] }
+    public func getContent() -> [Any?] { return [] }
 
     public func isCountable() -> Bool { return false }
 

@@ -104,6 +104,8 @@ public class StructStore {
         let index = try StructStore.findIndexSS(structs: structs, clock: id.clock)
         let struct_ = structs[index]
         if id.clock != struct_.id.clock + struct_.length - 1 && !(struct_ is GC) {
+//            print("getItemCleanEnd", self.clients[0]?.count ?? 0)
+            
             structs.value
                 .insert((struct_ as! Item).split(transaction, diff: id.clock - struct_.id.clock + 1), at: index + 1)
         }

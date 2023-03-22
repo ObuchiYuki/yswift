@@ -6,9 +6,9 @@
 //
 
 import Foundation
-@testable import yswift
+import yswift
 
-final public class UpdateEnvironment {
+final public class YUpdateEnvironment {
     let mergeUpdates: (_ updates: [Data]) throws -> Data
     let encodeStateAsUpdate: (_ doc: Doc, _ encodedTargetStateVector: Data?) throws -> Data
     let applyUpdate: (_ ydoc: Doc, _ update: Data, _ transactionOrigin: Any?) throws -> Void
@@ -48,7 +48,7 @@ final public class UpdateEnvironment {
     }
 
     
-    static let v1 = UpdateEnvironment(
+    static let v1 = YUpdateEnvironment(
         mergeUpdates: { try yswift.mergeUpdates(updates: $0) },
         encodeStateAsUpdate: { try yswift.encodeStateAsUpdate(doc: $0, encodedTargetStateVector: $1) },
         applyUpdate: { try yswift.applyUpdate(ydoc: $0, update: $1, transactionOrigin: $2) },
@@ -62,7 +62,7 @@ final public class UpdateEnvironment {
         diffUpdate: { try yswift.diffUpdate(update: $0, sv: $1) }
     )
 
-    static let v2 = UpdateEnvironment(
+    static let v2 = YUpdateEnvironment(
         mergeUpdates: { try mergeUpdatesV2(updates: $0) },
         encodeStateAsUpdate: { try encodeStateAsUpdateV2(doc: $0, encodedTargetStateVector: $1) },
         applyUpdate: { try applyUpdateV2(ydoc: $0, update: $1, transactionOrigin: $2) },
@@ -76,7 +76,7 @@ final public class UpdateEnvironment {
         diffUpdate: { try diffUpdateV2(update: $0, sv: $1) }
     )
 
-    static let doc = UpdateEnvironment(
+    static let doc = YUpdateEnvironment(
         mergeUpdates: { updates in
             let ydoc = Doc(opts: DocOpts(gc: false))
             try updates.forEach({ update in
@@ -100,7 +100,7 @@ final public class UpdateEnvironment {
         }
     )
 
-    static let encoders = [UpdateEnvironment.v1, .v2, .doc]
+    static let encoders = [YUpdateEnvironment.v1, .v2, .doc]
     
     func docFromUpdates(_ docs: [Doc]) throws -> Doc {
         let updates = try docs.map{

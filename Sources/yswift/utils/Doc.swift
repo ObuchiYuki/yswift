@@ -40,7 +40,7 @@ public struct DocOpts {
     }
 }
 
-public class Doc: Lib0Observable, JSHashable {
+open class Doc: Lib0Observable, JSHashable {
     public var gcFilter: (Item) -> Bool
     public var gc: Bool
     public var clientID: Int

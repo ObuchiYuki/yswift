@@ -39,11 +39,11 @@ public class LazyStructReader {
     }
 }
 
-func logUpdate(_ update: Data) {
+public func logUpdate(_ update: Data) {
     logUpdateV2(update, YDecoder: UpdateDecoderV1.init)
 }
 
-func logUpdateV2(_ update: Data, YDecoder: (Lib0Decoder) throws -> UpdateDecoder = UpdateDecoderV2.init) {
+public func logUpdateV2(_ update: Data, YDecoder: (Lib0Decoder) throws -> UpdateDecoder = UpdateDecoderV2.init) {
     do {
         var structs: [Struct] = []
         let updateDecoder = try YDecoder(Lib0Decoder(data: update))
@@ -109,11 +109,11 @@ public class LazyStructWriter {
     }
 }
 
-func mergeUpdates(updates: Array<Data>) throws -> Data {
+public func mergeUpdates(updates: Array<Data>) throws -> Data {
     return try mergeUpdatesV2(updates: updates, YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV1.init)
 }
 
-func encodeStateVectorFromUpdateV2(
+public func encodeStateVectorFromUpdateV2(
     update: Data,
     YEncoder: () -> DSEncoder = DSEncoderV2.init,
     YDecoder: (Lib0Decoder) throws -> UpdateDecoder = UpdateDecoderV2.init

@@ -16,7 +16,7 @@ final public class ContentType: Content {
 
     public func getLength() -> Int { return 1 }
 
-    public func getContent() -> [Any] { return [self.type] }
+    public func getContent() -> [Any?] { return [self.type] }
 
     public func isCountable() -> Bool { return true }
 
@@ -36,7 +36,7 @@ final public class ContentType: Content {
             if !item!.deleted {
                 item!.delete(transaction)
             } else {
-                transaction._mergeStructs.append(item!)
+                transaction._mergeStructs.value.append(item!)
             }
             item = (item!.right as? Item)
         }
@@ -45,7 +45,7 @@ final public class ContentType: Content {
                 item.delete(transaction)
             } else {
                 // same as above
-                transaction._mergeStructs.append(item)
+                transaction._mergeStructs.value.append(item)
             }
         })
         transaction.changed.removeValue(forKey: self.type)

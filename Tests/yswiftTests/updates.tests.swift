@@ -1,6 +1,6 @@
 import XCTest
 import Promise
-@testable import yswift
+import yswift
 
 final class UpdatesTests: XCTestCase {
     func testMergeUpdates() throws {
@@ -13,7 +13,7 @@ final class UpdatesTests: XCTestCase {
 
         let ndocs = try YAssertEqualDocs(docs)
 
-        for env in UpdateEnvironment.encoders {
+        for env in YUpdateEnvironment.encoders {
             let merged = try env.docFromUpdates(ndocs.map{ $0 })
         
             try XCTAssertEqualJSON(
@@ -45,7 +45,7 @@ final class UpdatesTests: XCTestCase {
     }
     
     func testMergeUpdates1() throws {
-        for env in UpdateEnvironment.encoders {
+        for env in YUpdateEnvironment.encoders {
             print("== Using encoder: \(env.description) ==")
             let ydoc = Doc(opts: DocOpts(gc: false))
             var updates = [Data]()
@@ -62,7 +62,7 @@ final class UpdatesTests: XCTestCase {
     }
 
     func testMergeUpdates2() throws {
-        for env in [UpdateEnvironment.v2] {
+        for env in [YUpdateEnvironment.v2] {
             print("== Using encoder: \(env.description) ==")
             let ydoc = Doc(opts: DocOpts(gc: false))
             var updates: [Data] = []
@@ -121,7 +121,7 @@ final class UpdatesTests: XCTestCase {
         XCTAssertEqual(yText5.toString(), "nenor")
     }
     
-    private func checkUpdateCases(ydoc: Doc, updates: [Data], enc: UpdateEnvironment, hasDeletes: Bool) throws {
+    private func checkUpdateCases(ydoc: Doc, updates: [Data], enc: YUpdateEnvironment, hasDeletes: Bool) throws {
         var cases: [Data] = []
 
         // Case 1: Simple case, simply merge everything
@@ -179,7 +179,7 @@ final class UpdatesTests: XCTestCase {
                         try ds.encode(updateEncoder)
                         let deletesUpdate = updateEncoder.toData()
                         let mergedDeletes = try mergeUpdatesV2(updates: [deletesUpdate, partMerged])
-                        if !hasDeletes || enc !== UpdateEnvironment.doc {
+                        if !hasDeletes || enc !== YUpdateEnvironment.doc {
                             // deletes will almost definitely lead to different encoders because of the mergeStruct feature that is present in encDoc
                             XCTAssertEqual(diffed, mergedDeletes)
                         }

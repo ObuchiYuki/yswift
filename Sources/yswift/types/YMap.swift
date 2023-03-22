@@ -67,12 +67,19 @@ public class YMap: AbstractType {
         self._map.forEach({ key, item in
             if !item.deleted {
                 let v = item.content.getContent()[Int(item.length) - 1]
-                map[key] = v is AbstractType ? (v as! AbstractType).toJSON() : v
+                if v == nil {
+                    map[key] = NSNull()
+                } else {
+                    map[key] = v is AbstractType ? (v as! AbstractType).toJSON() : v
+                }
             }
         })
         return map
     }
 
+    public func entories() -> some Sequence<(String, Any)> {
+        createMapIterator()
+    }
     public func createMapIterator() -> some Sequence<(String, Any)> {
         self._map.lazy
             .filter{ _, v in !v.deleted }
@@ -125,7 +132,7 @@ public class YMap: AbstractType {
     }
 
     /** Adds or updates an element with a specified key and value. */
-    public func set(_ key: String, value: Any) throws {
+    public func set(_ key: String, value: Any?) throws {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
                 try self.mapSet(transaction, key: key, value: value)

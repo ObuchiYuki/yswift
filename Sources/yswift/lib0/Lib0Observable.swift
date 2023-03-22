@@ -10,7 +10,7 @@ import Promise
 
 open class Lib0Observable {
     public struct EventName<Arguments> {
-        let name: String
+        public let name: String
         public init(_ name: String) { self.name = name }
     }
     

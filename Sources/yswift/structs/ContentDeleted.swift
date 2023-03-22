@@ -14,7 +14,7 @@ final public class ContentDeleted: Content {
 
     public func getLength() -> Int { return self.len }
 
-    public func getContent() -> [Any] { return [] }
+    public func getContent() -> [Any?] { return [] }
 
     public func isCountable() -> Bool { return false }
 

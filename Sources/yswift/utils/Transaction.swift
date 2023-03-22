@@ -39,7 +39,7 @@ public class Transaction {
     public var subdocsRemoved: Set<Doc> = Set()
     public var subdocsLoaded: Set<Doc> = Set()
 
-    public var _mergeStructs: [Struct] = []
+    public var _mergeStructs: Ref<[Struct]> = Ref(value: [])
 
     public var origin: Any?
 
@@ -165,13 +165,15 @@ public class Transaction {
             }
         })
         
-        for _ in 0..<mergeStructs.count {
+        
+        for i in 0..<mergeStructs.count {
             let client = mergeStructs[i].id.client, clock = mergeStructs[i].id.clock
             let structs = store.clients[client]!
             let replacedStructPos = try StructStore.findIndexSS(structs: structs, clock: clock)
             if replacedStructPos + 1 < structs.count {
                 Struct.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
             }
+            
             if replacedStructPos > 0 {
                 Struct.tryMerge(withLeft: structs, pos: replacedStructPos)
             }
