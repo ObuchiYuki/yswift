@@ -15,8 +15,10 @@ final public class ContentFormat: Content {
         self.key = key
         self.value = value
     }
+}
 
-    public func getLength() -> Int { return 1 }
+extension ContentFormat {
+    public var count: Int { 1 }
     
     public func getContent() -> [Any?] { return [] }
 

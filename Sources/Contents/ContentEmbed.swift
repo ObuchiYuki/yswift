@@ -8,12 +8,13 @@
 import Foundation
 
 final public class ContentEmbed: Content {
+    public let embed: Any?
     
-    public let embed: Any
-    
-    public init(_ embed: Any) { self.embed = embed }
+    public init(_ embed: Any?) { self.embed = embed }
+}
 
-    public func getLength() -> Int { return 1 }
+extension ContentEmbed {
+    public var count: Int { 1 }
 
     public func getContent() -> [Any?] { return [self.embed] }
 

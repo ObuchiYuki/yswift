@@ -210,7 +210,7 @@ open class Doc: Lib0Observable, JSHashable {
         if item != nil {
             self._item = nil
                         
-            let content = item!.content as? ContentDoc
+            let content = item!.content as? DocumentContent
             
             // swift add
             var __copyOpts = DocOpts()

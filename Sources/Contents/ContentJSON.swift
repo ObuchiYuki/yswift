@@ -11,8 +11,10 @@ final public class ContentJSON: Content {
     public var arr: [Any?]
     
     public init(_ arr: [Any?]) { self.arr = arr }
+}
 
-    public func getLength() -> Int { return self.arr.count }
+extension ContentJSON {
+    public var count: Int { return self.arr.count }
 
     public func getContent() -> [Any?] { return self.arr as [Any] }
 
@@ -42,7 +44,7 @@ final public class ContentJSON: Content {
         encoder.writeLen(len - offset)
         for i in offset..<len {
             let c = self.arr[i]
-            if let c = c {                
+            if let c = c {
                 let jsonData = try JSONSerialization.data(withJSONObject: c, options: [.fragmentsAllowed])
                 let jsonString = String(data: jsonData, encoding: .utf8)!
                 encoder.writeString(jsonString)

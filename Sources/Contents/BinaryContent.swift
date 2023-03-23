@@ -7,22 +7,24 @@
 
 import Foundation
 
-final public class ContentBinary: Content {
+final public class BinaryContent: Content {
     public var content: Data
     
     public init(_ content: Data) {
         self.content = content
     }
+}
 
-    public func getLength() -> Int { return 1 }
+extension BinaryContent {
+    public var count: Int { 1 }
 
     public func getContent() -> [Any?] { return [self.content] }
 
     public func isCountable() -> Bool { return true }
 
-    public func copy() -> ContentBinary { return ContentBinary(self.content) }
+    public func copy() -> BinaryContent { return BinaryContent(self.content) }
 
-    public func splice(_ offset: Int) -> ContentBinary { fatalError() }
+    public func splice(_ offset: Int) -> BinaryContent { fatalError() }
 
     public func mergeWith(_ right: Content) -> Bool { return false }
     
@@ -37,6 +39,6 @@ final public class ContentBinary: Content {
     public func getRef() -> UInt8 { return 3 }
 }
 
-func readContentBinary(_ decoder: UpdateDecoder) throws -> ContentBinary {
-    return try ContentBinary(decoder.readBuf())
+func readContentBinary(_ decoder: UpdateDecoder) throws -> BinaryContent {
+    return try BinaryContent(decoder.readBuf())
 }

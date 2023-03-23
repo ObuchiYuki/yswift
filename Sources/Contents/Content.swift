@@ -8,7 +8,7 @@
 import Foundation
 
 public protocol Content: AnyObject {
-    func getLength() -> Int
+    var count: Int { get }
     
     func getContent() -> [Any?]
     

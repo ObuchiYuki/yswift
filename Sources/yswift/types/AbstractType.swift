@@ -239,7 +239,7 @@ public class AbstractType: JSHashable {
         func packJsonContent() throws {
             if (jsonContent.count <= 0) { return }
             let id = ID(client: ownClientId, clock: store.getState(ownClientId))
-            let content = ContentAny(jsonContent)
+            let content = AnyContent(jsonContent)
             left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: content)
             try left!.integrate(transaction: transaction, offset: 0)
             jsonContent = []
@@ -257,12 +257,12 @@ public class AbstractType: JSHashable {
                 try packJsonContent()
                 if (content is Data) {
                     let id = ID(client: ownClientId, clock: store.getState(ownClientId))
-                    let icontent = ContentBinary(content as! Data)
+                    let icontent = BinaryContent(content as! Data)
                     left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else if content is Doc {
                     let id = ID(client: ownClientId, clock: store.getState(ownClientId))
-                    let icontent = ContentDoc(content as! Doc)
+                    let icontent = DocumentContent(content as! Doc)
                     left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
                     
                     try left!.integrate(transaction: transaction, offset: 0)
@@ -401,14 +401,14 @@ public class AbstractType: JSHashable {
         let ownClientId = doc.clientID
         var content: any Content
         if value == nil {
-            content = ContentAny([value])
+            content = AnyContent([value])
         } else {
             if value! is Int || value! is [String: Any] || value! is Bool || value! is [Any] || value! is String {
-                content = ContentAny([value])
+                content = AnyContent([value])
             } else if value! is Data {
-                content = ContentBinary(value as! Data)
+                content = BinaryContent(value as! Data)
             } else if value! is Doc {
-                content = ContentDoc(value as! Doc)
+                content = DocumentContent(value as! Doc)
             } else {
                 if value! is AbstractType {
                     content = ContentType(value as! AbstractType)

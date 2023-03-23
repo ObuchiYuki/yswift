@@ -7,29 +7,31 @@
 
 import Foundation
 
-final public class ContentAny: Content {
+final public class AnyContent: Content {
     public var array: [Any?]
     
     public init(_ array: [Any?]) {
         self.array = array
     }
+}
 
-    public func getLength() -> Int { return self.array.count }
+extension AnyContent {
+    public var count: Int { return self.array.count }
 
     public func getContent() -> [Any?] { return self.array }
 
     public func isCountable() -> Bool { return true }
 
-    public func copy() -> ContentAny { return ContentAny(self.array) }
+    public func copy() -> AnyContent { return AnyContent(self.array) }
 
-    public func splice(_ offset: Int) -> ContentAny {
-        let right = ContentAny(self.array[offset...].map{ $0 })
+    public func splice(_ offset: Int) -> AnyContent {
+        let right = AnyContent(self.array[offset...].map{ $0 })
         self.array = self.array[0..<offset].map{ $0 }
         return right
     }
 
     public func mergeWith(_ right: Content) -> Bool {
-        self.array = self.array + (right as! ContentAny).array
+        self.array = self.array + (right as! AnyContent).array
         return true
     }
 
@@ -51,11 +53,11 @@ final public class ContentAny: Content {
     public func getRef() -> UInt8 { return 8 }
 }
 
-public func readContentAny(_ decoder: UpdateDecoder) throws -> ContentAny {
+public func readContentAny(_ decoder: UpdateDecoder) throws -> AnyContent {
     let len = try decoder.readLen()
     var cs = [Any]()
     for _ in 0..<len {
         try cs.append(decoder.readAny())
     }
-    return ContentAny(cs)
+    return AnyContent(cs)
 }

@@ -96,7 +96,7 @@ public class Item: Struct, JSHashable {
         self.content = content
         self.info = self.content.isCountable() ? 0b0000_0010 : 0
         
-        super.init(id: id, length: content.getLength())
+        super.init(id: id, length: content.count)
     }
     
     // =========================================================================== //
@@ -499,7 +499,7 @@ public class Item: Struct, JSHashable {
         if parentGCd {
             try store.replaceStruct(self, newStruct: GC(id: self.id, length: self.length))
         } else {
-            self.content = ContentDeleted(self.length)
+            self.content = DeletedContent(self.length)
         }
     }
 

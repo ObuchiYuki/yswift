@@ -262,7 +262,7 @@ public func insertText(
     var left = currPos.left, right = currPos.right, index = currPos.index
     
     if parent._searchMarker != nil {
-        ArraySearchMarker.updateChanges(parent._searchMarker!, index: currPos.index, len: content.getLength())
+        ArraySearchMarker.updateChanges(parent._searchMarker!, index: currPos.index, len: content.count)
     }
     right = Item(
         id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),

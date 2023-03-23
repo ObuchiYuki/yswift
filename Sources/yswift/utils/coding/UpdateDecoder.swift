@@ -43,10 +43,10 @@ public protocol UpdateDecoder: DSDecoder {
     func readParentInfo() throws -> Bool
     func readTypeRef() throws -> Int
     func readLen() throws -> Int
-    func readAny() throws -> Any
+    func readAny() throws -> Any?
     func readBuf() throws -> Data
     func readKey() throws -> String
-    func readJSON() throws -> Any
+    func readJSON() throws -> Any?
 }
 
 public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
@@ -89,8 +89,8 @@ public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
         return try Int(self.restDecoder.readUInt())
     }
 
-    public func readAny() throws -> Any {
-        return try self.restDecoder.readAny() as Any
+    public func readAny() throws -> Any? {
+        return try self.restDecoder.readAny()
     }
 
     public func readBuf() throws -> Data {
@@ -101,7 +101,7 @@ public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
         return try self.restDecoder.readString()
     }
     
-    public func readJSON() throws -> Any {
+    public func readJSON() throws -> Any? {
         let data = try self.restDecoder.readVarData()
         return try! JSONSerialization.jsonObject(
             with: data, options: [.fragmentsAllowed]
@@ -197,7 +197,7 @@ public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
         return try Int(self.lenDecoder.read())
     }
 
-    public func readAny() throws -> Any {
+    public func readAny() throws -> Any? {
         return try self.restDecoder.readAny()
     }
 
@@ -216,7 +216,7 @@ public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
         }
     }
     
-    public func readJSON() throws -> Any {
+    public func readJSON() throws -> Any? {
         return try self.restDecoder.readAny()
     }
 }

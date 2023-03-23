@@ -7,14 +7,14 @@
 
 import Foundation
 
-
-
 final public class ContentType: Content {
     public var type: AbstractType
     
     public init(_ type: AbstractType) { self.type = type }
+}
 
-    public func getLength() -> Int { return 1 }
+extension ContentType {
+    public var count: Int { 1 }
 
     public func getContent() -> [Any?] { return [self.type] }
 

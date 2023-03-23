@@ -20,13 +20,14 @@ extension NSString {
 }
 
 final public class ContentString: Content {
-    
     // As JavaScript using UTF-16 String. We use NSString (UTF-16 String)
     public var str: NSString
     
     public init(_ str: NSString) { self.str = str }
+}
 
-    public func getLength() -> Int { return self.str.length }
+extension ContentString {
+    public var count: Int { self.str.length }
 
     public func getContent() -> [Any?] { self.str.utf16Array }
 

@@ -7,27 +7,29 @@
 
 import Foundation
 
-final public class ContentDeleted: Content {
+final public class DeletedContent {
     public var len: Int
     
     public init(_ len: Int) { self.len = len }
+}
 
-    public func getLength() -> Int { return self.len }
+extension DeletedContent: Content {
+    public var count: Int { self.len }
 
     public func getContent() -> [Any?] { return [] }
 
     public func isCountable() -> Bool { return false }
 
-    public func copy() -> ContentDeleted { return ContentDeleted(self.len) }
+    public func copy() -> DeletedContent { return DeletedContent(self.len) }
 
-    public func splice(_ offset: Int) -> ContentDeleted {
-        let right = ContentDeleted(self.len - offset)
+    public func splice(_ offset: Int) -> DeletedContent {
+        let right = DeletedContent(self.len - offset)
         self.len = offset
         return right
     }
 
     public func mergeWith(_ right: Content) -> Bool {
-        self.len += (right as! ContentDeleted).len
+        self.len += (right as! DeletedContent).len
         return true
     }
 
@@ -45,6 +47,6 @@ final public class ContentDeleted: Content {
     public func getRef() -> UInt8 { return 1 }
 }
 
-func readContentDeleted(_ decoder: UpdateDecoder) throws -> ContentDeleted {
-    return try ContentDeleted(decoder.readLen())
+func readContentDeleted(_ decoder: UpdateDecoder) throws -> DeletedContent {
+    return try DeletedContent(decoder.readLen())
 }
