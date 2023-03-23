@@ -7,7 +7,7 @@
 
 import Foundation
 
-final public class ContentFormat: Content {
+final public class FormatContent: Content {
     public var key: String
     public var value: YTextAttributeValue?
     
@@ -17,20 +17,20 @@ final public class ContentFormat: Content {
     }
 }
 
-extension ContentFormat {
+extension FormatContent {
     public var count: Int { 1 }
     
     public func getContent() -> [Any?] { return [] }
 
-    public func isCountable() -> Bool { return false }
+    public var isCountable: Bool { false }
 
-    public func copy() -> ContentFormat { return ContentFormat(key: self.key, value: self.value) }
+    public func copy() -> FormatContent { return FormatContent(key: self.key, value: self.value) }
 
-    public func splice(_ offset: Int) -> ContentFormat { fatalError() }
+    public func splice(_ offset: Int) -> FormatContent { fatalError() }
 
-    public func mergeWith(_ right: Content) -> Bool { return false }
+    public func merge(with right: Content) -> Bool { return false }
 
-    public func integrate(_ transaction: Transaction, item: Item) {
+    public func integrate(with item: Item, _ transaction: Transaction) {
         (item.parent as! AbstractType)._searchMarker = nil
     }
 
@@ -46,16 +46,16 @@ extension ContentFormat {
     public func getRef() -> UInt8 { return 6 }
 }
 
-extension ContentFormat: CustomStringConvertible {
+extension FormatContent: CustomStringConvertible {
     public var description: String { "ContentFormat(key: \(key), value: \(value as Any?))" }
 }
 
-func readContentFormat(_ decoder: UpdateDecoder) throws -> ContentFormat {
+func readContentFormat(_ decoder: UpdateDecoder) throws -> FormatContent {
     // TODO: this as? may be wrong
     let key = try decoder.readKey()
     let value = try decoder.readJSON()
     if !(value is YTextAttributeValue?) {
         assertionFailure("'\(value as Any)' (\(type(of: value))) is not YTextAttributeValue")
     }
-    return ContentFormat(key: key, value: value as? YTextAttributeValue)
+    return FormatContent(key: key, value: value as? YTextAttributeValue)
 }

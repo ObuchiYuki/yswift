@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import lib0
 
 public class Snapshot: JSHashable {
     public var ds: DeleteSet

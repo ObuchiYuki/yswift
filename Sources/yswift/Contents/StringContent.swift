@@ -19,24 +19,24 @@ extension NSString {
     }
 }
 
-final public class ContentString: Content {
+final public class StringContent: Content {
     // As JavaScript using UTF-16 String. We use NSString (UTF-16 String)
     public var str: NSString
     
     public init(_ str: NSString) { self.str = str }
 }
 
-extension ContentString {
+extension StringContent {
     public var count: Int { self.str.length }
 
     public func getContent() -> [Any?] { self.str.utf16Array }
 
-    public func isCountable() -> Bool { return true }
+    public var isCountable: Bool { true }
 
-    public func copy() -> ContentString { return ContentString(self.str) }
+    public func copy() -> StringContent { return StringContent(self.str) }
 
-    public func splice(_ offset: Int) -> ContentString {
-        let right = ContentString(self.str.substring(from: offset) as NSString)
+    public func splice(_ offset: Int) -> StringContent {
+        let right = StringContent(self.str.substring(from: offset) as NSString)
         self.str = self.str.substring(to: offset) as NSString
 
         // Prevent encoding invalid documents because of splitting of surrogate pairs: https://github.com/yjs/yjs/issues/248
@@ -53,12 +53,12 @@ extension ContentString {
         return right
     }
 
-    public func mergeWith(_ right: Content) -> Bool {
-        self.str = self.str.appending((right as! ContentString).str as String) as NSString
+    public func merge(with right: Content) -> Bool {
+        self.str = self.str.appending((right as! StringContent).str as String) as NSString
         return true
     }
 
-    public func integrate(_ transaction: Transaction, item: Item) {}
+    public func integrate(with item: Item, _ transaction: Transaction) {}
     
     public func delete(_ transaction: Transaction) {}
     
@@ -71,6 +71,6 @@ extension ContentString {
     public func getRef() -> UInt8 { return 4 }
 }
 
-func readContentString(_ decoder: UpdateDecoder) throws -> ContentString {
-    return try ContentString(decoder.readString() as NSString)
+func readContentString(_ decoder: UpdateDecoder) throws -> StringContent {
+    return try StringContent(decoder.readString() as NSString)
 }

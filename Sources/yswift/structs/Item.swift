@@ -5,8 +5,6 @@
 //  Created by yuki on 2023/03/15.
 //
 
-import lib0
-
 public protocol AbstractType_or_ID_or_String: Equatable {}
 extension AbstractType: AbstractType_or_ID_or_String {}
 extension ID: AbstractType_or_ID_or_String {}
@@ -94,7 +92,7 @@ public class Item: Struct, JSHashable {
         self.parentSub = parentSub
         self.redone = nil
         self.content = content
-        self.info = self.content.isCountable() ? 0b0000_0010 : 0
+        self.info = self.content.isCountable ? 0b0000_0010 : 0
         
         super.init(id: id, length: content.count)
     }
@@ -184,7 +182,7 @@ public class Item: Struct, JSHashable {
                 parentItem = try StructStore.getItemCleanStart(transaction, id: parentItem!.redone!)
             }
         }
-        let parentType = parentItem == nil ? (self.parent as! AbstractType) : (parentItem!.content as! ContentType).type
+        let parentType = parentItem == nil ? (self.parent as! AbstractType) : (parentItem!.content as! TypeContent).type
 
         if self.parentSub == nil {
             // Is an array item. Insert at the old position
@@ -293,7 +291,7 @@ public class Item: Struct, JSHashable {
             if parentItem is GC {
                 self.parent = nil
             } else {
-                self.parent = ((parentItem as! Item).content as? ContentType)?.type
+                self.parent = ((parentItem as! Item).content as? TypeContent)?.type
             }
         }
         return nil
@@ -399,7 +397,7 @@ public class Item: Struct, JSHashable {
             
             try transaction.doc.store.addStruct(self)
             
-            try self.content.integrate(transaction, item: self)
+            try self.content.integrate(transaction, with: self)
             
             // add parent to transaction.changed
             transaction.addChangedType((self.parent as! AbstractType), parentSub: self.parentSub)
@@ -455,7 +453,7 @@ public class Item: Struct, JSHashable {
             self.redone == nil &&
             right.redone == nil &&
             type(of: self.content) == type(of: right.content) &&
-            self.content.mergeWith(right.content)
+            self.content.merge(with: right.content)
         ) {
             let searchMarker = (self.parent as! AbstractType)._searchMarker
             if searchMarker != nil {

@@ -20,15 +20,15 @@ extension BinaryContent {
 
     public func getContent() -> [Any?] { return [self.content] }
 
-    public func isCountable() -> Bool { return true }
+    public var isCountable: Bool { true }
 
     public func copy() -> BinaryContent { return BinaryContent(self.content) }
 
     public func splice(_ offset: Int) -> BinaryContent { fatalError() }
 
-    public func mergeWith(_ right: Content) -> Bool { return false }
+    public func merge(with right: Content) -> Bool { return false }
     
-    public func integrate(_ transaction: Transaction, item: Item) {}
+    public func integrate(with item: Item, _ transaction: Transaction) {}
     
     public func delete(_ transaction: Transaction) {}
     

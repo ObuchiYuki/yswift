@@ -7,26 +7,26 @@
 
 import Foundation
 
-final public class ContentEmbed: Content {
+final public class EmbedContent: Content {
     public let embed: Any?
     
     public init(_ embed: Any?) { self.embed = embed }
 }
 
-extension ContentEmbed {
+extension EmbedContent {
     public var count: Int { 1 }
 
     public func getContent() -> [Any?] { return [self.embed] }
 
-    public func isCountable() -> Bool { return true }
+    public var isCountable: Bool { true }
 
-    public func copy() -> ContentEmbed { return ContentEmbed(self.embed) }
+    public func copy() -> EmbedContent { return EmbedContent(self.embed) }
 
-    public func splice(_ offset: Int) -> ContentEmbed { fatalError() }
+    public func splice(_ offset: Int) -> EmbedContent { fatalError() }
 
-    public func mergeWith(_ right: Content) -> Bool { return false }
+    public func merge(with right: Content) -> Bool { return false }
 
-    public func integrate(_ transaction: Transaction, item: Item) {}
+    public func integrate(with item: Item, _ transaction: Transaction) {}
     
     public func delete(_ transaction: Transaction) {}
     
@@ -37,6 +37,6 @@ extension ContentEmbed {
     public func getRef() -> UInt8 { return 5 }
 }
 
-func readContentEmbed(_ decoder: UpdateDecoder) throws -> ContentEmbed {
-    return try ContentEmbed(decoder.readJSON())
+func readContentEmbed(_ decoder: UpdateDecoder) throws -> EmbedContent {
+    return try EmbedContent(decoder.readJSON())
 }

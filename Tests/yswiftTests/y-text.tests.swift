@@ -679,7 +679,7 @@ extension Struct {
     var asItemRight: Struct? {
         return (self as? Item)?.right
     }
-    var asItemContentString: ContentString? {
-        return (self as? Item)?.content as? ContentString
+    var asItemContentString: StringContent? {
+        return (self as? Item)?.content as? StringContent
     }
 }

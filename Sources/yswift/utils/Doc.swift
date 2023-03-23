@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import lib0
 import Promise
 
 public struct DocOpts {

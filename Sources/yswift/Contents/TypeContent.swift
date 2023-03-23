@@ -7,26 +7,26 @@
 
 import Foundation
 
-final public class ContentType: Content {
+final public class TypeContent: Content {
     public var type: AbstractType
     
     public init(_ type: AbstractType) { self.type = type }
 }
 
-extension ContentType {
+extension TypeContent {
     public var count: Int { 1 }
 
     public func getContent() -> [Any?] { return [self.type] }
 
-    public func isCountable() -> Bool { return true }
+    public var isCountable: Bool { true }
 
-    public func copy() -> ContentType { return ContentType(self.type._copy()) }
+    public func copy() -> TypeContent { return TypeContent(self.type._copy()) }
 
-    public func splice(_ offset: Int) -> ContentType { fatalError() }
+    public func splice(_ offset: Int) -> TypeContent { fatalError() }
 
-    public func mergeWith(_ right: Content) -> Bool { return false }
+    public func merge(with right: Content) -> Bool { return false }
 
-    public func integrate(_ transaction: Transaction, item: Item) throws {
+    public func integrate(with item: Item, _ transaction: Transaction) throws {
         try self.type._integrate(transaction.doc, item: item)
     }
 
@@ -92,8 +92,8 @@ let YTextRefID: UInt8 = 2
 //let YXmlHookRefID: UInt8 = 5
 //let YXmlTextRefID: UInt8 = 6
 
-func readContentType(_ decoder: UpdateDecoder) throws -> ContentType {
-    return try ContentType(
+func readContentType(_ decoder: UpdateDecoder) throws -> TypeContent {
+    return try TypeContent(
         typeRefs[Int(decoder.readTypeRef())](decoder)
     )
 }

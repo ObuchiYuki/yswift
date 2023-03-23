@@ -18,7 +18,7 @@ extension DeletedContent: Content {
 
     public func getContent() -> [Any?] { return [] }
 
-    public func isCountable() -> Bool { return false }
+    public var isCountable: Bool { false }
 
     public func copy() -> DeletedContent { return DeletedContent(self.len) }
 
@@ -28,12 +28,12 @@ extension DeletedContent: Content {
         return right
     }
 
-    public func mergeWith(_ right: Content) -> Bool {
+    public func merge(with right: Content) -> Bool {
         self.len += (right as! DeletedContent).len
         return true
     }
 
-    public func integrate(_ transaction: Transaction, item: Item) {
+    public func integrate(with item: Item, _ transaction: Transaction) {
         transaction.deleteSet.add(client: item.id.client, clock: item.id.clock, length: self.len)
         item.markDeleted()
     }

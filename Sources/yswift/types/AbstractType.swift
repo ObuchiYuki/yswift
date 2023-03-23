@@ -269,7 +269,7 @@ public class AbstractType: JSHashable {
                     
                 } else if content is AbstractType {
                     let id = ID(client: ownClientId, clock: store.getState(ownClientId))
-                    let icontent = ContentType(content as! AbstractType)
+                    let icontent = TypeContent(content as! AbstractType)
                     left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else {
@@ -411,7 +411,7 @@ public class AbstractType: JSHashable {
                 content = DocumentContent(value as! Doc)
             } else {
                 if value! is AbstractType {
-                    content = ContentType(value as! AbstractType)
+                    content = TypeContent(value as! AbstractType)
                 } else {
                     throw YSwiftError.unexpectedContentType
                 }

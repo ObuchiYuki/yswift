@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import lib0
 
 public class ID: Equatable {
     /// Client id

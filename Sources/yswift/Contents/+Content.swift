@@ -10,17 +10,17 @@ import Foundation
 public protocol Content: AnyObject {
     var count: Int { get }
     
-    func getContent() -> [Any?]
+    var isCountable: Bool { get }
     
-    func isCountable() -> Bool
+    func getContent() -> [Any?]
     
     func copy() -> Self
     
     func splice(_ offset: Int) -> Self
 
-    func mergeWith(_ right: any Content) -> Bool
+    func merge(with right: any Content) -> Bool
 
-    func integrate(_ transaction: Transaction, item: Item) throws -> Void
+    func integrate(with item: Item, _ transaction: Transaction) throws -> Void
 
     func delete(_ transaction: Transaction) -> Void
 

@@ -63,9 +63,9 @@ public class ItemTextListPosition {
     public func forward() throws {
         if self.right == nil { throw YSwiftError.unexpectedCase }
         
-        if self.right!.content is ContentFormat {
+        if self.right!.content is FormatContent {
             if !self.right!.deleted {
-                updateCurrentAttributes(currentAttributes: self.currentAttributes, format: self.right!.content as! ContentFormat)
+                updateCurrentAttributes(currentAttributes: self.currentAttributes, format: self.right!.content as! FormatContent)
             }
         } else {
             if !self.right!.deleted {
@@ -80,9 +80,9 @@ public class ItemTextListPosition {
         var count = count
         
         while (self.right != nil && count > 0) {
-            if self.right!.content is ContentFormat {
+            if self.right!.content is FormatContent {
                 if !self.right!.deleted {
-                    updateCurrentAttributes(currentAttributes: self.currentAttributes, format: self.right!.content as! ContentFormat)
+                    updateCurrentAttributes(currentAttributes: self.currentAttributes, format: self.right!.content as! FormatContent)
                 }
             } else {
                 if !self.right!.deleted {
@@ -130,18 +130,18 @@ public func insertNegatedAttributes(
     while (
         currPos.right != nil && (
             currPos.right!.deleted == true || (
-                currPos.right!.content is ContentFormat &&
+                currPos.right!.content is FormatContent &&
                 equalAttributes(
                     removeDualOptional(
-                        negatedAttributes.value[(currPos.right!.content as! ContentFormat).key]
+                        negatedAttributes.value[(currPos.right!.content as! FormatContent).key]
                     ),
-                    (currPos.right!.content as! ContentFormat).value
+                    (currPos.right!.content as! FormatContent).value
                 )
             )
         )
     ) {
         if !currPos.right!.deleted {
-            negatedAttributes.value.removeValue(forKey: (currPos.right!.content as! ContentFormat).key)
+            negatedAttributes.value.removeValue(forKey: (currPos.right!.content as! FormatContent).key)
         }
         try currPos.forward()
     }
@@ -159,7 +159,7 @@ public func insertNegatedAttributes(
             rightOrigin: right?.id,
             parent: parent,
             parentSub: nil,
-            content: ContentFormat(key: key, value: val)
+            content: FormatContent(key: key, value: val)
         )
         try nextFormat.integrate(transaction: transaction, offset: 0)
         currPos.right = nextFormat
@@ -167,7 +167,7 @@ public func insertNegatedAttributes(
     })
 }
 
-public func updateCurrentAttributes(currentAttributes: YTextAttributes, format: ContentFormat) {
+public func updateCurrentAttributes(currentAttributes: YTextAttributes, format: FormatContent) {
     let key = format.key, value = format.value
     if value == nil || value is NSNull {
         currentAttributes.value.removeValue(forKey: key)
@@ -182,9 +182,9 @@ func minimizeAttributeChanges(currPos: ItemTextListPosition, attributes: YTextAt
         if currPos.right == nil {
             break
         } else if currPos.right!.deleted
-            || (currPos.right!.content is ContentFormat
-                && equalAttributes(removeDualOptional(attributes.value[(currPos.right!.content as! ContentFormat).key]),
-                    (currPos.right!.content as! ContentFormat).value))
+            || (currPos.right!.content is FormatContent
+                && equalAttributes(removeDualOptional(attributes.value[(currPos.right!.content as! FormatContent).key]),
+                    (currPos.right!.content as! FormatContent).value))
         {
             //
         } else {
@@ -223,7 +223,7 @@ public func insertAttributes(
                 right: right,
                 rightOrigin: right?.id,
                 parent: parent, parentSub: nil,
-                content: ContentFormat(key: key, value: val)
+                content: FormatContent(key: key, value: val)
             )
             try currPos.right!.integrate(transaction: transaction, offset: 0)
             try currPos.forward()
@@ -253,10 +253,10 @@ public func insertText(
     let negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
     // insert content
     let content = text is String
-        ? ContentString((text as! String as NSString)) as any Content
+        ? StringContent((text as! String as NSString)) as any Content
         : (text is AbstractType
-           ? ContentType(text as! AbstractType) as any Content
-           : ContentEmbed(text as! [String: Any?]) as any Content
+           ? TypeContent(text as! AbstractType) as any Content
+           : EmbedContent(text as! [String: Any?]) as any Content
         )
     
     var left = currPos.left, right = currPos.right, index = currPos.index
@@ -305,14 +305,14 @@ public func formatText(
         (length > 0 ||
             (
                 negatedAttributes.count > 0 &&
-                (currPos.right!.deleted || currPos.right!.content is ContentFormat)
+                (currPos.right!.deleted || currPos.right!.content is FormatContent)
             )
         )
     ) {
         if !currPos.right!.deleted {
             switch true {
-            case currPos.right!.content is ContentFormat:
-                let __contentFormat = currPos.right!.content as! ContentFormat
+            case currPos.right!.content is FormatContent:
+                let __contentFormat = currPos.right!.content as! FormatContent
                 let key = __contentFormat.key, value = __contentFormat.value
                 let attr = attributes.value[key]
                 if attr != nil {
@@ -357,7 +357,7 @@ public func formatText(
             rightOrigin: currPos.right?.id,
             parent: parent,
             parentSub: nil,
-            content: ContentString(newlines as NSString)
+            content: StringContent(newlines as NSString)
         )
         try currPos.right!.integrate(transaction: transaction, offset: 0)
         try currPos.forward()
@@ -376,10 +376,10 @@ public func cleanupFormattingGap(
 ) -> Int {
     var start: Item? = start // swift add
     var end: Item? = start
-    var endFormats = [String: ContentFormat]()
+    var endFormats = [String: FormatContent]()
     while (end != nil && (!end!.countable || end!.deleted)) {
-        if !end!.deleted && end!.content is ContentFormat {
-            let cf = end!.content as! ContentFormat
+        if !end!.deleted && end!.content is FormatContent {
+            let cf = end!.content as! FormatContent
             endFormats[cf.key] = cf
         }
         end = end!.right as? Item
@@ -393,8 +393,8 @@ public func cleanupFormattingGap(
         if !start!.deleted {
             let content = start!.content
             switch true {
-            case content is ContentFormat:
-                let __contentFormat = content as! ContentFormat
+            case content is FormatContent:
+                let __contentFormat = content as! FormatContent
                 let key = __contentFormat.key, value = __contentFormat.value
                 let startAttrValue = removeDualOptional(startAttributes.value[key])
                 // OLD: ... || startAttrValue == value
@@ -411,7 +411,7 @@ public func cleanupFormattingGap(
                     }
                 }
                 if !reachedCurr && !start!.deleted {
-                    updateCurrentAttributes(currentAttributes: currAttributes, format: content as! ContentFormat)
+                    updateCurrentAttributes(currentAttributes: currAttributes, format: content as! FormatContent)
                 }
                 break
             default: break // nop
@@ -431,8 +431,8 @@ func cleanupContextlessFormattingGap(transaction: Transaction, item: Item?) {
     var attrs = Set<String>()
     // iterate back until a content item is found
     while (item != nil && (item!.deleted || !item!.countable)) {
-        if !item!.deleted && item!.content is ContentFormat {
-            let key = (item!.content as! ContentFormat).key
+        if !item!.deleted && item!.content is FormatContent {
+            let key = (item!.content as! FormatContent).key
             if attrs.contains(key) {
                 item!.delete(transaction)
             } else {
@@ -452,8 +452,8 @@ func cleanupYTextFormatting(type: YText) throws -> Int {
         let currentAttributes = YTextAttributes(value: [:])
         while end != nil {
             if end!.deleted == false {
-                if end!.content is ContentFormat {
-                    updateCurrentAttributes(currentAttributes: currentAttributes, format: end!.content as! ContentFormat)
+                if end!.content is FormatContent {
+                    updateCurrentAttributes(currentAttributes: currentAttributes, format: end!.content as! FormatContent)
                 } else {
                     res += cleanupFormattingGap(
                         transaction: transaction, start: start, curr: end!, startAttributes: startAttributes, currAttributes: currentAttributes
@@ -480,9 +480,9 @@ public func deleteText(
     
     while (length > 0 && currPos.right != nil) {
         if currPos.right!.deleted == false {
-            if currPos.right!.content is ContentType ||
-                currPos.right!.content is ContentEmbed ||
-                currPos.right!.content is ContentString {
+            if currPos.right!.content is TypeContent ||
+                currPos.right!.content is EmbedContent ||
+                currPos.right!.content is StringContent {
                 if length < currPos.right!.length {
                     try StructStore.getItemCleanStart(
                         transaction, id: ID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
@@ -595,7 +595,7 @@ public class YTextEvent: YEvent {
             }
 
             while (item != nil) {
-                if item!.content is ContentType || item!.content is ContentEmbed {
+                if item!.content is TypeContent || item!.content is EmbedContent {
                     if self.adds(item!) {
                         if !self.deletes(item!) {
                             addDelta()
@@ -610,11 +610,11 @@ public class YTextEvent: YEvent {
                         if action != .retain { addDelta(); action = .retain }
                         retain += 1
                     }
-                } else if item!.content is ContentString {
+                } else if item!.content is StringContent {
                     if self.adds(item!) {
                         if !self.deletes(item!) {
                             if action != .insert { addDelta(); action = .insert }
-                            insert = (insert as! String) + ((item!.content as! ContentString).str as String)
+                            insert = (insert as! String) + ((item!.content as! StringContent).str as String)
                         }
                     } else if self.deletes(item!) {
                         if action != .delete { addDelta(); action = .delete }
@@ -623,8 +623,8 @@ public class YTextEvent: YEvent {
                         if action != .retain { addDelta(); action = .retain }
                         retain += item!.length
                     }
-                } else if item!.content is ContentFormat {
-                    let __contentFormat = item!.content as! ContentFormat
+                } else if item!.content is FormatContent {
+                    let __contentFormat = item!.content as! FormatContent
                     let key = __contentFormat.key, value = __contentFormat.value
                                         
                     if self.adds(item!) {
@@ -669,7 +669,7 @@ public class YTextEvent: YEvent {
                     if !item!.deleted {
                         if action == .insert { addDelta() }
                         updateCurrentAttributes(
-                            currentAttributes: currentAttributes, format: (item!.content as! ContentFormat)
+                            currentAttributes: currentAttributes, format: (item!.content as! FormatContent)
                         )
                     }
                 }
@@ -754,7 +754,7 @@ public class YText: AbstractType {
                     clockStart: clock,
                     len: afterClock,
                     f: { item in
-                        if !item.deleted && (item as! Item).content is ContentFormat {
+                        if !item.deleted && (item as! Item).content is FormatContent {
                             foundFormattingItem = true
                         }
                     }
@@ -770,7 +770,7 @@ public class YText: AbstractType {
                     if item is GC || foundFormattingItem {
                         return
                     }
-                    if ((item as! Item).parent as? YText) === self && (item as! Item).content is ContentFormat {
+                    if ((item as! Item).parent as? YText) === self && (item as! Item).content is FormatContent {
                         foundFormattingItem = true
                     }
                 })
@@ -802,8 +802,8 @@ public class YText: AbstractType {
         var str = ""
         var n: Item? = self._start
         while (n != nil) {
-            if !n!.deleted && n!.countable && n!.content is ContentString {
-                str += (n!.content as! ContentString).str as String
+            if !n!.deleted && n!.countable && n!.content is StringContent {
+                str += (n!.content as! StringContent).str as String
             }
             n = n!.right as? Item
         }
@@ -893,7 +893,7 @@ public class YText: AbstractType {
             while n != nil {
                 if n!.isVisible(snapshot) || (prevSnapshot != nil && n!.isVisible(prevSnapshot)) {
                     switch true {
-                    case n!.content is ContentString:
+                    case n!.content is StringContent:
                         let cur = removeDualOptional(currentAttributes.value["ychange"])
                         
                         if snapshot != nil && !n!.isVisible(snapshot) {
@@ -921,8 +921,8 @@ public class YText: AbstractType {
                             packStr()
                             currentAttributes.value.removeValue(forKey: "ychange")
                         }
-                        str += (n!.content as! ContentString).str as String
-                    case n!.content is ContentType || n!.content is ContentEmbed:
+                        str += (n!.content as! StringContent).str as String
+                    case n!.content is TypeContent || n!.content is EmbedContent:
                         packStr()
                         let op: YEventDelta = .init(insert: (n!.content.getContent()[0] as! YEventDeltaInsertType))
                         if currentAttributes.count > 0 {
@@ -932,10 +932,10 @@ public class YText: AbstractType {
                             })
                         }
                         ops.append(op)
-                    case n!.content is ContentFormat:
+                    case n!.content is FormatContent:
                         if n!.isVisible(snapshot) {
                             packStr()
-                            updateCurrentAttributes(currentAttributes: currentAttributes, format: n!.content as! ContentFormat)
+                            updateCurrentAttributes(currentAttributes: currentAttributes, format: n!.content as! FormatContent)
                         }
                     default: break // nop
                     }

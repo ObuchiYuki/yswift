@@ -7,33 +7,33 @@
 
 import Foundation
 
-final public class ContentJSON: Content {
+final public class JSONContent: Content {
     public var arr: [Any?]
     
     public init(_ arr: [Any?]) { self.arr = arr }
 }
 
-extension ContentJSON {
+extension JSONContent {
     public var count: Int { return self.arr.count }
 
     public func getContent() -> [Any?] { return self.arr as [Any] }
 
-    public func isCountable() -> Bool { return true }
+    public var isCountable: Bool { true }
 
-    public func copy() -> ContentJSON { return ContentJSON(self.arr) }
+    public func copy() -> JSONContent { return JSONContent(self.arr) }
 
-    public func splice(_ offset: Int) -> ContentJSON {
-        let right = ContentJSON(self.arr[offset...].map{ $0 })
+    public func splice(_ offset: Int) -> JSONContent {
+        let right = JSONContent(self.arr[offset...].map{ $0 })
         self.arr = self.arr[..<offset].map{ $0 }
         return right
     }
 
-    public func mergeWith(_ right: Content) -> Bool {
-        self.arr = self.arr + (right as! ContentJSON).arr
+    public func merge(with right: Content) -> Bool {
+        self.arr = self.arr + (right as! JSONContent).arr
         return true
     }
 
-    public func integrate(_ transaction: Transaction, item: Item) {}
+    public func integrate(with item: Item, _ transaction: Transaction) {}
     
     public func delete(_ transaction: Transaction) {}
     
@@ -58,7 +58,7 @@ extension ContentJSON {
     public func getRef() -> UInt8 { return 2 }
 }
 
-func readContentJSON(_ decoder: UpdateDecoder) throws -> ContentJSON {
+func readContentJSON(_ decoder: UpdateDecoder) throws -> JSONContent {
     let len = try decoder.readLen()
     var cs: [Any?] = []
     for _ in 0..<len {
@@ -69,5 +69,5 @@ func readContentJSON(_ decoder: UpdateDecoder) throws -> ContentJSON {
             try cs.append(JSONSerialization.jsonObject(with: c.data(using: .utf8)!, options: [.fragmentsAllowed]))
         }
     }
-    return ContentJSON(cs)
+    return JSONContent(cs)
 }

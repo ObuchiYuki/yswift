@@ -20,7 +20,7 @@ extension AnyContent {
 
     public func getContent() -> [Any?] { return self.array }
 
-    public func isCountable() -> Bool { return true }
+    public var isCountable: Bool { true }
 
     public func copy() -> AnyContent { return AnyContent(self.array) }
 
@@ -30,12 +30,12 @@ extension AnyContent {
         return right
     }
 
-    public func mergeWith(_ right: Content) -> Bool {
+    public func merge(with right: Content) -> Bool {
         self.array = self.array + (right as! AnyContent).array
         return true
     }
 
-    public func integrate(_ transaction: Transaction, item: Item) {}
+    public func integrate(with item: Item, _ transaction: Transaction) {}
     
     public func delete(_ transaction: Transaction) {}
     

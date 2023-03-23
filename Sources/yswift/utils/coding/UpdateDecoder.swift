@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import lib0
 
 public protocol DSDecoder {
     var restDecoder: Lib0Decoder { get }

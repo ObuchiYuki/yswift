@@ -30,15 +30,15 @@ extension DocumentContent {
 
     public func getContent() -> [Any?] { return [self.doc] }
 
-    public func isCountable() -> Bool { return true }
+    public var isCountable: Bool { true }
     
     public func copy() -> DocumentContent { return DocumentContent(createDocFromOpts(guid: self.doc.guid, opts: self.opts)) }
 
     public func splice(_ offset: Int) -> DocumentContent { fatalError() }
 
-    public func mergeWith(_ right: Content) -> Bool { return false }
+    public func merge(with right: Content) -> Bool { return false }
 
-    public func integrate(_ transaction: Transaction, item: Item) {
+    public func integrate(with item: Item, _ transaction: Transaction) {
         self.doc._item = item
         transaction.subdocsAdded.insert(self.doc)
         if self.doc.shouldLoad {

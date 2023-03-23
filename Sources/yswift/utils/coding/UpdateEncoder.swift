@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import lib0
 
 public class DSEncoderV1: DSEncoder {
     public var restEncoder = Lib0Encoder()
