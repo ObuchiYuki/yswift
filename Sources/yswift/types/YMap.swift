@@ -17,9 +17,9 @@ public class YMapEvent: YEvent {
 }
 
 public class YMap: AbstractType {
-    public var _prelimContent: [String: Any]?
+    public var _prelimContent: [String: Any?]?
 
-    public init(_ dict: [String: Any]? = nil) {
+    public init(_ dict: [String: Any?]? = nil) {
         super.init()
         self._prelimContent = nil
 
@@ -77,10 +77,10 @@ public class YMap: AbstractType {
         return map
     }
 
-    public func entories() -> some Sequence<(String, Any)> {
+    public func entries() -> some Sequence<(String, Any?)> {
         createMapIterator()
     }
-    public func createMapIterator() -> some Sequence<(String, Any)> {
+    public func createMapIterator() -> some Sequence<(String, Any?)> {
         self._map.lazy
             .filter{ _, v in !v.deleted }
             .map{ ($0, $1.content.getContent()[$1.length - 1]) }
@@ -97,17 +97,12 @@ public class YMap: AbstractType {
     }
 
     /** Returns the values for each element in the YMap Type. */
-    public func values() -> some Sequence<Any> {
+    public func values() -> some Sequence<Any?> {
         self.createMapIterator().map{ _, value in value }
     }
 
-    /** Returns an Iterator of [key, value] pairs */
-//    public func entries() -> IterableIterator<any> {
-//        return Lib0mapIterator(self.createMapIterator(), (v: any) -> [v[0], v[1].content.getContent()[v[1].length - 1]])
-//    }
-
     /** Executes a provided function on once on every key-value pair. */
-    public func forEach(_ f: (Any, String, YMap) throws -> Void) rethrows {
+    public func forEach(_ f: (Any?, String, YMap) throws -> Void) rethrows {
         try self._map.forEach({ key, item in
             if !item.deleted {
                 try f(item.content.getContent()[Int(item.length) - 1], key, self)

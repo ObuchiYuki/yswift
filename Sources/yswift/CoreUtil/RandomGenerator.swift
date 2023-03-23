@@ -33,7 +33,20 @@ public class RandomGenerator {
     public func int(in range: ClosedRange<Int>) -> Int {
         return int(min: range.lowerBound, max: range.upperBound)
     }
+    public func int(in range: Range<Int>) -> Int {
+        return int(min: range.lowerBound, max: range.upperBound-1)
+    }
     public func oneOf<T>(_ elements: [T]) -> T {
         elements[self.int(in: 0...elements.count-1)]
     }
+    public func string(_ count: Int = 20) -> String {
+        let view = String.UnicodeScalarView((0..<count).map{_ in self.unicodeScalar() })
+        return String(view)
+    }
+    
+    public func unicodeScalar() -> UnicodeScalar {
+        let blocks: [Range<UInt32>] = [0..<0xFFEF, 0x10000..<0x1FBFF]
+        return UnicodeScalar(blocks.randomElement()!.randomElement()!) ?? self.unicodeScalar()
+    }
 }
+

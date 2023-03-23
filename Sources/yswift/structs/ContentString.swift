@@ -47,7 +47,7 @@ final public class ContentString: Content {
             // Replace the invalid character with a unicode replacement character (� / U+FFFD)
             
             self.str = (self.str.substring(to: offset - 1) as NSString).appending("\u{FFFD}") as NSString
-            self.str = ("\u{FFFD}" as NSString).appending(self.str.substring(to: 1)) as NSString
+            right.str = ("\u{FFFD}" as NSString).appending(self.str.substring(to: 1)) as NSString
         }
         return right
     }

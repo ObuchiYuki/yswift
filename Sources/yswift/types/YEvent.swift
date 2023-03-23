@@ -119,12 +119,12 @@ public class YEvent {
                 if self.deletes(item) {
                     if prev != nil && self.deletes(prev!) {
                         action = .delete
-                        oldValue = (prev as! Item).content.getContent().last
+                        oldValue = (prev as! Item).content.getContent().last ?? nil
                     } else { return }
                 } else {
                     if prev != nil && self.deletes(prev!) {
                         action = .update
-                        oldValue = (prev as! Item).content.getContent().last
+                        oldValue = (prev as! Item).content.getContent().last ?? nil
                     } else {
                         action = .add
                         oldValue = nil
@@ -133,7 +133,7 @@ public class YEvent {
             } else {
                 if self.deletes(item) {
                     action = .delete
-                    oldValue = item.content.getContent().last
+                    oldValue = item.content.getContent().last ?? nil
                 } else { return }
             }
 

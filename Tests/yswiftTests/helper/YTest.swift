@@ -61,9 +61,9 @@ struct YTest<T> {
         )
     }
     
-    func log(_ message: String) {
+    func log(_ message: @autoclosure () -> String) {
         if debugLog {
-            print(message)
+            print(message())
         }
     }
     

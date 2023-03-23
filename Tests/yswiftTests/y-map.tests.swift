@@ -9,7 +9,44 @@ import XCTest
 import Promise
 import yswift
 
+private struct IntentionalError: Error {}
+
 final class YMapTests: XCTestCase {
+    
+    func testSpecialForSwift_NilInInitialValues() throws {
+        let test = try YTest<Any>(docs: 2)
+        let map0 = test.map[0], map1 = test.map[1]
+        
+        try map0.set("map", value: YMap(["nil": nil]))
+        
+        try test.connector.flushAllMessages()
+        
+        XCTAssertEqualJSON(
+            try XCTUnwrap(map0.get("map") as? YMap).toJSON(),
+            ["nil": nil]
+        )
+        XCTAssertEqualJSON(
+            try XCTUnwrap(map1.get("map") as? YMap).toJSON(),
+            ["nil": nil]
+        )
+    }
+    
+    func testSpecialForSwift_AssignNilToMap() throws {
+        let test = try YTest<Any>(docs: 2)
+        let docs = test.docs, map0 = test.map[0], map1 = test.map[1]
+        
+        try map0.set("nil", value: nil)
+        
+        try test.connector.flushAllMessages()
+
+        XCTAssertEqual(map0.size, 1)
+        XCTAssertNil(map0.get("nil"))
+        
+        XCTAssertEqual(map1.size, 1)
+        XCTAssertNil(map1.get("nil"))
+        
+        try YAssertEqualDocs(docs)
+    }
     
     func testMapHavingIterableAsConstructorParamTests() throws {
         let test = try YTest<Any>(docs: 1)
@@ -30,7 +67,7 @@ final class YMapTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(m2.get("boolean") as? Bool), true)
         
         
-        let dict = Dictionary(m1.entories().map{ $0 } + m2.entories(), uniquingKeysWith: { a, _ in a })
+        let dict = Dictionary(m1.entries().map{ $0 } + m2.entries(), uniquingKeysWith: { a, _ in a })
         let m3 = YMap(dict)
         try map0.set("m3", value: m3)
         XCTAssertEqual(try XCTUnwrap(m3.get("int") as? Int), 1)
@@ -262,252 +299,380 @@ final class YMapTests: XCTestCase {
         try YAssertEqualDocs(docs)
     }
 
-//    func testGetAndSetOfMapPropertyWithThreeConflicts() throws {
-//        let { testConnector, users, map0, map1, map2 } = init(tc, { users: 3 })
-//        map0.set("stuff", "c0")
-//        map1.set("stuff", "c1")
-//        map1.set("stuff", "c2")
-//        map2.set("stuff", "c3")
-//        testConnector.flushAllMessages()
-//        for ( let user of users) {
-//            let u = user.getMap("map")
-//            XCTAssertEqual(u.get("stuff"), "c3")
-//        }
-//        compare(users)
+    func testGetAndSetOfMapPropertyWithThreeConflicts() throws {
+        let test = try YTest<Any>(docs: 3)
+        let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1], map2 = test.map[2]
+        
+        try map0.set("stuff", value: "c0")
+        try map1.set("stuff", value: "c1")
+        try map1.set("stuff", value: "c2")
+        try map2.set("stuff", value: "c3")
+        
+        try connector.flushAllMessages()
+        
+        for doc in docs {
+            let u = try doc.getMap("map")
+            XCTAssertEqualJSON(u.get("stuff"), "c3")
+        }
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    func testGetAndSetAndDeleteOfMapPropertyWithThreeConflicts() throws {
+        let test = try YTest<Any>(docs: 4)
+        let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1], map2 = test.map[2], map3 = test.map[3]
+        
+        try map0.set("stuff", value: "c0")
+        try map1.set("stuff", value: "c1")
+        try map1.set("stuff", value: "c2")
+        try map2.set("stuff", value: "c3")
+        
+        try connector.flushAllMessages()
+        
+        try map0.set("stuff", value: "deleteme")
+        try map1.set("stuff", value: "c1")
+        try map2.set("stuff", value: "c2")
+        try map3.set("stuff", value: "c3")
+        try map3.delete("stuff")
+        
+        try connector.flushAllMessages()
+        
+        for doc in docs {
+            let u = try doc.getMap("map")
+            XCTAssertNil(u.get("stuff"))
+        }
+        
+        try YAssertEqualDocs(docs)
+    }
+    
+    func testObserveDeepProperties() throws {
+        let test = try YTest<Any>(docs: 4)
+        let connector = test.connector, docs = test.docs, map1 = test.map[1], map2 = test.map[2], map3 = test.map[3]
+        
+        let _map1 = YMap()
+        try map1.set("map", value: _map1)
+        
+        var calls = 0
+        var dmapid: ID?
+        map1.observeDeep({ events, _ in
+            try events.forEach({ event in
+                let mevent = try XCTUnwrap(event as? YMapEvent)
+                calls += 1
+                
+                XCTAssert(mevent.keysChanged.contains("deepmap"))
+                XCTAssertEqual(mevent.path.count, 1)
+                XCTAssertEqualJSON(mevent.path[0], "map")
+                let emap = try XCTUnwrap(event.target as? YMap)
+                dmapid = try XCTUnwrap(emap.get("deepmap") as? YMap)._item?.id
+            })
+        })
+        
+        try connector.flushAllMessages()
+        
+        let _map3 = try XCTUnwrap(map3.get("map") as? YMap)
+        try _map3.set("deepmap", value: YMap())
+        try connector.flushAllMessages()
+        
+        let _map2 = try XCTUnwrap(map2.get("map") as? YMap)
+        try _map2.set("deepmap", value: YMap())
+        try connector.flushAllMessages()
+        
+        let dmap1 = try XCTUnwrap(_map1.get("deepmap") as? YMap)
+        let dmap2 = try XCTUnwrap(_map2.get("deepmap") as? YMap)
+        let dmap3 = try XCTUnwrap(_map3.get("deepmap") as? YMap)
+        
+        XCTAssertGreaterThan(calls, 0)
+        XCTAssertEqual(dmap1._item?.id, dmap2._item?.id)
+        XCTAssertEqual(dmap1._item?.id, dmap3._item?.id)
+        XCTAssertEqual(dmap1._item?.id, dmapid)
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    func testObserversUsingObservedeep() throws {
+        let test = try YTest<Any>(docs: 2)
+        let docs = test.docs, map0 = test.map[0]
+
+        var pathes: [[PathElement]] = []
+        var calls = 0
+        
+        map0.observeDeep{ events, _ in
+            events.forEach{ event in
+                pathes.append(event.path)
+            }
+            calls += 1
+        }
+        
+        try map0.set("map", value: YMap())
+        let _map = try XCTUnwrap(map0.get("map") as? YMap)
+        try _map.set("array", value: YArray())
+        try XCTUnwrap(_map.get("array") as? YArray).insert(0, ["content"])
+        
+        XCTAssertEqual(calls, 3)
+        XCTAssertEqualJSON(pathes, [[], ["map"], ["map", "array"]])
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    // TODO: Test events in Map
+    private func compareEvent(_ event: YEvent?, keysChanged: Set<String?>, target: AnyObject) {
+        guard let event = event as? YMapEvent else {
+            return XCTFail()
+        }
+        XCTAssertEqual(event.keysChanged, keysChanged)
+        XCTAssert(event.target === target)
+        // TODO: compare more values
+    }
+
+    func testThrowsAddAndUpdateAndDeleteEvents() throws {
+        let test = try YTest<Any>(docs: 2)
+        let docs = test.docs, map0 = test.map[0]
+
+        var event: YEvent?
+        map0.observe{ e, _ in event = e }
+        
+        try map0.set("stuff", value: 4)
+        compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
+        
+        // update, oldValue is in contents
+        try map0.set("stuff", value: YArray())
+        compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
+        
+        // update, oldValue is in opContents
+        try map0.set("stuff", value: 5)
+        // delete
+        try map0.delete("stuff")
+        compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    func testThrowsDeleteEventsOnClear() throws {
+        let test = try YTest<Any>(docs: 2)
+        let docs = test.docs, map0 = test.map[0]
+
+        var event: YEvent?
+        map0.observe{ e, _ in event = e }
+        
+        // set values
+        try map0.set("stuff", value: 4)
+        try map0.set("otherstuff", value: YArray())
+        // clear
+        try map0.clear()
+        
+        compareEvent(event, keysChanged: Set(["stuff", "otherstuff"]), target: map0)
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    func testChangeEvent() throws {
+        let test = try YTest<Any>(docs: 2)
+        let docs = test.docs, map0 = test.map[0]
+
+        var changes: YEventChange? = nil
+        var keyChange: YEventKey? = nil
+        
+        map0.observe{ e, _ in changes = try e.changes() }
+        
+        try map0.set("a", value: 1)
+        keyChange = changes?.keys["a"]
+        XCTAssertNotNil(changes)
+        XCTAssertEqual(keyChange?.action, .add)
+        XCTAssertNil(keyChange?.oldValue)
+        
+        try map0.set("a", value: 2)
+        keyChange = changes?.keys["a"]
+        XCTAssertNotNil(changes)
+        XCTAssertEqual(keyChange?.action, .update)
+        XCTAssertEqualJSON(keyChange?.oldValue, 1)
+        
+        try docs[0].transact{ _ in
+            try map0.set("a", value: 3)
+            try map0.set("a", value: 4)
+        }
+        
+        keyChange = changes?.keys["a"]
+        XCTAssertNotNil(changes)
+        XCTAssertEqual(keyChange?.action, .update)
+        XCTAssertEqualJSON(keyChange?.oldValue, 2)
+        
+        try docs[0].transact{ _ in
+            try map0.set("b", value: 1)
+            try map0.set("b", value: 2)
+        }
+        
+        keyChange = changes?.keys["b"]
+        XCTAssertNotNil(changes)
+        XCTAssertEqual(keyChange?.action, .add)
+        XCTAssertNil(keyChange?.oldValue)
+        
+        try docs[0].transact{ _ in
+            try map0.set("c", value: 1)
+            try map0.delete("c")
+        }
+        XCTAssertNotNil(changes)
+        XCTAssertEqual(changes?.keys.count, 0)
+        
+        try docs[0].transact{ _ in
+            try map0.set("d", value: 1)
+            try map0.set("d", value: 2)
+        }
+        
+        keyChange = changes?.keys["d"]
+        XCTAssertNotNil(changes)
+        XCTAssertEqual(keyChange?.action, .add)
+        XCTAssertNil(keyChange?.oldValue)
+        
+        try YAssertEqualDocs(docs)
+    }
+
+    func testYmapEventExceptionsShouldCompleteTransaction() throws {
+        let doc = Doc()
+        let map = try doc.getMap("map")
+
+        var updateCalled = false
+        var throwingObserverCalled = false
+        var throwingDeepObserverCalled = false
+        doc.on(Doc.On.update) { _ in updateCalled = true }
+
+        func throwingObserver() throws {
+            throwingObserverCalled = true
+            throw IntentionalError()
+        }
+
+        func throwingDeepObserver() throws {
+            throwingDeepObserverCalled = true
+            throw IntentionalError()
+        }
+
+        map.observe{ _, _ in try throwingObserver() }
+        map.observeDeep{ _, _ in try throwingDeepObserver() }
+
+        XCTAssertThrowsError(try map.set("y", value: "2"))
+        
+        XCTAssert(updateCalled)
+        XCTAssert(throwingObserverCalled)
+        XCTAssert(throwingDeepObserverCalled)
+
+        // check if it works again
+        updateCalled = false
+        throwingObserverCalled = false
+        throwingDeepObserverCalled = false
+        XCTAssertThrowsError(try map.set("z", value: "3"))
+
+        XCTAssert(updateCalled)
+        XCTAssert(throwingObserverCalled)
+        XCTAssert(throwingDeepObserverCalled)
+
+        XCTAssertEqualJSON(map.get("z"), "3")
+    }
+    
+
+    private let mapTransactions: [(Doc, YTest<Any>, Any?) throws -> Void] = [
+        { doc, test, _ in // set
+            let key = test.gen.oneOf(["one", "two"])
+            let value = test.gen.string()
+            try doc.getMap("map").set(key, value: value)
+        },
+        { doc, test, _ in // setType
+            let key = test.gen.oneOf(["one", "two"])
+            let type = test.gen.oneOf([YArray(), YMap()])
+            try doc.getMap("map").set(key, value: type)
+            if let type = type as? YArray {
+                try type.insert(0, [1, 2, 3, 4])
+            } else if let type = type as? YMap {
+                try type.set("deepkey", value: "deepvalue")
+            }
+        },
+        { doc, test, _ in // delete
+            let key = test.gen.oneOf(["one", "two"])
+            try doc.getMap("map").delete(key)
+        }
+    ]
+
+    func testRepeatGeneratingYmapTests10() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 6)
+    }
+    
+    func testRepeatGeneratingYmapTests40() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 40)
+    }
+
+    func testRepeatGeneratingYmapTests42() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 42)
+    }
+
+    func testRepeatGeneratingYmapTests43() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 43)
+    }
+
+    func testRepeatGeneratingYmapTests44() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 44)
+    }
+
+    func testRepeatGeneratingYmapTests45() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 45)
+    }
+
+    func testRepeatGeneratingYmapTests46() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 46)
+    }
+
+    func testRepeatGeneratingYmapTests300() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 300)
+    }
+
+    func testRepeatGeneratingYmapTests400() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 400)
+    }
+
+    func testRepeatGeneratingYmapTests500() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 500)
+    }
+
+    func testRepeatGeneratingYmapTests600() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 600)
+    }
+
+    func testRepeatGeneratingYmapTests1000() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 1000)
+    }
+
+    func testRepeatGeneratingYmapTests1800() throws {
+        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 1800)
+    }
+
+//    func testRepeatGeneratingYmapTests5000() throws {
+//        try XCTSkipIf(!isProductionTest)
+//        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 5000)
 //    }
 //
-//    func testGetAndSetAndDeleteOfMapPropertyWithThreeConflicts() throws {
-//        let { testConnector, users, map0, map1, map2, map3 } = init(tc, { users: 4 })
-//        map0.set("stuff", "c0")
-//        map1.set("stuff", "c1")
-//        map1.set("stuff", "c2")
-//        map2.set("stuff", "c3")
-//        testConnector.flushAllMessages()
-//        map0.set("stuff", "deleteme")
-//        map1.set("stuff", "c1")
-//        map2.set("stuff", "c2")
-//        map3.set("stuff", "c3")
-//        map3.delete("stuff")
-//        testConnector.flushAllMessages()
-//        for ( let user of users) {
-//            let u = user.getMap("map")
-//            XCTAssert(u.get("stuff") == undefined)
-//        }
-//        compare(users)
+//    func testRepeatGeneratingYmapTests10000() throws {
+//        try XCTSkipIf(!isProductionTest)
+//        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 10000)
 //    }
 //
-//    func testObserveDeepProperties() throws {
-//        let { testConnector, users, map1, map2, map3 } = init(tc, { users: 4 })
-//        let _map1 = map1.set("map", Map())
-//        var calls = 0
-//        var dmapid
-//        map1.observeDeep(events -> {
-//            events.forEach(event -> {
-//                calls++
-//                // @ts-ignore
-//                XCTAssert(event.keysChanged.has("deepmap"))
-//                XCTAssert(event.path.length == 1)
-//                XCTAssert(event.path[0] == "map")
-//                // @ts-ignore
-//                dmapid = event.target.get("deepmap")._item.id
-//            })
-//        })
-//        testConnector.flushAllMessages()
-//        let _map3 = map3.get("map")
-//        _map3.set("deepmap", Map())
-//        testConnector.flushAllMessages()
-//        let _map2 = map2.get("map")
-//        _map2.set("deepmap", Map())
-//        testConnector.flushAllMessages()
-//        let dmap1 = _map1.get("deepmap")
-//        let dmap2 = _map2.get("deepmap")
-//        let dmap3 = _map3.get("deepmap")
-//        XCTAssert(calls > 0)
-//        XCTAssert(compareIDs(dmap1._item.id, dmap2._item.id))
-//        XCTAssert(compareIDs(dmap1._item.id, dmap3._item.id))
-//        // @ts-ignore we want the possibility of dmapid being undefined
-//        XCTAssert(compareIDs(dmap1._item.id, dmapid))
-//        compare(users)
+//    func testRepeatGeneratingYmapTests100000() throws {
+//        try XCTSkipIf(!isProductionTest)
+//        try YTest<Any>(docs: 5).randomTests(self.mapTransactions, iterations: 100000)
 //    }
-//
-//    func testObserversUsingObservedeep() throws {
-//        let { users, map0 } = init(tc, { users: 2 })
-//
-//        let pathes: Array<Array<string|number>> = []
-//        var calls = 0
-//        map0.observeDeep(events -> {
-//            events.forEach(event -> {
-//                pathes.push(event.path)
-//            })
-//            calls++
-//        })
-//        map0.set("map", Map())
-//        map0.get("map").set("array", Array())
-//        map0.get("map").get("array").insert(0, ["content"])
-//        XCTAssert(calls == 3)
-//        XCTAssertEqual(pathes, [[], ["map"], ["map", "array"]])
-//        compare(users)
-//    }
-//
-//    // TODO: Test events in Map
-//    /**
-//     * @param {Object<string,Any>} is
-//     * @param {Object<string,Any>} should
-//     */
-//    let compareEvent = (is: { [s: string]: Any }, should: { [s: string]: Any }) -> {
-//        for ( let key in should) {
-//            XCTAssertEqual(should[key], is[key])
-//        }
-//    }
-//
-//    func testThrowsAddAndUpdateAndDeleteEvents() throws {
-//        let { users, map0 } = init(tc, { users: 2 })
-//
-//        var event: { [s: string]: Any } = {}
-//        map0.observe(e -> {
-//            event = e // just put it on event, should be thrown synchronously Anyway
-//        })
-//        map0.set("stuff", 4)
-//        compareEvent(event, {
-//        target: map0,
-//        keysChanged: Set(["stuff"])
-//        })
-//        // update, oldValue is in contents
-//        map0.set("stuff", Array())
-//        compareEvent(event, {
-//        target: map0,
-//        keysChanged: Set(["stuff"])
-//        })
-//        // update, oldValue is in opContents
-//        map0.set("stuff", 5)
-//        // delete
-//        map0.delete("stuff")
-//        compareEvent(event, {
-//        keysChanged: Set(["stuff"]),
-//        target: map0
-//        })
-//        compare(users)
-//    }
-//
-//    func testThrowsDeleteEventsOnClear() throws {
-//        let { users, map0 } = init(tc, { users: 2 })
-//
-//        var event: { [s: string]: Any } = {}
-//        map0.observe(e -> {
-//            event = e // just put it on event, should be thrown synchronously Anyway
-//        })
-//        // set values
-//        map0.set("stuff", 4)
-//        map0.set("otherstuff", Array())
-//        // clear
-//        map0.clear()
-//        compareEvent(event, {
-//        keysChanged: Set(["stuff", "otherstuff"]),
-//        target: map0
-//        })
-//        compare(users)
-//    }
-//
-//    func testChangeEvent() throws {
-//        let { map0, users } = init(tc, { users: 2 })
-//
-//        var changes: Any = nil
-//
-//        var keyChange: Any = nil
-//        map0.observe(e -> {
-//            changes = e.changes
-//        })
-//        map0.set("a", 1)
-//        keyChange = changes.keys.get("a")
-//        XCTAssert(changes != nil && keyChange.action == "add" && keyChange.oldValue == undefined)
-//        map0.set("a", 2)
-//        keyChange = changes.keys.get("a")
-//        XCTAssert(changes != nil && keyChange.action == "update" && keyChange.oldValue == 1)
-//        users[0].transact(() -> {
-//            map0.set("a", 3)
-//            map0.set("a", 4)
-//        })
-//        keyChange = changes.keys.get("a")
-//        XCTAssert(changes != nil && keyChange.action == "update" && keyChange.oldValue == 2)
-//        users[0].transact(() -> {
-//            map0.set("b", 1)
-//            map0.set("b", 2)
-//        })
-//        keyChange = changes.keys.get("b")
-//        XCTAssert(changes != nil && keyChange.action == "add" && keyChange.oldValue == undefined)
-//        users[0].transact(() -> {
-//            map0.set("c", 1)
-//            map0.delete("c")
-//        })
-//        XCTAssert(changes != nil && changes.keys.size == 0)
-//        users[0].transact(() -> {
-//            map0.set("d", 1)
-//            map0.set("d", 2)
-//        })
-//        keyChange = changes.keys.get("d")
-//        XCTAssert(changes != nil && keyChange.action == "add" && keyChange.oldValue == undefined)
-//        compare(users)
-//    }
-//
-//    func testYmapEventExceptionsShouldCompleteTransaction() throws {
-//        let doc = Doc()
-//        let map = doc.getMap("map")
-//
-//        var updateCalled = false
-//        var throwingObserverCalled = false
-//        var throwingDeepObserverCalled = false
-//        doc.on("update", () -> {
-//            updateCalled = true
-//        })
-//
-//        let throwingObserver = () -> {
-//            throwingObserverCalled = true
-//            throw Error("Failure")
-//        }
-//
-//        let throwingDeepObserver = () -> {
-//            throwingDeepObserverCalled = true
-//            throw Error("Failure")
-//        }
-//
-//        map.observe(throwingObserver)
-//        map.observeDeep(throwingDeepObserver)
-//
-//        t.fails(() -> {
-//            map.set("y", "2")
-//        })
-//
-//        XCTAssert(updateCalled)
-//        XCTAssert(throwingObserverCalled)
-//        XCTAssert(throwingDeepObserverCalled)
-//
-//        // check if it works again
-//        updateCalled = false
-//        throwingObserverCalled = false
-//        throwingDeepObserverCalled = false
-//        t.fails(() -> {
-//            map.set("z", "3")
-//        })
-//
-//        XCTAssert(updateCalled)
-//        XCTAssert(throwingObserverCalled)
-//        XCTAssert(throwingDeepObserverCalled)
-//
-//        XCTAssert(map.get("z") == "3")
-//    }
-//
+}
+
+
+// MARK: I don't understand why these two tests exist. (event.value and event.name must be undefined)
+
 //    func testYmapEventHasCorrectValueWhenSettingAPrimitive() throws {
-//        let { users, map0 } = init(tc, { users: 3 })
+//        let test = try YTest<Any>(docs: 3)
+//        let docs = test.docs, map0 = test.map[0]
 //
-//        var event: { [s: string]: Any } = {}
-//        map0.observe(e -> {
-//            event = e
-//        })
-//        map0.set("stuff", 2)
+//        var event: YMapEvent? = nil
+//        map0.observe{ e, _ in event = try XCTUnwrap(e as? YMapEvent) }
+//        try map0.set("stuff", value: 2)
+//
 //        XCTAssertEqual(event.value, event.target.get(event.name))
+//
 //        compare(users)
 //    }
-//
 //    func testYmapEventHasCorrectValueWhenSettingAPrimitiveFromOtherUser() throws {
 //        let { users, map0, map1, testConnector } = init(tc, { users: 3 })
 //
@@ -520,94 +685,3 @@ final class YMapTests: XCTestCase {
 //        XCTAssertEqual(event.value, event.target.get(event.name))
 //        compare(users)
 //    }
-//
-//    let mapTransactions: Array<((arg0: Doc, arg1: prng.PRNG) -> void)> = [
-//        func set(_ user, gen) {
-//            let key = prng.oneOf(gen, ["one", "two"])
-//            let value = prng.utf16String(gen)
-//            user.getMap("map").set(key, value)
-//        },
-//        func setType(_ user, gen) {
-//            let key = prng.oneOf(gen, ["one", "two"])
-//            let type = prng.oneOf(gen, [Array(), Map()])
-//            user.getMap("map").set(key, type)
-//            if type instanceof Array {
-//                type.insert(0, [1, 2, 3, 4])
-//            } else {
-//                type.set("deepkey", "deepvalue")
-//            }
-//        },
-//        func _delete(_ user, gen) {
-//            let key = prng.oneOf(gen, ["one", "two"])
-//            user.getMap("map").delete(key)
-//        }
-//    ]
-//
-//    func testRepeatGeneratingYmapTests10() throws {
-//        applyRandomTests(tc, mapTransactions, 3)
-//    }
-//
-//    func testRepeatGeneratingYmapTests40() throws {
-//        applyRandomTests(tc, mapTransactions, 40)
-//    }
-//
-//    func testRepeatGeneratingYmapTests42() throws {
-//        applyRandomTests(tc, mapTransactions, 42)
-//    }
-//
-//    func testRepeatGeneratingYmapTests43() throws {
-//        applyRandomTests(tc, mapTransactions, 43)
-//    }
-//
-//    func testRepeatGeneratingYmapTests44() throws {
-//        applyRandomTests(tc, mapTransactions, 44)
-//    }
-//
-//    func testRepeatGeneratingYmapTests45() throws {
-//        applyRandomTests(tc, mapTransactions, 45)
-//    }
-//
-//    func testRepeatGeneratingYmapTests46() throws {
-//        applyRandomTests(tc, mapTransactions, 46)
-//    }
-//
-//    func testRepeatGeneratingYmapTests300() throws {
-//        applyRandomTests(tc, mapTransactions, 300)
-//    }
-//
-//    func testRepeatGeneratingYmapTests400() throws {
-//        applyRandomTests(tc, mapTransactions, 400)
-//    }
-//
-//    func testRepeatGeneratingYmapTests500() throws {
-//        applyRandomTests(tc, mapTransactions, 500)
-//    }
-//
-//    func testRepeatGeneratingYmapTests600() throws {
-//        applyRandomTests(tc, mapTransactions, 600)
-//    }
-//
-//    func testRepeatGeneratingYmapTests1000() throws {
-//        applyRandomTests(tc, mapTransactions, 1000)
-//    }
-//
-//    func testRepeatGeneratingYmapTests1800() throws {
-//        applyRandomTests(tc, mapTransactions, 1800)
-//    }
-//
-//    func testRepeatGeneratingYmapTests5000() throws {
-//        t.skip(!t.production)
-//        applyRandomTests(tc, mapTransactions, 5000)
-//    }
-//
-//    func testRepeatGeneratingYmapTests10000() throws {
-//        t.skip(!t.production)
-//        applyRandomTests(tc, mapTransactions, 10000)
-//    }
-//
-//    func testRepeatGeneratingYmapTests100000() throws {
-//        t.skip(!t.production)
-//        applyRandomTests(tc, mapTransactions, 100000)
-//    }
-//
-}

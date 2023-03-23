@@ -7,16 +7,16 @@
 
 import Foundation
 
-struct YSwiftError: LocalizedError {
+public struct YSwiftError: LocalizedError {
     static let unexpectedCase = YSwiftError("Unexpected Case.")
     static let unexpectedContentType = YSwiftError("Unexpected Case.")
     static let lengthExceeded = YSwiftError("Unexpected Content Type.")
     static let integretyCheckFail = YSwiftError("Integrety Check Fail")
     static let originDocGC = YSwiftError("origin Doc must not be garbage collected")
     
-    let errorDescription: String
+    public let errorDescription: String
     
-    init(_ message: String) {
+    public init(_ message: String) {
         self.errorDescription = message
         
         #if DEBUG

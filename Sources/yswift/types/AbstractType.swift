@@ -71,22 +71,23 @@ public class AbstractType: JSHashable {
         var type = self
         let changedType = type
         
-        while (true) {
+        while true {
             if transaction.changedParentTypes[type] == nil { transaction.changedParentTypes[type] = [] }
             transaction.changedParentTypes[type]!.append(event)
             if type._item == nil { break }
             type = type._item!.parent as! AbstractType
         }
+        
         try changedType._eH.callListeners(event, transaction)
     }
 
-    public func listSlice(_ start: Int, end: Int) -> [Any] {
+    public func listSlice(_ start: Int, end: Int) -> [Any?] {
         var start = start, end = end
         
         if start < 0 { start = self._length + start }
         if end < 0 { end = self._length + end }
         var len = end - start
-        var cs: [Any] = []
+        var cs: [Any?] = []
         var n = self._start
         while (n != nil && len > 0) {
             if n!.countable && !n!.deleted {

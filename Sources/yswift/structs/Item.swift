@@ -306,7 +306,7 @@ public class Item: Struct, JSHashable {
                 transaction,
                 id: ID(client: self.id.client, clock: self.id.clock - 1)
             )
-            self.origin = (self.left as! Item).lastID
+            self.origin = (self.left as? Item)?.lastID
             self.content = self.content.splice(offset)
             self.length -= offset
         }

@@ -65,7 +65,11 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
     
     var mapRes: [String: Any] = [:]
     for (k, v) in try docs[0].getMap("map").createMapIterator() {
-        mapRes[k] = v is AbstractType ? (v as! AbstractType).toJSON() : v
+        if v == nil {
+            mapRes[k] = NSNull()
+        } else {
+            mapRes[k] = v is AbstractType ? (v as! AbstractType).toJSON() : v
+        }
     }
     
     XCTAssertEqualJSON(userMapValues[0], mapRes)

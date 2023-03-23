@@ -88,6 +88,96 @@ public class Transaction {
         let store = doc.store
         let ds = transaction.deleteSet
         let mergeStructs = transaction._mergeStructs
+        
+        func defering() throws {
+            // Replace deleted items with ItemDeleted / GC.
+            // This is where content is actually remove from the Yjs Doc.
+            if doc.gc {
+                try ds.tryGCDeleteSet(store, gcFilter: doc.gcFilter)
+            }
+            try ds.tryMerge(store)
+            
+            
+            // on all affected store.clients props, try to merge
+            try transaction.afterState.forEach({ client, clock in
+                let beforeClock = transaction.beforeState[client] ?? 0
+                if beforeClock != clock {
+                    let structs = store.clients[client]!
+                    // we iterate from right to left so we can safely remove entries
+                    let firstChangePos = try max(StructStore.findIndexSS(structs: structs, clock: beforeClock), 1)
+
+                    for i in (firstChangePos..<structs.count).reversed() {
+                        Struct.tryMerge(withLeft: structs, pos: i)
+                    }
+                }
+            })
+            
+            
+            for i in 0..<mergeStructs.count {
+                let client = mergeStructs[i].id.client, clock = mergeStructs[i].id.clock
+                let structs = store.clients[client]!
+                let replacedStructPos = try StructStore.findIndexSS(structs: structs, clock: clock)
+                if replacedStructPos + 1 < structs.count {
+                    Struct.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
+                }
+                
+                if replacedStructPos > 0 {
+                    Struct.tryMerge(withLeft: structs, pos: replacedStructPos)
+                }
+            }
+            if !transaction.local && transaction.afterState[doc.clientID] != transaction.beforeState[doc.clientID] {
+                doc.clientID = generateNewClientID()
+            }
+            
+            try doc.emit(Doc.On.afterTransactionCleanup, transaction)
+            
+            if doc.isObserving(Doc.On.update) {
+                let encoder = UpdateEncoderV1()
+                
+                let hasContent = try transaction.encodeUpdateMessage(encoder)
+                
+                if hasContent {
+                    try doc.emit(Doc.On.update, (encoder.toData(), transaction.origin, transaction))
+                }
+            }
+            if doc.isObserving(Doc.On.updateV2) {
+                let encoder = UpdateEncoderV2()
+                let hasContent = try transaction.encodeUpdateMessage(encoder)
+                if hasContent {
+                    try doc.emit(Doc.On.updateV2, (
+                        encoder.toData(), transaction.origin, transaction
+                    ))
+                }
+            }
+            
+            let subdocsAdded = transaction.subdocsAdded
+            let subdocsLoaded = transaction.subdocsLoaded
+            let subdocsRemoved = transaction.subdocsRemoved
+            
+            if subdocsAdded.count > 0 || subdocsRemoved.count > 0 || subdocsLoaded.count > 0 {
+                subdocsAdded.forEach({ subdoc in
+                    subdoc.clientID = doc.clientID
+                    if subdoc.collectionid == nil {
+                        subdoc.collectionid = doc.collectionid
+                    }
+                    doc.subdocs.insert(subdoc)
+                })
+                subdocsRemoved.forEach{ doc.subdocs.remove($0) }
+                let subdocevent = Doc.On.SubDocEvent(
+                    loaded: subdocsLoaded, added: subdocsAdded, removed: subdocsRemoved
+                )
+                try doc.emit(Doc.On.subdocs, (subdocevent, transaction))
+                try subdocsRemoved.forEach{ try $0.destroy() }
+            }
+
+            if transactions.count <= i + 1 {
+                doc._transactionCleanups = .init(value: [])
+                try doc.emit(Doc.On.afterAllTransactions, transactions.map{ $0 })
+            } else {
+                try Transaction.cleanup(transactions, i: i + 1)
+            }
+        }
+        
         do {
             ds.sortAndMerge()
             transaction.afterState = transaction.doc.store.getStateVector()
@@ -129,6 +219,7 @@ public class Transaction {
                 }
             })
 
+            // callAll
             var handleError: Error?
             var i = 0; while i < fs.count {
                 do {
@@ -141,94 +232,12 @@ public class Transaction {
             if let handleError = handleError {
                 throw handleError
             }
+        } catch {
+            try defering()
+            throw error
         }
         
-        // Replace deleted items with ItemDeleted / GC.
-        // This is where content is actually remove from the Yjs Doc.
-        if doc.gc {
-            try ds.tryGCDeleteSet(store, gcFilter: doc.gcFilter)
-        }
-        try ds.tryMerge(store)
-        
-        
-        // on all affected store.clients props, try to merge
-        try transaction.afterState.forEach({ client, clock in
-            let beforeClock = transaction.beforeState[client] ?? 0
-            if beforeClock != clock {
-                let structs = store.clients[client]!
-                // we iterate from right to left so we can safely remove entries
-                let firstChangePos = try max(StructStore.findIndexSS(structs: structs, clock: beforeClock), 1)
-
-                for i in (firstChangePos..<structs.count).reversed() {
-                    Struct.tryMerge(withLeft: structs, pos: i)
-                }
-            }
-        })
-        
-        
-        for i in 0..<mergeStructs.count {
-            let client = mergeStructs[i].id.client, clock = mergeStructs[i].id.clock
-            let structs = store.clients[client]!
-            let replacedStructPos = try StructStore.findIndexSS(structs: structs, clock: clock)
-            if replacedStructPos + 1 < structs.count {
-                Struct.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
-            }
-            
-            if replacedStructPos > 0 {
-                Struct.tryMerge(withLeft: structs, pos: replacedStructPos)
-            }
-        }
-        if !transaction.local && transaction.afterState[doc.clientID] != transaction.beforeState[doc.clientID] {
-            doc.clientID = generateNewClientID()
-        }
-        
-        try doc.emit(Doc.On.afterTransactionCleanup, transaction)
-        
-        if doc.isObserving(Doc.On.update) {
-            let encoder = UpdateEncoderV1()
-            
-            let hasContent = try transaction.encodeUpdateMessage(encoder)
-            
-            if hasContent {
-                try doc.emit(Doc.On.update, (encoder.toData(), transaction.origin, transaction))
-            }
-        }
-        if doc.isObserving(Doc.On.updateV2) {
-            let encoder = UpdateEncoderV2()
-            let hasContent = try transaction.encodeUpdateMessage(encoder)
-            if hasContent {
-                try doc.emit(Doc.On.updateV2, (
-                    encoder.toData(), transaction.origin, transaction
-                ))
-            }
-        }
-        
-        let subdocsAdded = transaction.subdocsAdded
-        let subdocsLoaded = transaction.subdocsLoaded
-        let subdocsRemoved = transaction.subdocsRemoved
-        
-        if subdocsAdded.count > 0 || subdocsRemoved.count > 0 || subdocsLoaded.count > 0 {
-            subdocsAdded.forEach({ subdoc in
-                subdoc.clientID = doc.clientID
-                if subdoc.collectionid == nil {
-                    subdoc.collectionid = doc.collectionid
-                }
-                doc.subdocs.insert(subdoc)
-            })
-            subdocsRemoved.forEach{ doc.subdocs.remove($0) }
-            let subdocevent = Doc.On.SubDocEvent(
-                loaded: subdocsLoaded, added: subdocsAdded, removed: subdocsRemoved
-            )
-            try doc.emit(Doc.On.subdocs, (subdocevent, transaction))
-            try subdocsRemoved.forEach{ try $0.destroy() }
-        }
-
-        if transactions.count <= i + 1 {
-            doc._transactionCleanups = .init(value: [])
-            try doc.emit(Doc.On.afterAllTransactions, transactions.map{ $0 })
-        } else {
-            try Transaction.cleanup(transactions, i: i + 1)
-        }
+        try defering()
     }
     
 
@@ -260,13 +269,12 @@ public class Transaction {
         
         do {
             try body(doc._transaction!)
-            try defering()
         } catch {
             try defering()
             throw error
         }
+        try defering()
+        
     }
-
-
 }
 

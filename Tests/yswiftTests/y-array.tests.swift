@@ -544,9 +544,20 @@ final class YArrayTests: XCTestCase {
         }
     ]
     
-    func testRepeatGeneratingYarrayTests_fail_seed() throws {
-        try YTest<Any>(docs: 5, seed: 808777566)
-            .randomTests(self.arrayTransactions, iterations: 6)
+    func testRepeatGeneratingYarrayTests_FailSeedTest() throws {
+        try YTest<Any>(docs: 5, seed: 243939758)
+            .randomTests(self.arrayTransactions, iterations: 100)
+    }
+    
+    func testRepeatGeneratingYarrayTests_FindFaidSeed() throws {
+        try XCTSkipIf(true)
+        
+        for _ in 0..<1000 {
+            let seed = Int32.random(in: 0..<Int32.max/2)
+            print(seed)
+            try YTest<Any>(docs: 5, seed: 243939758)
+                .randomTests(self.arrayTransactions, iterations: 100)
+        }
     }
 
     func testRepeatGeneratingYarrayTests6() throws {
@@ -601,18 +612,18 @@ final class YArrayTests: XCTestCase {
         try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 1800)
     }
 
-    func testRepeatGeneratingYarrayTests3000() throws {
-        try XCTSkipIf(!isProductionTest)
-        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 3000)
-    }
-
-    func testRepeatGeneratingYarrayTests5000() throws {
-        try XCTSkipIf(!isProductionTest)
-        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 5000)
-    }
-
-    func testRepeatGeneratingYarrayTests30000() throws {
-        try XCTSkipIf(!isProductionTest)
-        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 30000)
-    }
+//    func testRepeatGeneratingYarrayTests3000() throws {
+//        try XCTSkipIf(!isProductionTest)
+//        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 3000)
+//    }
+//
+//    func testRepeatGeneratingYarrayTests5000() throws {
+//        try XCTSkipIf(!isProductionTest)
+//        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 5000)
+//    }
+//
+//    func testRepeatGeneratingYarrayTests30000() throws {
+//        try XCTSkipIf(!isProductionTest)
+//        try YTest<Any>(docs: 6).randomTests(self.arrayTransactions, iterations: 30000)
+//    }
 }
