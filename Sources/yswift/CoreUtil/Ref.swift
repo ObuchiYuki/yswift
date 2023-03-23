@@ -18,6 +18,8 @@ public final class Ref<T> {
     public init(value: T) {
         self.value = value
     }
+    
+    public func copy() -> Ref<T> { Ref(value: value) }
 }
 
 extension Ref: CustomStringConvertible where T: CustomStringConvertible {

@@ -8,6 +8,10 @@
 import Foundation
 
 public protocol YEventDeltaInsertType {}
+extension NSNumber: YEventDeltaInsertType {}
+extension NSDictionary: YEventDeltaInsertType {}
+extension NSArray: YEventDeltaInsertType {}
+
 extension String: YEventDeltaInsertType {}
 extension [Any?]: YEventDeltaInsertType {}
 extension [String: Any?]: YEventDeltaInsertType {}
@@ -35,6 +39,13 @@ public class YEventDelta {
         self.delete = delete
         self.attributes = attributes
     }
+    
+    public init(insert: YEventDeltaInsertType? = nil, retain: Int? = nil, delete: Int? = nil, attributes: [String: YTextAttributeValue?]) {
+        self.insert = insert
+        self.retain = retain
+        self.delete = delete
+        self.attributes = Ref(value: attributes)
+    }
 }
 
 extension YEventDelta: CustomStringConvertible {
@@ -61,17 +72,30 @@ public enum YEventAction: String {
     case add, update, delete
 }
 
-public struct YEventKey {
+public class YEventKey {
     public var action: YEventAction
     public var oldValue: Any?
     public var newValue: Any?
+    
+    init(action: YEventAction, oldValue: Any? = nil, newValue: Any? = nil) {
+        self.action = action
+        self.oldValue = oldValue
+        self.newValue = newValue
+    }
 }
 
-public struct YEventChange {
+public class YEventChange {
     public var added: Set<Item>
     public var deleted: Set<Item>
     public var keys: [String: YEventKey]
     public var delta: [YEventDelta]
+    
+    init(added: Set<Item>, deleted: Set<Item>, keys: [String : YEventKey], delta: [YEventDelta]) {
+        self.added = added
+        self.deleted = deleted
+        self.keys = keys
+        self.delta = delta
+    }
 }
 
 /** YEvent describes the changes on a YType. */
@@ -161,7 +185,7 @@ public class YEvent {
     public func changes() throws -> YEventChange {
         if (self._changes != nil) { return self._changes! }
         
-        var changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: [])
+        let changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: [])
         let changed = self.transaction.changed[self.target]!
         
         if changed.contains(nil) {

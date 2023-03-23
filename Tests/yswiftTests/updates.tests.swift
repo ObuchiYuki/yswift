@@ -36,9 +36,9 @@ final class UpdatesTests: XCTestCase {
         try applyUpdateV2(ydoc: docs[1], update: update)
 
         try XCTAssertEqual(text1.toDelta(), [
-            YEventDelta(insert: "c", attributes: Ref(value: ["i": true])),
+            YEventDelta(insert: "c", attributes: ["i": true]),
             YEventDelta(insert: "b"),
-            YEventDelta(insert: "a", attributes: Ref(value: ["i": true])),
+            YEventDelta(insert: "a", attributes: ["i": true]),
         ])
 
         try YAssertEqualDocs(docs)

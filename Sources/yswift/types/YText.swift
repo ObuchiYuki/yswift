@@ -15,6 +15,7 @@ public enum YChangeAction: String {
 public protocol YTextAttributeValue {}
 extension Bool: YTextAttributeValue {}
 extension NSNumber: YTextAttributeValue {}
+extension Int: YTextAttributeValue {}
 extension String: YTextAttributeValue {}
 extension [Any?]: YTextAttributeValue {}
 extension [String: Any?]: YTextAttributeValue {}
@@ -68,7 +69,7 @@ public class ItemTextListPosition {
             }
         } else {
             if !self.right!.deleted {
-                self.index += Int(self.right!.length)
+                self.index += self.right!.length
             }
         }
         self.left = self.right
@@ -89,8 +90,8 @@ public class ItemTextListPosition {
                         // split right
                         try StructStore.getItemCleanStart(transaction, id: ID(client: self.right!.id.client, clock: self.right!.id.clock + count))
                     }
-                    self.index += Int(self.right!.length)
-                    count -= Int(self.right!.length)
+                    self.index += self.right!.length
+                    count -= self.right!.length
                 }
             }
             self.left = self.right!
@@ -101,8 +102,8 @@ public class ItemTextListPosition {
 
     static public func find(_ transaction: Transaction, parent: AbstractType, index: Int) throws -> ItemTextListPosition {
         let currentAttributes: YTextAttributes = .init(value: [:])
-        
         let marker = ArraySearchMarker.find(parent, index: index)
+        
         if marker != nil && marker!.item != nil {
             let pos = ItemTextListPosition(
                 left: marker!.item!.left as? Item,
@@ -181,12 +182,9 @@ func minimizeAttributeChanges(currPos: ItemTextListPosition, attributes: YTextAt
         if currPos.right == nil {
             break
         } else if currPos.right!.deleted
-                    || (currPos.right!.content is ContentFormat
-                        && equalAttributes(
-                            removeDualOptional(attributes.value[(currPos.right!.content as! ContentFormat).key]),
-                            (currPos.right!.content as! ContentFormat).value
-                        )
-                    )
+            || (currPos.right!.content is ContentFormat
+                && equalAttributes(removeDualOptional(attributes.value[(currPos.right!.content as! ContentFormat).key]),
+                    (currPos.right!.content as! ContentFormat).value))
         {
             //
         } else {
@@ -296,10 +294,12 @@ public func formatText(
     let ownClientId = doc.clientID
     try minimizeAttributeChanges(currPos: currPos, attributes: attributes)
     let negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
+        
     // iterate until first non-format or nil is found
     // delete all formats with attributes[format.key] != nil
     // also check the attributes after the first non-format as we do not want to insert redundant negated attributes there
     // eslint-disable-next-line no-labels
+    
     iterationLoop: while (
         currPos.right != nil &&
         (length > 0 ||
@@ -337,11 +337,12 @@ public func formatText(
                     )
                 }
                 length -= currPos.right!.length
+                
             }
         }
         try currPos.forward()
     }
-    
+        
     if length > 0 {
         var newlines = ""
         while length > 0 {
@@ -395,13 +396,13 @@ public func cleanupFormattingGap(
             case content is ContentFormat:
                 let __contentFormat = content as! ContentFormat
                 let key = __contentFormat.key, value = __contentFormat.value
-                let startAttrValue = startAttributes.value[key]
+                let startAttrValue = removeDualOptional(startAttributes.value[key])
                 // OLD: ... || startAttrValue == value
-                if endFormats[key] !== content as (any Content)? || jsStrictEqual(removeDualOptional(startAttrValue), value) {
+                if endFormats[key] !== content as (any Content)? || jsStrictEqual(startAttrValue, value) {
                     // Either this format is overwritten or it is not necessary because the attribute already existed.
                     start!.delete(transaction)
                     cleanups += 1
-                    if !reachedCurr && jsStrictEqual(removeDualOptional(currAttributes.value[key]), value) && !jsStrictEqual(removeDualOptional(startAttrValue), value) {
+                    if !reachedCurr && jsStrictEqual(removeDualOptional(currAttributes.value[key]), value) && !jsStrictEqual(startAttrValue, value) {
                         if startAttrValue == nil {
                             currAttributes.value.removeValue(forKey: key)
                         } else {
@@ -416,7 +417,7 @@ public func cleanupFormattingGap(
             default: break // nop
             }
         }
-        start = start!.right! as? Item
+        start = start!.right as? Item
     }
     return cleanups
 }
@@ -474,8 +475,9 @@ public func deleteText(
 ) throws -> ItemTextListPosition {
     var length = length
     let startLength = length
-    let startAttrs = currPos.currentAttributes
+    let startAttrs = currPos.currentAttributes.copy()
     let start = currPos.right
+    
     while (length > 0 && currPos.right != nil) {
         if currPos.right!.deleted == false {
             if currPos.right!.content is ContentType ||
@@ -483,16 +485,17 @@ public func deleteText(
                 currPos.right!.content is ContentString {
                 if length < currPos.right!.length {
                     try StructStore.getItemCleanStart(
-                        transaction,
-                        id: ID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
+                        transaction, id: ID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
                     )
                 }
-                length -= Int(currPos.right!.length)
+                length -= currPos.right!.length
                 currPos.right!.delete(transaction)
+                break
             }
         }
         try currPos.forward()
     }
+    
     if start != nil {
         _ = cleanupFormattingGap(
             transaction: transaction,
@@ -542,8 +545,8 @@ public class YTextEvent: YEvent {
 
     public override func delta() throws -> [YEventDelta] {
         if (self._delta != nil) { return self._delta! }
-
-        var deltas: [YEventDelta] = []
+        
+        let deltas: Ref<[YEventDelta]> = Ref(value: [])
 
         try self.target.doc?.transact({ transaction in
             let currentAttributes = YTextAttributes(value: [:]) // saves all current attributes for insert
@@ -551,9 +554,9 @@ public class YTextEvent: YEvent {
             var item = self.target._start
             var action: YTextAction? = nil
             
-            let attributes: YTextAttributes = .init(value: [:]) // counts added or removed attributes for retain
+            let attributes = YTextAttributes(value: [:]) // counts added or removed attributes for retain
             
-            var insert: String = ""
+            var insert: YEventDeltaInsertType = ""
             var retain = 0
             var deleteLen = 0
 
@@ -570,7 +573,9 @@ public class YTextEvent: YEvent {
                     if currentAttributes.count > 0 {
                         delta.attributes = .init(value: [:])
                         currentAttributes.forEach({ key, value in
-                            if value != nil { delta.attributes!.value[key] = value }
+                            if value != nil {
+                                delta.attributes!.value[key] = value
+                            }
                         })
                     }
                     insert = ""
@@ -579,12 +584,13 @@ public class YTextEvent: YEvent {
                     if attributes.value.keys.count > 0 {
                         delta.attributes = .init(value: [:])
                         for key in attributes.value.keys {
-                            delta.attributes!.value[key] = removeDualOptional(attributes.value[key])
+                            delta.attributes!.value[key] = removeDualOptional(attributes.value[key]) ?? NSNull()
                         }
                     }
                     retain = 0
                 }
-                deltas.append(delta)
+                deltas.value.append(delta)
+                                                
                 action = nil
             }
 
@@ -594,7 +600,7 @@ public class YTextEvent: YEvent {
                         if !self.deletes(item!) {
                             addDelta()
                             action = .insert
-                            insert = item!.content.getContent()[0] as! String
+                            insert = item!.content.getContent()[0] as! YEventDeltaInsertType
                             addDelta()
                         }
                     } else if self.deletes(item!) {
@@ -608,29 +614,29 @@ public class YTextEvent: YEvent {
                     if self.adds(item!) {
                         if !self.deletes(item!) {
                             if action != .insert { addDelta(); action = .insert }
-                            insert += (item!.content as! ContentString).str as String
+                            insert = (insert as! String) + ((item!.content as! ContentString).str as String)
                         }
                     } else if self.deletes(item!) {
                         if action != .delete { addDelta(); action = .delete }
-                        deleteLen += Int(item!.length)
+                        deleteLen += item!.length
                     } else if !item!.deleted {
                         if action != .retain { addDelta(); action = .retain }
-                        retain += Int(item!.length)
+                        retain += item!.length
                     }
                 } else if item!.content is ContentFormat {
                     let __contentFormat = item!.content as! ContentFormat
                     let key = __contentFormat.key, value = __contentFormat.value
-                    
+                                        
                     if self.adds(item!) {
                         if !self.deletes(item!) {
                             let curVal = currentAttributes.value[key]
                             if !equalAttributes(removeDualOptional(curVal), value) {
                                 if action == .retain { addDelta() }
-                                
+                                                                
                                 if equalAttributes(value, removeDualOptional(oldAttributes.value[key])) {
                                     attributes.value.removeValue(forKey: key)
                                 } else {
-                                    attributes.value[key] = value
+                                    attributes.value[key] = value ?? NSNull()
                                 }
                             } else if value != nil {
                                 item!.delete(transaction)
@@ -638,16 +644,17 @@ public class YTextEvent: YEvent {
                         }
                     } else if self.deletes(item!) {
                         oldAttributes.value[key] = value
-                        let curVal = currentAttributes.value[key]
-                        if !equalAttributes(removeDualOptional(curVal), value) {
+                        let curVal = removeDualOptional(currentAttributes.value[key])
+                        if !equalAttributes(curVal, value) {
                             if action == .retain { addDelta() }
-                            attributes.value[key] = curVal
+                            attributes.value[key] = curVal ?? NSNull()
                         }
+                                            
                     } else if !item!.deleted {
                         oldAttributes.value[key] = value
-                        let attr = attributes.value[key]
+                        let attr = removeDualOptional(attributes.value[key])
                         if attr != nil {
-                            if !equalAttributes(removeDualOptional(attr), value) {
+                            if !equalAttributes(attr, value) {
                                 if action == .retain { addDelta() }
                                 if value == nil {
                                     attributes.value.removeValue(forKey: key)
@@ -671,18 +678,19 @@ public class YTextEvent: YEvent {
             
             addDelta()
             
-            while (deltas.count > 0) {
+            while (deltas.value.count > 0) {
                 let lastOp = deltas[deltas.count - 1]
                 if lastOp.retain != nil && lastOp.attributes == nil {
-                    _ = deltas.popLast()
+                    _ = deltas.value.popLast()
                 } else {
                     break
                 }
             }
         })
 
-        self._delta = deltas
-        return deltas
+        self._delta = deltas.value
+                
+        return deltas.value
     }
 }
 
@@ -936,6 +944,7 @@ public class YText: AbstractType {
             }
             packStr()
         }, origin: "cleanup")
+        
         return ops
     }
 
@@ -968,7 +977,7 @@ public class YText: AbstractType {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
                 let pos = try ItemTextListPosition.find(transaction, parent: self, index: index)
-                try insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: attributes!)
+                try insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: attributes ?? Ref(value: [:]))
             })
         } else {
             (self._pending)?.append{
@@ -1006,6 +1015,7 @@ public class YText: AbstractType {
                 if pos.right == nil {
                     return
                 }
+                
                 try formatText(transaction: transaction, parent: self, currPos: pos, length: length, attributes: attributes)
             })
         } else {
