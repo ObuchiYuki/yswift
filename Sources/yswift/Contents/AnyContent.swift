@@ -20,7 +20,7 @@ extension AnyContent {
     
     public var typeid: UInt8 { 8 }
 
-    public func getContent() -> [Any?] { self.array }
+    public func values() -> [Any?] { self.array }
 
     public var isCountable: Bool { true }
 
@@ -52,16 +52,12 @@ extension AnyContent {
         }
     }
     
-    public static func decode(from decoder: UpdateDecoder) throws -> Self {
-        
+    public static func decode(from decoder: UpdateDecoder) throws -> AnyContent {
+        let len = try decoder.readLen()
+        var cs = [Any?]()
+        for _ in 0..<len {
+            try cs.append(decoder.readAny())
+        }
+        return AnyContent(cs)
     }
-}
-
-public func readContentAny(_ decoder: UpdateDecoder) throws -> AnyContent {
-    let len = try decoder.readLen()
-    var cs = [Any]()
-    for _ in 0..<len {
-        try cs.append(decoder.readAny())
-    }
-    return AnyContent(cs)
 }

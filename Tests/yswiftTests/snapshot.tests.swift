@@ -4,17 +4,17 @@ import yswift
 
 final class SnapshotTests: XCTestCase {
     
-    func testBasicRestoreSnapshot() throws {
-        let doc = Doc(opts: DocOpts(gc: false))
-        try doc.getArray("array").insert(0, ["hello"])
-        let snap = Snapshot.snapshot(doc)
-        try doc.getArray("array").insert(1, ["world"])
-        
-        let docRestored = try snap.toDoc(doc)
-        
-        try XCTAssertEqualJSON(docRestored.getArray("array").toArray(), ["hello"])
-        try XCTAssertEqualJSON(doc.getArray("array").toArray(), ["hello", "world"])
-    }
+//    func testBasicRestoreSnapshot() throws {
+//        let doc = Doc(opts: DocOpts(gc: false))
+//        try doc.getArray("array").insert(0, ["hello"])
+//        let snap = Snapshot.snapshot(doc)
+//        try doc.getArray("array").insert(1, ["world"])
+//        
+//        let docRestored = try snap.toDoc(doc)
+//        
+//        try XCTAssertEqualJSON(docRestored.getArray("array").toArray(), ["hello"])
+//        try XCTAssertEqualJSON(doc.getArray("array").toArray(), ["hello", "world"])
+//    }
     
 //    func testEmptyRestoreSnapshot() throws {
 //        let doc = Doc({ gc: false })

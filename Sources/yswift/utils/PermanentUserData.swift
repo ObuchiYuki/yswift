@@ -29,7 +29,7 @@ public class PermanentUserData {
             
             ds.observe{ event, _ in
                 try event.changes().added.forEach({ item in
-                    try item.content.getContent().forEach({ encodedDs in
+                    try item.content.values().forEach({ encodedDs in
                         if encodedDs is Data {
                             self.dss[userDescription] = DeleteSet.mergeAll([
                                 self.dss[userDescription] ?? DeleteSet(),
@@ -48,7 +48,7 @@ public class PermanentUserData {
             
             ids.observe{ event, _ in
                 try event.changes().added.forEach({ item in
-                    item.content.getContent().forEach{
+                    item.content.values().forEach{
                         addClientId(clientid: $0 as! Int)
                     }
                 })

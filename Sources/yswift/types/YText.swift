@@ -600,7 +600,7 @@ public class YTextEvent: YEvent {
                         if !self.deletes(item!) {
                             addDelta()
                             action = .insert
-                            insert = item!.content.getContent()[0] as! YEventDeltaInsertType
+                            insert = item!.content.values()[0] as! YEventDeltaInsertType
                             addDelta()
                         }
                     } else if self.deletes(item!) {
@@ -924,7 +924,7 @@ public class YText: AbstractType {
                         str += (n!.content as! StringContent).str as String
                     case n!.content is TypeContent || n!.content is EmbedContent:
                         packStr()
-                        let op: YEventDelta = .init(insert: (n!.content.getContent()[0] as! YEventDeltaInsertType))
+                        let op: YEventDelta = .init(insert: (n!.content.values()[0] as! YEventDeltaInsertType))
                         if currentAttributes.count > 0 {
                             op.attributes = .init(value: [:])
                             currentAttributes.forEach({ key, value in

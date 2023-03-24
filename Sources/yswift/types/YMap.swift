@@ -66,7 +66,7 @@ public class YMap: AbstractType {
         var map: [String: Any] = [:]
         self._map.forEach({ key, item in
             if !item.deleted {
-                let v = item.content.getContent()[Int(item.length) - 1]
+                let v = item.content.values()[Int(item.length) - 1]
                 if v == nil {
                     map[key] = NSNull()
                 } else {
@@ -83,7 +83,7 @@ public class YMap: AbstractType {
     public func createMapIterator() -> some Sequence<(String, Any?)> {
         self._map.lazy
             .filter{ _, v in !v.deleted }
-            .map{ ($0, $1.content.getContent()[$1.length - 1]) }
+            .map{ ($0, $1.content.values()[$1.length - 1]) }
     }
 
     /** Returns the size of the YMap (count of key/value pairs) */
@@ -105,7 +105,7 @@ public class YMap: AbstractType {
     public func forEach(_ f: (Any?, String, YMap) throws -> Void) rethrows {
         try self._map.forEach({ key, item in
             if !item.deleted {
-                try f(item.content.getContent()[Int(item.length) - 1], key, self)
+                try f(item.content.values()[Int(item.length) - 1], key, self)
             }
         })
     }

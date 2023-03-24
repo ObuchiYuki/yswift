@@ -91,7 +91,7 @@ public class AbstractType: JSHashable {
         var n = self._start
         while (n != nil && len > 0) {
             if n!.countable && !n!.deleted {
-                let c = n!.content.getContent()
+                let c = n!.content.values()
                 if c.count <= start {
                     start -= c.count
                 } else {
@@ -113,7 +113,7 @@ public class AbstractType: JSHashable {
         var n = self._start
         while (n != nil) {
             if n!.countable && !n!.deleted {
-                let c = n!.content.getContent()
+                let c = n!.content.values()
                 for i in 0..<c.count {
                     cs.append(c[i])
                 }
@@ -128,7 +128,7 @@ public class AbstractType: JSHashable {
         var n = self._start
         while (n != nil) {
             if n!.countable && n!.isVisible(snapshot) {
-                let c = n!.content.getContent()
+                let c = n!.content.values()
                 for i in 0..<c.count {
                     cs.append(c[i])
                 }
@@ -144,7 +144,7 @@ public class AbstractType: JSHashable {
         var item = self._start
         while (item != nil) {
             if item!.countable && !item!.deleted {
-                let c = item!.content.getContent()
+                let c = item!.content.values()
                 for i in 0..<c.count {
                     try body(c[i], index)
                     index += 1
@@ -174,7 +174,7 @@ public class AbstractType: JSHashable {
                 if item == nil {
                     return nil
                 }
-                currentContent = item!.content.getContent()
+                currentContent = item!.content.values()
                 currentContentIndex = 0
                 item = item!.right as? Item
             }
@@ -194,7 +194,7 @@ public class AbstractType: JSHashable {
         var item = self._start
         while (item != nil) {
             if item!.countable && item!.isVisible(snapshot) {
-                let c = item!.content.getContent()
+                let c = item!.content.values()
                 for i in 0..<c.count {
                     body(c[i], index)
                     index += 1
@@ -215,7 +215,7 @@ public class AbstractType: JSHashable {
         while item != nil {
             if !item!.deleted && item!.countable {
                 if index < item!.length {
-                    return item!.content.getContent()[Int(index)]
+                    return item!.content.values()[Int(index)]
                 }
                 index -= item!.length
             }
@@ -425,7 +425,7 @@ public class AbstractType: JSHashable {
     // this -> parent
     public func mapGet(_ key: String) -> Any? {
         let val = self._map[key]
-        return val != nil && !val!.deleted ? val!.content.getContent()[val!.length - 1] : nil
+        return val != nil && !val!.deleted ? val!.content.values()[val!.length - 1] : nil
     }
 
     // this -> parent
@@ -433,7 +433,7 @@ public class AbstractType: JSHashable {
         var res: [String: Any?] = [:]
         self._map.forEach({ key, value in
             if !value.deleted {
-                res[key] = value.content.getContent()[value.length - 1]
+                res[key] = value.content.values()[value.length - 1]
             }
         })
         return res
@@ -451,7 +451,7 @@ public class AbstractType: JSHashable {
         while (v != nil && (snapshot.sv[v!.id.client] == nil || v!.id.clock >= (snapshot.sv[v!.id.client] ?? 0))) {
             v = v!.left as? Item
         }
-        return v != nil && v!.isVisible(snapshot) ? v!.content.getContent()[Int(v!.length) - 1] : nil
+        return v != nil && v!.isVisible(snapshot) ? v!.content.values()[Int(v!.length) - 1] : nil
     }
 
     // =========================================================================== //

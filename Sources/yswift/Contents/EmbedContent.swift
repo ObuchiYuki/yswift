@@ -16,7 +16,7 @@ final public class EmbedContent: Content {
 extension EmbedContent {
     public var count: Int { 1 }
 
-    public func getContent() -> [Any?] { return [self.embed] }
+    public func values() -> [Any?] { return [self.embed] }
 
     public var isCountable: Bool { true }
 
@@ -35,8 +35,8 @@ extension EmbedContent {
     public func encode(into encoder: UpdateEncoder, offset: Int) throws { try encoder.writeJSON(self.embed) }
 
     public var typeid: UInt8 { return 5 }
-}
-
-func readContentEmbed(_ decoder: UpdateDecoder) throws -> EmbedContent {
-    return try EmbedContent(decoder.readJSON())
+    
+    public static func decode(from decoder: UpdateDecoder) throws -> EmbedContent {
+        try EmbedContent(decoder.readJSON())
+    }
 }

@@ -143,12 +143,12 @@ public class YEvent {
                 if self.deletes(item) {
                     if prev != nil && self.deletes(prev!) {
                         action = .delete
-                        oldValue = (prev as! Item).content.getContent().last ?? nil
+                        oldValue = (prev as! Item).content.values().last ?? nil
                     } else { return }
                 } else {
                     if prev != nil && self.deletes(prev!) {
                         action = .update
-                        oldValue = (prev as! Item).content.getContent().last ?? nil
+                        oldValue = (prev as! Item).content.values().last ?? nil
                     } else {
                         action = .add
                         oldValue = nil
@@ -157,7 +157,7 @@ public class YEvent {
             } else {
                 if self.deletes(item) {
                     action = .delete
-                    oldValue = item.content.getContent().last ?? nil
+                    oldValue = item.content.values().last ?? nil
                 } else { return }
             }
 
@@ -212,7 +212,7 @@ public class YEvent {
                             packDelta()
                             lastDelta = YEventDelta(insert: [])
                         }
-                        lastDelta!.insert = lastDelta!.insert as! [Any] + item!.content.getContent()
+                        lastDelta!.insert = lastDelta!.insert as! [Any] + item!.content.values()
                         changes.added.insert(item!)
                     } else {
                         if lastDelta == nil || lastDelta!.retain == nil {

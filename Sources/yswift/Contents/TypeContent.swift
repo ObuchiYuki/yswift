@@ -16,7 +16,7 @@ final public class TypeContent: Content {
 extension TypeContent {
     public var count: Int { 1 }
 
-    public func getContent() -> [Any?] { return [self.type] }
+    public func values() -> [Any?] { return [self.type] }
 
     public var isCountable: Bool { true }
 
@@ -73,6 +73,12 @@ extension TypeContent {
     }
 
     public var typeid: UInt8 { return 7 }
+    
+    public static func decode(from decoder: UpdateDecoder) throws -> TypeContent {
+        return try TypeContent(
+            typeRefs[Int(decoder.readTypeRef())](decoder)
+        )
+    }
 }
 
 private let typeRefs = [
@@ -91,9 +97,3 @@ let YTextRefID: UInt8 = 2
 //let YXmlFragmentRefID: UInt8 = 4
 //let YXmlHookRefID: UInt8 = 5
 //let YXmlTextRefID: UInt8 = 6
-
-func readContentType(_ decoder: UpdateDecoder) throws -> TypeContent {
-    return try TypeContent(
-        typeRefs[Int(decoder.readTypeRef())](decoder)
-    )
-}

@@ -16,7 +16,7 @@ final public class DeletedContent {
 extension DeletedContent: Content {
     public var count: Int { self.len }
 
-    public func getContent() -> [Any?] { return [] }
+    public func values() -> [Any?] { return [] }
 
     public var isCountable: Bool { false }
 
@@ -45,8 +45,8 @@ extension DeletedContent: Content {
     public func encode(into encoder: UpdateEncoder, offset: Int) { encoder.writeLen(self.len - offset) }
 
     public var typeid: UInt8 { return 1 }
-}
-
-func readContentDeleted(_ decoder: UpdateDecoder) throws -> DeletedContent {
-    return try DeletedContent(decoder.readLen())
+    
+    public static func decode(from decoder: UpdateDecoder) throws -> DeletedContent {
+        try DeletedContent(decoder.readLen())
+    }
 }

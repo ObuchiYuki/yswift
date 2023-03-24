@@ -20,7 +20,7 @@ final public class FormatContent: Content {
 extension FormatContent {
     public var count: Int { 1 }
     
-    public func getContent() -> [Any?] { return [] }
+    public func values() -> [Any?] { return [] }
 
     public var isCountable: Bool { false }
 
@@ -44,18 +44,18 @@ extension FormatContent {
     }
 
     public var typeid: UInt8 { return 6 }
+    
+    public static func decode(from decoder: UpdateDecoder) throws -> FormatContent {
+        // TODO: this as? may be wrong
+        let key = try decoder.readKey()
+        let value = try decoder.readJSON()
+        if !(value is YTextAttributeValue?) {
+            assertionFailure("'\(value as Any)' (\(type(of: value))) is not YTextAttributeValue")
+        }
+        return FormatContent(key: key, value: value as? YTextAttributeValue)
+    }
 }
 
 extension FormatContent: CustomStringConvertible {
     public var description: String { "ContentFormat(key: \(key), value: \(value as Any?))" }
-}
-
-func readContentFormat(_ decoder: UpdateDecoder) throws -> FormatContent {
-    // TODO: this as? may be wrong
-    let key = try decoder.readKey()
-    let value = try decoder.readJSON()
-    if !(value is YTextAttributeValue?) {
-        assertionFailure("'\(value as Any)' (\(type(of: value))) is not YTextAttributeValue")
-    }
-    return FormatContent(key: key, value: value as? YTextAttributeValue)
 }

@@ -16,7 +16,7 @@ final public class JSONContent: Content {
 extension JSONContent {
     public var count: Int { return self.arr.count }
 
-    public func getContent() -> [Any?] { return self.arr as [Any] }
+    public func values() -> [Any?] { return self.arr as [Any] }
 
     public var isCountable: Bool { true }
 
@@ -56,18 +56,18 @@ extension JSONContent {
     }
 
     public var typeid: UInt8 { return 2 }
-}
-
-func readContentJSON(_ decoder: UpdateDecoder) throws -> JSONContent {
-    let len = try decoder.readLen()
-    var cs: [Any?] = []
-    for _ in 0..<len {
-        let c = try decoder.readString()
-        if c == "undefined" {
-            cs.append(nil)
-        } else {
-            try cs.append(JSONSerialization.jsonObject(with: c.data(using: .utf8)!, options: [.fragmentsAllowed]))
+    
+    public static func decode(from decoder: UpdateDecoder) throws -> JSONContent {
+        let len = try decoder.readLen()
+        var cs: [Any?] = []
+        for _ in 0..<len {
+            let c = try decoder.readString()
+            if c == "undefined" {
+                cs.append(nil)
+            } else {
+                try cs.append(JSONSerialization.jsonObject(with: c.data(using: .utf8)!, options: [.fragmentsAllowed]))
+            }
         }
+        return JSONContent(cs)
     }
-    return JSONContent(cs)
 }

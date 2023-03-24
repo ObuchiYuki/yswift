@@ -28,9 +28,11 @@ final public class DocumentContent: Content {
 extension DocumentContent {
     public var count: Int { 1 }
 
-    public func getContent() -> [Any?] { return [self.doc] }
+    public func values() -> [Any?] { return [self.doc] }
 
     public var isCountable: Bool { true }
+    
+    public var typeid: UInt8 { 9 }
     
     public func copy() -> DocumentContent { return DocumentContent(createDocFromOpts(guid: self.doc.guid, opts: self.opts)) }
 
@@ -60,15 +62,13 @@ extension DocumentContent {
         encoder.writeString(self.doc.guid)
         encoder.writeAny(self.opts.toAny())
     }
-
-    public var typeid: UInt8 { 9 }
-}
-
-func readContentDoc(_ decoder: UpdateDecoder) throws -> DocumentContent {
-    return try DocumentContent(createDocFromOpts(
-        guid: decoder.readString(),
-        opts: ContentDocOpts.fromAny(decoder.readAny()) 
-    ))
+    
+    public static func decode(from decoder: UpdateDecoder) throws -> DocumentContent {
+        return try DocumentContent(createDocFromOpts(
+            guid: decoder.readString(),
+            opts: ContentDocOpts.fromAny(decoder.readAny())
+        ))
+    }
 }
 
 public struct ContentDocOpts {

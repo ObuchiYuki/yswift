@@ -562,15 +562,15 @@ func readItemContent(decoder: UpdateDecoder, info: UInt8) throws -> any Content 
 /** A lookup map for reading Item content. */
 public let contentDecoders_: [(UpdateDecoder) throws -> any Content] = [
     {_ in throw YSwiftError.unexpectedCase }, // GC is not ItemContent
-    readContentDeleted, // 1
-    readContentJSON, // 2
-    readContentBinary, // 3
-    readContentString, // 4
-    readContentEmbed, // 5
-    readContentFormat, // 6
-    readContentType, // 7
-    readContentAny, // 8
-    readContentDoc, // 9
+    DeletedContent.decode(from:), // 1
+    JSONContent.decode(from:), // 2
+    BinaryContent.decode(from:), // 3
+    StringContent.decode(from:), // 4
+    EmbedContent.decode(from:), // 5
+    FormatContent.decode(from:), // 6
+    TypeContent.decode(from:), // 7
+    AnyContent.decode(from:), // 8
+    DocumentContent.decode(from:), // 9
     {_ in throw YSwiftError.unexpectedCase }, // 10 - Skip is not ItemContent
 ]
 

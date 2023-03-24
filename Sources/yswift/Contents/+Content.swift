@@ -14,7 +14,7 @@ public protocol Content: AnyObject {
     
     var isCountable: Bool { get }
     
-    func getContent() -> [Any?]
+    func values() -> [Any?]
     
     func copy() -> Self
     

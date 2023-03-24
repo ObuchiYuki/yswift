@@ -29,7 +29,7 @@ final public class StringContent: Content {
 extension StringContent {
     public var count: Int { self.str.length }
 
-    public func getContent() -> [Any?] { self.str.utf16Array }
+    public func values() -> [Any?] { self.str.utf16Array }
 
     public var isCountable: Bool { true }
 
@@ -69,8 +69,8 @@ extension StringContent {
     }
 
     public var typeid: UInt8 { 4 }
-}
-
-func readContentString(_ decoder: UpdateDecoder) throws -> StringContent {
-    return try StringContent(decoder.readString() as NSString)
+    
+    public static func decode(from decoder: UpdateDecoder) throws -> StringContent {
+        try StringContent(decoder.readString() as NSString)
+    }
 }
