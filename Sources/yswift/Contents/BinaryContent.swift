@@ -17,6 +17,8 @@ final public class BinaryContent: Content {
 
 extension BinaryContent {
     public var count: Int { 1 }
+    
+    public var typeid: UInt8 { return 3 }
 
     public func getContent() -> [Any?] { return [self.content] }
 
@@ -34,9 +36,7 @@ extension BinaryContent {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: Int) { encoder.writeBuf(self.content) }
-
-    public func getRef() -> UInt8 { return 3 }
+    public func encode(into encoder: UpdateEncoder, offset: Int) { encoder.writeBuf(self.content) }
 }
 
 func readContentBinary(_ decoder: UpdateDecoder) throws -> BinaryContent {

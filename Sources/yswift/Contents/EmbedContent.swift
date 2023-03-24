@@ -32,9 +32,9 @@ extension EmbedContent {
     
     public func gc(_ store: StructStore) {}
 
-    public func write(_ encoder: UpdateEncoder, offset: Int) throws { try encoder.writeJSON(self.embed) }
+    public func encode(into encoder: UpdateEncoder, offset: Int) throws { try encoder.writeJSON(self.embed) }
 
-    public func getRef() -> UInt8 { return 5 }
+    public var typeid: UInt8 { return 5 }
 }
 
 func readContentEmbed(_ decoder: UpdateDecoder) throws -> EmbedContent {

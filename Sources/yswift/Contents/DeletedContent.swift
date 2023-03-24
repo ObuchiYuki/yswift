@@ -42,9 +42,9 @@ extension DeletedContent: Content {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: Int) { encoder.writeLen(self.len - offset) }
+    public func encode(into encoder: UpdateEncoder, offset: Int) { encoder.writeLen(self.len - offset) }
 
-    public func getRef() -> UInt8 { return 1 }
+    public var typeid: UInt8 { return 1 }
 }
 
 func readContentDeleted(_ decoder: UpdateDecoder) throws -> DeletedContent {

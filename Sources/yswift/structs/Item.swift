@@ -397,7 +397,7 @@ public class Item: Struct, JSHashable {
             
             try transaction.doc.store.addStruct(self)
             
-            try self.content.integrate(transaction, with: self)
+            try self.content.integrate(with: self, transaction)
             
             // add parent to transaction.changed
             transaction.addChangedType((self.parent as! AbstractType), parentSub: self.parentSub)
@@ -511,7 +511,7 @@ public class Item: Struct, JSHashable {
         let origin = offset > 0 ? ID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
         let rightOrigin = self.rightOrigin
         let parentSub = self.parentSub
-        let info: UInt8 = (self.content.getRef() & 0b0001_1111) |
+        let info: UInt8 = (self.content.typeid & 0b0001_1111) |
             (origin == nil ? 0 : 0b1000_0000) | // origin is defined
             (rightOrigin == nil ? 0 : 0b0100_0000) | // right origin is defined
             (parentSub == nil ? 0 : 0b0010_0000) // parentSub is non-nil
@@ -551,7 +551,7 @@ public class Item: Struct, JSHashable {
             }
         }
         
-        try self.content.write(encoder, offset: offset)
+        try self.content.encode(into: encoder, offset: offset)
     }
 }
 

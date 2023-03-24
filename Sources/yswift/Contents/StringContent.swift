@@ -64,11 +64,11 @@ extension StringContent {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: Int) {
+    public func encode(into encoder: UpdateEncoder, offset: Int) {
         encoder.writeString(offset == 0 ? self.str as String : self.str.substring(to: offset))
     }
 
-    public func getRef() -> UInt8 { return 4 }
+    public var typeid: UInt8 { 4 }
 }
 
 func readContentString(_ decoder: UpdateDecoder) throws -> StringContent {

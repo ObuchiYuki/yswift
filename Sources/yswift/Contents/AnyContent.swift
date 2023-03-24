@@ -17,8 +17,10 @@ final public class AnyContent: Content {
 
 extension AnyContent {
     public var count: Int { return self.array.count }
+    
+    public var typeid: UInt8 { 8 }
 
-    public func getContent() -> [Any?] { return self.array }
+    public func getContent() -> [Any?] { self.array }
 
     public var isCountable: Bool { true }
 
@@ -41,7 +43,7 @@ extension AnyContent {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: Int) {
+    public func encode(into encoder: UpdateEncoder, offset: Int) {
         let len = self.array.count
         encoder.writeLen(len - offset)
         for i in offset..<len {
@@ -49,8 +51,10 @@ extension AnyContent {
             encoder.writeAny(c)
         }
     }
-
-    public func getRef() -> UInt8 { return 8 }
+    
+    public static func decode(from decoder: UpdateDecoder) throws -> Self {
+        
+    }
 }
 
 public func readContentAny(_ decoder: UpdateDecoder) throws -> AnyContent {

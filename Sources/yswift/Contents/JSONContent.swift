@@ -39,7 +39,7 @@ extension JSONContent {
     
     public func gc(_ store: StructStore) {}
     
-    public func write(_ encoder: UpdateEncoder, offset: Int) throws {
+    public func encode(into encoder: UpdateEncoder, offset: Int) throws {
         let len = self.arr.count
         encoder.writeLen(len - offset)
         for i in offset..<len {
@@ -55,7 +55,7 @@ extension JSONContent {
         }
     }
 
-    public func getRef() -> UInt8 { return 2 }
+    public var typeid: UInt8 { return 2 }
 }
 
 func readContentJSON(_ decoder: UpdateDecoder) throws -> JSONContent {

@@ -56,12 +56,12 @@ extension DocumentContent {
 
     public func gc(_ store: StructStore) { }
 
-    public func write(_ encoder: UpdateEncoder, offset: Int) {
+    public func encode(into encoder: UpdateEncoder, offset: Int) {
         encoder.writeString(self.doc.guid)
         encoder.writeAny(self.opts.toAny())
     }
 
-    public func getRef() -> UInt8 { return 9 }
+    public var typeid: UInt8 { 9 }
 }
 
 func readContentDoc(_ decoder: UpdateDecoder) throws -> DocumentContent {

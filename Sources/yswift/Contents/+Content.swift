@@ -10,6 +10,8 @@ import Foundation
 public protocol Content: AnyObject {
     var count: Int { get }
     
+    var typeid: UInt8 { get }
+    
     var isCountable: Bool { get }
     
     func getContent() -> [Any?]
@@ -26,7 +28,7 @@ public protocol Content: AnyObject {
 
     func gc(_ store: StructStore) throws -> Void
 
-    func write(_ encoder: UpdateEncoder, offset: Int) throws -> Void
+    func encode(into encoder: UpdateEncoder, offset: Int) throws -> Void
     
-    func getRef() -> UInt8
+    static func decode(from decoder: UpdateDecoder) throws -> Self
 }

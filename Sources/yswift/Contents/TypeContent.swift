@@ -68,11 +68,11 @@ extension TypeContent {
         self.type._map = [:]
     }
 
-    public func write(_ encoder: UpdateEncoder, offset: Int) {
+    public func encode(into encoder: UpdateEncoder, offset: Int) {
         self.type._write(encoder)
     }
 
-    public func getRef() -> UInt8 { return 7 }
+    public var typeid: UInt8 { return 7 }
 }
 
 private let typeRefs = [
