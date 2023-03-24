@@ -19,10 +19,11 @@ extension BinaryContent {
     public var count: Int { 1 }
     
     public var typeid: UInt8 { 3 }
+    
+    public var isCountable: Bool { true }
+    
 
     public func values() -> [Any?] { return [self.content] }
-
-    public var isCountable: Bool { true }
 
     public func copy() -> BinaryContent { return BinaryContent(self.content) }
 

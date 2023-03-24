@@ -19,11 +19,12 @@ extension AnyContent {
     public var count: Int { return self.array.count }
     
     public var typeid: UInt8 { 8 }
-
-    public func values() -> [Any?] { self.array }
-
+    
     public var isCountable: Bool { true }
 
+    
+    public func values() -> [Any?] { self.array }
+    
     public func copy() -> AnyContent { return AnyContent(self.array) }
 
     public func splice(_ offset: Int) -> AnyContent {
