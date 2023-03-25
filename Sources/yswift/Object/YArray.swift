@@ -22,7 +22,7 @@ public class YArray: YCObject {
 
     public override init() {
         super.init()
-        self._searchMarker = .init(value: []) 
+        self.serchMarkers = []
     }
 
     /** Construct a YArray containing the specified items. */

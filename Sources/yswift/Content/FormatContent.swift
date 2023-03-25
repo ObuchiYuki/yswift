@@ -33,7 +33,7 @@ extension FormatContent {
     func merge(with right: Content) -> Bool { false }
 
     func integrate(with item: Item, _ transaction: Transaction) {
-        item.parent?.object?._searchMarker = nil
+        item.parent?.object?.serchMarkers = nil
     }
 
     func delete(_ transaction: Transaction) {}

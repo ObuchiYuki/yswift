@@ -231,7 +231,7 @@ public func sliceStruct(left: Struct, diff: Int) -> Struct { // no Skip return
             right: nil,
             rightOrigin: leftItem.rightOrigin,
             parent: leftItem.parent,
-            parentSub: leftItem.parentSub,
+            parentSub: leftItem.parentKey,
             content: leftItem.content.splice(diff)
         )
     }

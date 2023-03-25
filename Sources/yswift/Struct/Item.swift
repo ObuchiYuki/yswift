@@ -39,7 +39,7 @@ final public class Item: Struct, JSHashable {
     
     public var parent: Parent?
     
-    public var parentSub: String?
+    public var parentKey: String?
     
     public var redone: ID?
     
@@ -70,7 +70,7 @@ final public class Item: Struct, JSHashable {
         self.right = right
         self.rightOrigin = rightOrigin
         self.parent = parent
-        self.parentSub = parentSub
+        self.parentKey = parentSub
         self.redone = nil
         self.content = content
         self.info = self.content.isCountable ? 0b0000_0010 : 0
@@ -85,7 +85,7 @@ final public class Item: Struct, JSHashable {
         var item: Item? = self
         while let uitem = item, uitem.keep != keep {
             item!.keep = keep
-            item = uitem.parent?.object?._item
+            item = uitem.parent?.object?.item
         }
     }
 
@@ -110,7 +110,7 @@ final public class Item: Struct, JSHashable {
             right: self.right,
             rightOrigin: self.rightOrigin,
             parent: self.parent,
-            parentSub: self.parentSub,
+            parentSub: self.parentKey,
             content: self.content.splice(diff)
         )
         if self.deleted { rightItem.deleted = true }
@@ -123,7 +123,7 @@ final public class Item: Struct, JSHashable {
         
         transaction._mergeStructs.value.append(rightItem)
         
-        if let parentSub = rightItem.parentSub, rightItem.right == nil {
+        if let parentSub = rightItem.parentKey, rightItem.right == nil {
             rightItem.parent?.object?.storage[parentSub] = rightItem
         }
         self.length = diff
@@ -137,7 +137,7 @@ final public class Item: Struct, JSHashable {
         let store = doc.store
         let ownClientID = doc.clientID
         
-        var parentItem = self.parent!.object!._item
+        var parentItem = self.parent!.object!.item
         var left: Struct? = nil
         var right: Struct? = nil
 
@@ -166,18 +166,18 @@ final public class Item: Struct, JSHashable {
             return nil
         }
         
-        if self.parentSub == nil {
+        if self.parentKey == nil {
             left = self.left
             right = self
             
             while let uleft = left as? Item {
                 var leftTrace: Item? = uleft
                 
-                while let uleftTrace = leftTrace, uleftTrace.parent?.object?._item !== parentItem {
+                while let uleftTrace = leftTrace, uleftTrace.parent?.object?.item !== parentItem {
                     guard let redone = uleftTrace.redone else { leftTrace = nil; break }
                     leftTrace = try StructStore.getItemCleanStart(transaction, id: redone)
                 }
-                if let uleftTrace = leftTrace, uleftTrace.parent?.object?._item === parentItem {
+                if let uleftTrace = leftTrace, uleftTrace.parent?.object?.item === parentItem {
                     left = uleftTrace; break
                 }
                 
@@ -187,7 +187,7 @@ final public class Item: Struct, JSHashable {
             while let uright = right as? Item {
                 var rightTrace: Item? = uright
                 
-                while let urightTrace = rightTrace, urightTrace.parent?.object?._item !== parentItem {
+                while let urightTrace = rightTrace, urightTrace.parent?.object?.item !== parentItem {
                     if let redone = urightTrace.redone {
                         rightTrace = try StructStore.getItemCleanStart(transaction, id: redone)
                     } else {
@@ -195,7 +195,7 @@ final public class Item: Struct, JSHashable {
                         break
                     }
                 }
-                if let urightTrace = rightTrace, urightTrace.parent?.object?._item === parentItem {
+                if let urightTrace = rightTrace, urightTrace.parent?.object?.item === parentItem {
                     right = urightTrace
                     break
                 }
@@ -219,7 +219,7 @@ final public class Item: Struct, JSHashable {
                     return nil
                 }
             } else {
-                left = parentType.storage[self.parentSub!]
+                left = parentType.storage[self.parentKey!]
             }
         }
         let nextClock = store.getState(ownClientID)
@@ -231,7 +231,7 @@ final public class Item: Struct, JSHashable {
             right: right,
             rightOrigin: right?.id,
             parent: .object(parentType),
-            parentSub: self.parentSub,
+            parentSub: self.parentKey,
             content: self.content.copy()
         )
         self.redone = nextId
@@ -268,11 +268,11 @@ final public class Item: Struct, JSHashable {
         if self.parent == nil {
             if self.left != nil && self.left is Item {
                 self.parent = (self.left as! Item).parent
-                self.parentSub = (self.left as! Item).parentSub
+                self.parentKey = (self.left as! Item).parentKey
             }
             if self.right != nil && self.right is Item {
                 self.parent = (self.right as! Item).parent
-                self.parentSub = (self.right as! Item).parentSub
+                self.parentKey = (self.right as! Item).parentKey
             }
         } else if let parent = self.parent?.id {
             let parentItem = try store.find(parent)
@@ -308,8 +308,8 @@ final public class Item: Struct, JSHashable {
                 // set o to the first conflicting item
                 if left != nil {
                     item = (left!.right as! Item)
-                } else if self.parentSub != nil {
-                    item = self.parent!.object!.storage[self.parentSub!]
+                } else if self.parentKey != nil {
+                    item = self.parent!.object!.storage[self.parentKey!]
                     while(item != nil && item!.left != nil) {
                         item = (item!.left as! Item)
                     }
@@ -356,8 +356,8 @@ final public class Item: Struct, JSHashable {
                 (self.left as! Item).right = self
             } else {
                 var r: Item?
-                if self.parentSub != nil {
-                    r = self.parent!.object!.storage[parentSub!]
+                if self.parentKey != nil {
+                    r = self.parent!.object!.storage[parentKey!]
                     while r != nil && r!.left != nil {
                         r = (r!.left as! Item)
                     }
@@ -369,16 +369,16 @@ final public class Item: Struct, JSHashable {
             }
             if self.right != nil {
                 (self.right as! Item).left = self
-            } else if self.parentSub != nil {
+            } else if self.parentKey != nil {
                 // set as current parent value if right == nil and this is parentSub
-                self.parent!.object!.storage[self.parentSub!] = self
+                self.parent!.object!.storage[self.parentKey!] = self
                 if self.left != nil {
                     // this is the current attribute value of parent. delete right
                     (self.left as! Item).delete(transaction)
                 }
             }
             // adjust length of parent
-            if self.parentSub == nil && self.countable && !self.deleted {
+            if self.parentKey == nil && self.countable && !self.deleted {
                 self.parent!.object!._length += self.length
             }
             
@@ -388,9 +388,9 @@ final public class Item: Struct, JSHashable {
             try self.content.integrate(with: self, transaction)
             
             // add parent to transaction.changed
-            transaction.addChangedType(self.parent!.object!, parentSub: self.parentSub)
-            if (self.parent!.object!._item != nil && self.parent!.object!._item!.deleted)
-                || (self.parentSub != nil && self.right != nil)
+            transaction.addChangedType(self.parent!.object!, parentSub: self.parentKey)
+            if (self.parent!.object!.item != nil && self.parent!.object!.item!.deleted)
+                || (self.parentKey != nil && self.right != nil)
             {
                 // delete if parent is deleted or if this is not the current attribute value of parent
                 self.delete(transaction)
@@ -443,7 +443,7 @@ final public class Item: Struct, JSHashable {
             type(of: self.content) == type(of: right.content) &&
             self.content.merge(with: right.content)
         ) {
-            let searchMarker = self.parent!.object!._searchMarker
+            let searchMarker = self.parent!.object!.serchMarkers
             if searchMarker != nil {
                 searchMarker!.forEach({ marker in
                     if marker.item == right {
@@ -467,12 +467,12 @@ final public class Item: Struct, JSHashable {
         if !self.deleted {
             let parent = self.parent!.object!
             // adjust the length of parent
-            if self.countable && self.parentSub == nil {
+            if self.countable && self.parentKey == nil {
                 parent._length -= self.length
             }
             self.deleted = true
             transaction.deleteSet.add(client: self.id.client, clock: self.id.clock, length: self.length)
-            transaction.addChangedType(parent, parentSub: self.parentSub)
+            transaction.addChangedType(parent, parentSub: self.parentKey)
             self.content.delete(transaction)
         }
     }
@@ -498,7 +498,7 @@ final public class Item: Struct, JSHashable {
     public override func write(encoder: UpdateEncoder, offset: Int) throws {
         let origin = offset > 0 ? ID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
         let rightOrigin = self.rightOrigin
-        let parentSub = self.parentSub
+        let parentSub = self.parentKey
         let info: UInt8 = (self.content.typeid & 0b0001_1111) |
             (origin == nil ? 0 : 0b1000_0000) | // origin is defined
             (rightOrigin == nil ? 0 : 0b0100_0000) | // right origin is defined
@@ -514,7 +514,7 @@ final public class Item: Struct, JSHashable {
         if origin == nil && rightOrigin == nil {
             switch self.parent {
             case .object(let parent):
-                let parentItem = parent._item
+                let parentItem = parent.item
                 if parentItem == nil {
                     // parent type on y._map
                     // find the correct key

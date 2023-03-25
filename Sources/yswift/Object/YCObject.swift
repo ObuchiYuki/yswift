@@ -13,20 +13,19 @@ public class YCObject: JSHashable {
     // MARK: - Property -
     public var doc: Doc? = nil
 
-    public var parent: YCObject? {
-        return self._item != nil ? self._item!.parent!.object! : nil
-    }
+    public var parent: YCObject? { self.item?.parent?.object }
     
     var storage: [String: Item] = [:]
+    
+    public var item: Item? = nil
 
     // =========================================================================== //
     // MARK: - Private (Temporally public) -
-    public var _item: Item? = nil
     public var _start: Item? = nil
     public var _length: Int = 0
     public var _eH: EventHandler<YEvent, Transaction> = EventHandler() /** Event handlers */
     public var _dEH: EventHandler<[YEvent], Transaction> = EventHandler() /** Deep event handlers */
-    public var _searchMarker: Ref<[ArraySearchMarker]>? = nil
+    public var serchMarkers: RefArray<ArraySearchMarker>? = nil
 
      /** The first non-deleted item */
     public var _first: Item? {
@@ -61,7 +60,7 @@ public class YCObject: JSHashable {
         var child = child
         while (child != nil) {
             if child!.parent?.object === self { return true }
-            child = child!.parent!.object!._item
+            child = child?.parent?.object?.item
         }
         return false
     }
@@ -73,8 +72,8 @@ public class YCObject: JSHashable {
         while true {
             if transaction.changedParentTypes[type] == nil { transaction.changedParentTypes[type] = [] }
             transaction.changedParentTypes[type]!.append(event)
-            if type._item == nil { break }
-            type = type._item!.parent!.object!
+            guard let object = type.item?.parent?.object else { break }
+            type = object
         }
         
         try changedType._eH.callListeners(event, transaction)
@@ -286,8 +285,8 @@ public class YCObject: JSHashable {
         if index > self._length { throw YSwiftError.lengthExceeded }
 
         if index == 0 {
-            if self._searchMarker != nil {
-                ArraySearchMarker.updateChanges(self._searchMarker!, index: index, len: contents.count)
+            if self.serchMarkers != nil {
+                ArraySearchMarker.updateChanges(self.serchMarkers!, index: index, len: contents.count)
             }
             
             try self.listInsertGenericsAfter(transaction, referenceItem: nil, contents: contents)
@@ -320,15 +319,15 @@ public class YCObject: JSHashable {
             }
             n = n!.right as? Item
         }
-        if (self._searchMarker != nil) {
-            ArraySearchMarker.updateChanges(self._searchMarker!, index: startIndex, len: contents.count)
+        if (self.serchMarkers != nil) {
+            ArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: contents.count)
         }
         return try self.listInsertGenericsAfter(transaction, referenceItem: n, contents: contents)
     }
     
     public func listPushGenerics(_ transaction: Transaction, contents: [Any?]) throws {
         
-        let marker = (self._searchMarker ?? .init(value: []))
+        let marker = (self.serchMarkers ?? [])
             .reduce(ArraySearchMarker(item: self._start, index: 0)) { maxMarker, currMarker in
                 return currMarker.index > maxMarker.index ? currMarker : maxMarker
             }
@@ -379,8 +378,8 @@ public class YCObject: JSHashable {
         if length > 0 {
             throw YSwiftError.lengthExceeded
         }
-        if (self._searchMarker != nil) {
-            ArraySearchMarker.updateChanges(self._searchMarker!, index: startIndex, len: length - startLength)
+        if (self.serchMarkers != nil) {
+            ArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: length - startLength)
         }
     }
 
@@ -458,14 +457,14 @@ public class YCObject: JSHashable {
     
     public func _integrate(_ y: Doc, item: Item?) throws {
         self.doc = y
-        self._item = item
+        self.item = item
     }
 
     public func _write(_ _encoder: UpdateEncoder) {}
 
     public func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
-        if !transaction.local && self._searchMarker != nil {
-            self._searchMarker!.value.removeAll()
+        if !transaction.local && self.serchMarkers != nil {
+            self.serchMarkers!.value.removeAll()
         }
     }
 

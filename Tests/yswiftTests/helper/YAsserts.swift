@@ -135,7 +135,7 @@ func YAssertEqualStructStore(_ ss1: StructStore, _ ss2: StructStore) throws {
                     || !compareItemIDs((s1.right as? Item), (s2.right as? Item))
                     || s1.origin != s2.origin
                     || s1.rightOrigin != s2.rightOrigin
-                    || s1.parentSub != s2.parentSub
+                    || s1.parentKey != s2.parentKey
                 ) {
                     return XCTFail("Items dont match")
                 }

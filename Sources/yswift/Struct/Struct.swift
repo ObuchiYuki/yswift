@@ -32,10 +32,10 @@ public class Struct {
             if left.merge(with: right) {
                 structs.value.remove(at: pos)
                 if right is Item
-                    && (right as! Item).parentSub != nil
-                    && ((right as! Item).parent!.object!).storage[(right as! Item).parentSub!] === right
+                    && (right as! Item).parentKey != nil
+                    && ((right as! Item).parent!.object!).storage[(right as! Item).parentKey!] === right
                 {
-                    ((right as! Item).parent!.object!).storage[(right as! Item).parentSub!] = (left as! Item)
+                    ((right as! Item).parent!.object!).storage[(right as! Item).parentKey!] = (left as! Item)
                 }
             }
         }

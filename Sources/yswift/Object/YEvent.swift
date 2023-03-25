@@ -239,25 +239,23 @@ extension String: PathElement {}
 extension Int: PathElement {}
 
 func getPathTo(parent: YCObject, child: YCObject) -> [PathElement] {
-    var child = child
+    var child: YCObject? = child
     var path: [PathElement] = []
-    while (child._item != nil && child != parent) {
-        if child._item!.parentSub != nil {
+    while let childItem = child?.item, child != parent {
+        if let parentKey = childItem.parentKey {
             // parent is map-ish
-            path.insert(child._item!.parentSub!, at: 0)
+            path.insert(parentKey, at: 0)
         } else {
             // parent is array-ish
             var i = 0
-            var c = (child._item!.parent!.object!)._start
-            while (c != child._item && c != nil) {
-                if !c!.deleted {
-                    i += 1
-                }
-                c = c!.right as? Item
+            var item = childItem.parent?.object?._start
+            while let uitem = item, item != childItem {
+                if !uitem.deleted { i += 1 }
+                item = uitem.right as? Item
             }
             path.insert(i, at: 0)
         }
-        child = child._item!.parent!.object!
+        child = childItem.parent?.object
     }
     return path
 }

@@ -316,8 +316,8 @@ final public class UndoManager: LZObservable, JSHashable {
             }
             transaction.changed.forEach({ type, subProps in
                 // destroy search marker if necessary
-                if subProps.contains(nil) && type._searchMarker != nil {
-                    type._searchMarker!.value.removeAll()
+                if subProps.contains(nil) && type.serchMarkers != nil {
+                    type.serchMarkers!.value.removeAll()
                 }
             })
             _tr = transaction

@@ -262,8 +262,8 @@ public func insertText(
     
     var left = currPos.left, right = currPos.right, index = currPos.index
     
-    if parent._searchMarker != nil {
-        ArraySearchMarker.updateChanges(parent._searchMarker!, index: currPos.index, len: content.count)
+    if parent.serchMarkers != nil {
+        ArraySearchMarker.updateChanges(parent.serchMarkers!, index: currPos.index, len: content.count)
     }
     right = Item(
         id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
@@ -507,9 +507,9 @@ public func deleteText(
         )
     }
     
-    let parent = (currPos.left ?? currPos.right!).parent!.object!
-    if parent._searchMarker != nil {
-        ArraySearchMarker.updateChanges(parent._searchMarker!, index: currPos.index, len: -startLength + length)
+    let parent = (currPos.left ?? currPos.right)?.parent?.object
+    if let serchMarkers = parent?.serchMarkers {
+        ArraySearchMarker.updateChanges(serchMarkers, index: currPos.index, len: -startLength + length)
     }
     return currPos
 }
@@ -706,7 +706,7 @@ public class YText: YCObject {
             // swift add
             try self.insert(0, text: string!, attributes: nil)
         }] : []
-        self._searchMarker = .init(value: [])
+        self.serchMarkers = []
     }
 
     public var length: Int { return self._length }
@@ -771,7 +771,7 @@ public class YText: YCObject {
                     if item is GC || foundFormattingItem {
                         return
                     }
-                    if ((item as! Item).parent as? YText) === self && (item as! Item).content is FormatContent {
+                    if ((item as! Item).parent?.object as? YText) === self && (item as! Item).content is FormatContent {
                         foundFormattingItem = true
                     }
                 })
@@ -790,7 +790,7 @@ public class YText: YCObject {
                         if item is GC {
                             return
                         }
-                        if ((item as! Item).parent as? YCObject) === self {
+                        if ((item as! Item).parent?.object as? YCObject) === self {
                             cleanupContextlessFormattingGap(transaction: t, item: (item as! Item))
                         }
                     })
