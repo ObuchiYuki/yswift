@@ -58,7 +58,7 @@ public class StructStore {
         }
     }
 
-    public func addStruct(_ struct_: GC_or_Item) throws {
+    public func addStruct(_ struct_: Struct) throws {
         var structs = self.clients[struct_.id.client]
         if structs == nil {
             structs = .init(value: [])

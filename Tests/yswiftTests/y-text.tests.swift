@@ -1,6 +1,6 @@
 import XCTest
 import Promise
-import yswift
+@testable import yswift
 
 final class YTextTests: XCTestCase {
     
@@ -402,7 +402,7 @@ final class YTextTests: XCTestCase {
         XCTAssertEqual(delta, [YEventDelta(insert: "z", attributes: ["bold": true])])
         
         let contentString = try XCTUnwrap(text0._start?.right?.asItemRight?.asItemRight?.asItemContentString)
-        XCTAssertEqual(contentString.str, "b", "Does not insert duplicate attribute marker")
+        XCTAssertEqual(contentString.string, "b", "Does not insert duplicate attribute marker")
         
         try text0.insert(0, text: "y")
         XCTAssertEqual(text0.toString(), "yzb")

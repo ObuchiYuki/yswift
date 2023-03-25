@@ -98,14 +98,14 @@ public class DeleteSet {
         try self.clients
             .sorted(by: { $0.key > $1.key })
             .forEach({ client, dsitems in
-                encoder.resetDsCurVal()
+                encoder.resetDeleteSetValue()
                 encoder.restEncoder.writeUInt(UInt(client))
                 let len = dsitems.count
                 encoder.restEncoder.writeUInt(UInt(len))
                 for i in 0..<len {
                     let item = dsitems[i]
-                    encoder.writeDsClock(item.clock)
-                    try encoder.writeDsLen(item.len)
+                    encoder.writeDeleteSetClock(item.clock)
+                    try encoder.writeDeleteSetLen(item.len)
                 }
             })
     }
@@ -186,7 +186,7 @@ public class DeleteSet {
         let numClients = try decoder.restDecoder.readUInt()
         
         for _ in 0..<numClients {
-            decoder.resetDsCurVal()
+            decoder.resetDeleteSetValue()
             let client = try Int(decoder.restDecoder.readUInt())
             let IntOfDeletes = try decoder.restDecoder.readUInt()
             if IntOfDeletes > 0 {
@@ -194,8 +194,8 @@ public class DeleteSet {
                 
                 for _ in 0..<IntOfDeletes {
                     ds.clients[client]!.value.append(DeleteItem(
-                        clock: try decoder.readDsClock(),
-                        len: try decoder.readDsLen()
+                        clock: try decoder.readDeleteSetClock(),
+                        len: try decoder.readDeleteSetLen()
                     ))
                 }
             }
@@ -242,15 +242,15 @@ public class DeleteSet {
         let numClients = try decoder.restDecoder.readUInt()
         
         for _ in 0..<numClients {
-            decoder.resetDsCurVal()
+            decoder.resetDeleteSetValue()
             let client = try Int(decoder.restDecoder.readUInt())
             let numberOfDeletes = try decoder.restDecoder.readUInt()
             let structs = store.clients[client] ?? .init(value: [])
             let state = store.getState(client)
             
             for _ in 0..<numberOfDeletes {
-                let clock = try decoder.readDsClock()
-                let dsLen = try decoder.readDsLen()
+                let clock = try decoder.readDeleteSetClock()
+                let dsLen = try decoder.readDeleteSetLen()
                 let clockEnd = clock + dsLen
                 
                 if clock < state {

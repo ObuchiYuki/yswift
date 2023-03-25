@@ -68,7 +68,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
         if v == nil {
             mapRes[k] = NSNull()
         } else {
-            mapRes[k] = v is AbstractType ? (v as! AbstractType).toJSON() : v
+            mapRes[k] = v is YCObject ? (v as! YCObject).toJSON() : v
         }
     }
     

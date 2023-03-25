@@ -25,7 +25,7 @@ class TestDoc: Doc {
         
         self.on(YTestEnvironment.currentEnvironment.updateEventName) { update, origin, _ in
             if (origin as? AnyObject) !== connector {
-                let encoder = Lib0Encoder()
+                let encoder = LZEncoder()
                 Sync.writeUpdate(encoder: encoder, update: update)
                 self.broadcastMessage(encoder.data)
             }
@@ -42,7 +42,7 @@ class TestDoc: Doc {
     func connect() throws {
         if !self.connector.onlineConnections.contains(self) {
             self.connector.onlineConnections.insert(self)
-            let encoder = Lib0Encoder()
+            let encoder = LZEncoder()
             
             try Sync.writeSyncStep1(encoder: encoder, doc: self)
             
@@ -50,7 +50,7 @@ class TestDoc: Doc {
             
             try self.connector.onlineConnections.forEach({ remoteYInstance in
                 if remoteYInstance !== self {
-                    let encoder = Lib0Encoder()
+                    let encoder = LZEncoder()
                     try Sync.writeSyncStep1(encoder: encoder, doc: remoteYInstance)
                     self._receive(encoder.data, remoteClient: remoteYInstance)
                 }

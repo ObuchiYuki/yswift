@@ -1,12 +1,10 @@
 import XCTest
 import Promise
-import yswift
+@testable import yswift
 
 final class EncodingTests: XCTestCase {
     
     func testStructReferences() {
-        XCTAssert(contentDecoders_.count == 11)
-        
         // Swift (intentionally) has no functions equality check.
     }
 

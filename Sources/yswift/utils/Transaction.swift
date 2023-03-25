@@ -27,9 +27,9 @@ public class Transaction {
 
     public var afterState: [Int: Int] = [:]
 
-    public var changed: [AbstractType: Set<String?>] = [:] // Map<AbstractType_<YEvent<any>>, Set<String?>>
+    public var changed: [YCObject: Set<String?>] = [:] // Map<Object_<YEvent<any>>, Set<String?>>
 
-    public var changedParentTypes: [AbstractType: [YEvent]] = [:] //[AbstractType_<YEvent<any>>: YEvent<any][]> = [:]
+    public var changedParentTypes: [YCObject: [YEvent]] = [:] //[Object_<YEvent<any>>: YEvent<any][]> = [:]
 
     public var meta: [AnyHashable: Any] = [:]
 
@@ -69,7 +69,7 @@ public class Transaction {
         return ID(client: y.clientID, clock: y.store.getState(y.clientID))
     }
 
-    public func addChangedType(_ type: AbstractType, parentSub: String?) {
+    public func addChangedType(_ type: YCObject, parentSub: String?) {
         let item = type._item
         if item == nil || (item!.id.clock < (self.beforeState[item!.id.client] ?? 0) && !item!.deleted) {
             var changed = self.changed[type] ?? Set<String?>() => {
@@ -185,7 +185,7 @@ public class Transaction {
             
             var fs: [() throws -> Void] = []
             
-            transaction.changed.forEach{ (itemtype: AbstractType, subs: Set<String?>) in
+            transaction.changed.forEach{ (itemtype: YCObject, subs: Set<String?>) in
                 fs.append{
                     if itemtype._item == nil || !itemtype._item!.deleted {
                         try itemtype._callObserver(transaction, _parentSubs: subs)

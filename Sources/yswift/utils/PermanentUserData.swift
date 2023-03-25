@@ -29,11 +29,11 @@ public class PermanentUserData {
             
             ds.observe{ event, _ in
                 try event.changes().added.forEach({ item in
-                    try item.content.values().forEach({ encodedDs in
+                    try item.content.values.forEach({ encodedDs in
                         if encodedDs is Data {
                             self.dss[userDescription] = DeleteSet.mergeAll([
                                 self.dss[userDescription] ?? DeleteSet(),
-                                try DeleteSet.decode(decoder: DSDecoderV1(Lib0Decoder(data: encodedDs as! Data)))
+                                try DeleteSet.decode(decoder: DSDecoderV1(LZDecoder(encodedDs as! Data)))
                             ])
                         }
                     })
@@ -42,13 +42,13 @@ public class PermanentUserData {
             
             self.dss[userDescription] = DeleteSet.mergeAll(
                 try ds.map{ data, _, _ in
-                    try DeleteSet.decode(decoder: DSDecoderV1(Lib0Decoder(data: data as! Data)))
+                    try DeleteSet.decode(decoder: DSDecoderV1(LZDecoder(data as! Data)))
                 }
             )
             
             ids.observe{ event, _ in
                 try event.changes().added.forEach({ item in
-                    item.content.values().forEach{
+                    item.content.values.forEach{
                         addClientId(clientid: $0 as! Int)
                     }
                 })

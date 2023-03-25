@@ -7,26 +7,26 @@
 
 import Foundation
 
-public protocol AbstractType_or_AbstractTypeArray {}
-extension AbstractType: AbstractType_or_AbstractTypeArray {}
-extension [AbstractType]: AbstractType_or_AbstractTypeArray {}
+public protocol Object_or_ObjectArray {}
+extension YCObject: Object_or_ObjectArray {}
+extension [YCObject]: Object_or_ObjectArray {}
 
-extension AbstractType_or_AbstractTypeArray {
+extension Object_or_ObjectArray {
     var doc: Doc? {
-        if let type = self as? AbstractType {
+        if let type = self as? YCObject {
             return type.doc
         }
-        if let typea = self as? [AbstractType] {
+        if let typea = self as? [YCObject] {
             return typea[0].doc
         }
         return nil
     }
     
-    var asAbstractTypeArray: [AbstractType] {
-        if let type = self as? AbstractType {
+    var asObjectArray: [YCObject] {
+        if let type = self as? YCObject {
             return [type]
         }
-        if let typea = self as? [AbstractType] {
+        if let typea = self as? [YCObject] {
             return typea
         }
         fatalError()
@@ -80,9 +80,9 @@ extension UndoManager {
         public var stackItem: StackItem
         public var type: EvnetType
         public var undoStackCleared: Bool?
-        public var changedParentTypes: [AbstractType: [YEvent]]
+        public var changedParentTypes: [YCObject: [YEvent]]
         
-        init(origin: Any? = nil, stackItem: StackItem, type: EvnetType, undoStackCleared: Bool? = nil , changedParentTypes: [AbstractType : [YEvent]]) {
+        init(origin: Any? = nil, stackItem: StackItem, type: EvnetType, undoStackCleared: Bool? = nil , changedParentTypes: [YCObject : [YEvent]]) {
             self.origin = origin
             self.stackItem = stackItem
             self.type = type
@@ -127,18 +127,18 @@ extension UndoManager {
     }
 
     public enum Event {
-        public static let stackCleanred = Lib0Observable.EventName<CleanEvent>("stack-cleared")
-        public static let stackItemAdded = Lib0Observable.EventName<UndoManager.ChangeEvent>("stack-item-added")
-        public static let stackItemPopped = Lib0Observable.EventName<UndoManager.ChangeEvent>("stack-item-popped")
-        public static let stackItemUpdated = Lib0Observable.EventName<UndoManager.ChangeEvent>("stack-item-updated")
+        public static let stackCleanred = LZObservable.EventName<CleanEvent>("stack-cleared")
+        public static let stackItemAdded = LZObservable.EventName<UndoManager.ChangeEvent>("stack-item-added")
+        public static let stackItemPopped = LZObservable.EventName<UndoManager.ChangeEvent>("stack-item-popped")
+        public static let stackItemUpdated = LZObservable.EventName<UndoManager.ChangeEvent>("stack-item-updated")
     }
 }
 
 
 
-final public class UndoManager: Lib0Observable, JSHashable {
+final public class UndoManager: LZObservable, JSHashable {
 
-    public var scope: Ref<[AbstractType]> = .init(value: [])
+    public var scope: Ref<[YCObject]> = .init(value: [])
     public var deleteFilter: (Item) -> Bool
     public var trackedOrigins: Ref<Set<AnyHashable?>>
     public var captureTransaction: (Transaction) -> Bool
@@ -151,9 +151,9 @@ final public class UndoManager: Lib0Observable, JSHashable {
     public var lastChange: Date
     public var ignoreRemoteMapChanges: Bool
     public var captureTimeout: TimeInterval
-    public var afterTransactionDisposer: Lib0Observable.Disposer!
+    public var afterTransactionDisposer: LZObservable.Disposer!
 
-    public init(typeScope: AbstractType_or_AbstractTypeArray, options: Options) {
+    public init(typeScope: Object_or_ObjectArray, options: Options) {
         self.scope = .init(value: [])
         self.deleteFilter = options.deleteFilter
         self.trackedOrigins = options.trackedOrigins
@@ -224,7 +224,7 @@ final public class UndoManager: Lib0Observable, JSHashable {
             // make sure that deleted structs are not gc'd
             try transaction.deleteSet.iterate(transaction, body: { item in
                 if item is Item && self.scope.contains(where: { type in type.isParentOf(child: (item as! Item)) }) {
-                    Item.keepRecursive(item as! Item, keep: true)
+                    (item as? Item)?.keepRecursive(keep: true)
                 }
             })
 
@@ -251,7 +251,7 @@ final public class UndoManager: Lib0Observable, JSHashable {
     public func clearStackItem(_ tr: Transaction, stackItem: StackItem) throws {
         try stackItem.deletions.iterate(tr) { item in
             if item is Item && self.scope.contains(where: { type in type.isParentOf(child: (item as! Item)) }) {
-                Item.keepRecursive((item as! Item), keep: false)
+                (item as? Item)?.keepRecursive(keep: false)
             }
         }
     }
@@ -338,8 +338,8 @@ final public class UndoManager: Lib0Observable, JSHashable {
     }
 
 
-    public func addToScope(_ ytypes: AbstractType_or_AbstractTypeArray) {
-        let ytypes = ytypes.asAbstractTypeArray
+    public func addToScope(_ ytypes: Object_or_ObjectArray) {
+        let ytypes = ytypes.asObjectArray
         ytypes.forEach({ ytype in
             if self.scope.allSatisfy({ $0 !== ytype }) {
                 self.scope.value.append(ytype)

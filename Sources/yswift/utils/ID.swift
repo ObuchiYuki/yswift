@@ -18,12 +18,12 @@ public class ID: Equatable {
         self.clock = clock
     }
 
-    public func encode(_ encoder: Lib0Encoder) {
+    public func encode(_ encoder: LZEncoder) {
         encoder.writeUInt(UInt(self.client))
         encoder.writeUInt(UInt(self.clock))
     }
 
-    public static func decode(_ decoder: Lib0Decoder) throws -> ID {
+    public static func decode(_ decoder: LZDecoder) throws -> ID {
         return ID(
             client: Int(try decoder.readUInt()),
             clock: Int(try decoder.readUInt())

@@ -170,7 +170,7 @@ final class UpdatesTests: XCTestCase {
                     let diffedMeta = try enc.parseUpdateMeta(diffed)
                     XCTAssertEqual(partMeta, diffedMeta)
                     do {
-                        let decoder = Lib0Decoder(data: diffed)
+                        let decoder = LZDecoder(diffed)
                         let updateDecoder = try UpdateDecoderV2(decoder)
                         _ = try readClientsStructRefs(decoder: updateDecoder, doc: Doc())
                         let ds = try DeleteSet.decode(decoder: updateDecoder)

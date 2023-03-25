@@ -7,7 +7,7 @@
 
 import Foundation
 
-func findRootTypeKey(type: AbstractType) throws -> String {
+func findRootTypeKey(type: YCObject) throws -> String {
     for (key, value) in type.doc!.share {
         if value == type {
             return key

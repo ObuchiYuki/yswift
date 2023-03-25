@@ -40,10 +40,10 @@ class TestConnector: JSHashable {
         
         guard let receivedData = data else { return try self.flushRandomMessage() }
         
-        let encoder = Lib0Encoder()
+        let encoder = LZEncoder()
                 
         try Sync.readSyncMessage(
-            decoder: Lib0Decoder(data: receivedData),
+            decoder: LZDecoder(receivedData),
             encoder: encoder, doc: receiver, transactionOrigin: receiver.connector
         )
         

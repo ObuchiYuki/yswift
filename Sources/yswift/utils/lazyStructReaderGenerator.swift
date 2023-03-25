@@ -35,11 +35,11 @@ public func lazyStructReaderGenerator(_ decoder: UpdateDecoder, yield: (Struct) 
                     rightOrigin: (info & 0b0100_0000) == 0b0100_0000 ? decoder.readRightID() : nil, // right origin
                     parent: cantCopyParentInfo
                     ? (decoder.readParentInfo()
-                        ? decoder.readString() as (any AbstractType_or_ID_or_String)
-                        : decoder.readLeftID() as (any AbstractType_or_ID_or_String))
+                        ? decoder.readString() as (any Object_or_ID_or_String)
+                        : decoder.readLeftID() as (any Object_or_ID_or_String))
                     : nil,
                     parentSub: cantCopyParentInfo && (info & 0b0010_0000) == 0b0010_0000 ? decoder.readString() : nil, // parentSub
-                    content: readItemContent(decoder: decoder, info: info) // item content
+                    content: try decodeContent(from: decoder, info: info) // item content
                 )
                 yield(struct_)
                 clock += struct_.length

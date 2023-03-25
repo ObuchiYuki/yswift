@@ -39,13 +39,13 @@ public struct DocOpts {
     }
 }
 
-open class Doc: Lib0Observable, JSHashable {
+open class Doc: LZObservable, JSHashable {
     public var gcFilter: (Item) -> Bool
     public var gc: Bool
     public var clientID: Int
     public var guid: String
     public var collectionid: String?
-    public var share: [String: AbstractType] // [String: AbstractType_<YEvent<any>>]
+    public var share: [String: YCObject] // [String: Object_<YEvent<any>>]
     public var store: StructStore
     public var subdocs: Set<Doc>
     public var shouldLoad: Bool
@@ -123,7 +123,7 @@ open class Doc: Lib0Observable, JSHashable {
     public func load() throws {
         let item = self._item
         if item != nil && !self.shouldLoad {
-            try (item!.parent as! AbstractType).doc?.transact({ transaction in
+            try (item!.parent as! YCObject).doc?.transact({ transaction in
                 transaction.subdocsLoaded.insert(self)
             }, origin: nil)
         }
@@ -141,19 +141,19 @@ open class Doc: Lib0Observable, JSHashable {
         try Transaction.transact(self, body: body, origin: origin, local: local)
     }
 
-    // JS実装では TypeConstructor なしで呼び出すとAbstractTypeを作った
-    public func get<T: AbstractType>(_: T.Type, name: String = "", make: () -> T) throws -> T {
+    // JS実装では TypeConstructor なしで呼び出すとObjectを作った
+    public func get<T: YCObject>(_: T.Type, name: String = "", make: () -> T) throws -> T {
         let type_ = try self.share.setIfUndefined(name, {
             let t = make()
             try t._integrate(self, item: nil)
             return t
         }())
         
-        if T.self != AbstractType.self && !(type_ is T) {
-            if type(of: type_) == AbstractType.self {
+        if T.self != YCObject.self && !(type_ is T) {
+            if type(of: type_) == YCObject.self {
                 let t = make()
-                t._map = type_._map
-                type_._map.forEach({ _, n in
+                t.storage = type_.storage
+                type_.storage.forEach({ _, n in
                     var n: Item? = n
                     while n != nil {
                         n!.parent = t
@@ -214,16 +214,16 @@ open class Doc: Lib0Observable, JSHashable {
             // swift add
             var __copyOpts = DocOpts()
             __copyOpts.guid = self.guid
-            if let gc = content?.opts.gc { __copyOpts.gc = gc }
-            if let meta = content?.opts.meta { __copyOpts.meta = meta }
-            if let autoLoad = content?.opts.autoLoad { __copyOpts.autoLoad = autoLoad }
+            if let gc = content?.options.gc { __copyOpts.gc = gc }
+            if let meta = content?.options.meta { __copyOpts.meta = meta }
+            if let autoLoad = content?.options.autoLoad { __copyOpts.autoLoad = autoLoad }
             __copyOpts.shouldLoad = false
             
             let subdoc = Doc(opts: __copyOpts)
-            content?.doc = subdoc
-            content?.doc._item = item!
+            content?.document = subdoc
+            content?.document._item = item!
             
-            try (item!.parent as! AbstractType).doc?.transact({ transaction in
+            try (item!.parent as! YCObject).doc?.transact({ transaction in
                 let doc = subdoc
                 if !item!.deleted { transaction.subdocsAdded.insert(doc) }
                 transaction.subdocsRemoved.insert(self)
