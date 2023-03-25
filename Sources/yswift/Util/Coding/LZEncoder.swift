@@ -161,7 +161,7 @@ public final class LZEncoder {
     }
 }
 
-public class Lib0RleEncoder {
+public class LZRleEncoder {
     private let encoder = LZEncoder()
     private var state: UInt8? = nil
     private var count: UInt = 0
@@ -184,7 +184,7 @@ public class Lib0RleEncoder {
     }
 }
 
-public class Lib0IntDiffEncoder {
+public class LZIntDiffEncoder {
     private let encoder = LZEncoder()
     private var state: Int
 
@@ -200,7 +200,7 @@ public class Lib0IntDiffEncoder {
     }
 }
 
-public class Lib0RleIntDiffEncoder {
+public class LZRleIntDiffEncoder {
     private let encoder = LZEncoder()
     private var state: Int
     private var count: UInt
@@ -226,13 +226,13 @@ public class Lib0RleIntDiffEncoder {
     }
 }
 
-private protocol Lib0UIntOptRleEncoderType {
+private protocol LZUIntOptRleEncoderType {
     var count: UInt { get }
     var state: UInt { get }
     var encoder: LZEncoder { get }
 }
 
-extension Lib0UIntOptRleEncoderType {
+extension LZUIntOptRleEncoderType {
     func flush() {
         if self.count > 0 {
             if self.count == 1 {
@@ -247,7 +247,7 @@ extension Lib0UIntOptRleEncoderType {
     }
 }
 
-public class Lib0UintOptRleEncoder: Lib0UIntOptRleEncoderType {
+public class LZUintOptRleEncoder: LZUIntOptRleEncoderType {
     fileprivate var encoder = LZEncoder()
     fileprivate var state: UInt = 0
     fileprivate var count: UInt = 0
@@ -275,7 +275,7 @@ public class Lib0UintOptRleEncoder: Lib0UIntOptRleEncoderType {
     }
 }
 
-public class Lib0IncUintOptRleEncoder: Lib0UIntOptRleEncoderType {
+public class LZIncUintOptRleEncoder: LZUIntOptRleEncoderType {
     fileprivate let encoder = LZEncoder()
     fileprivate var state: UInt = 0
     fileprivate var count: UInt = 0
@@ -298,7 +298,7 @@ public class Lib0IncUintOptRleEncoder: Lib0UIntOptRleEncoderType {
     }
 }
 
-public class Lib0IntDiffOptRleEncoder {
+public class LZIntDiffOptRleEncoder {
     let encoder = LZEncoder()
     var state = 0
     var count: UInt = 0
@@ -334,10 +334,10 @@ public class Lib0IntDiffOptRleEncoder {
     }
 }
 
-public class Lib0StringEncoder {
+public class LZStringEncoder {
     private var sarr: [NSString] = []
     private var s = NSMutableString()
-    private var lensE = Lib0UintOptRleEncoder()
+    private var lensE = LZUintOptRleEncoder()
 
     public init() {}
 

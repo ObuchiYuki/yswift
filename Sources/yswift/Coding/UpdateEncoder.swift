@@ -88,15 +88,15 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
     /// Refers to the next uniqe key-identifier to me used. See writeKey method for more information.
     private var keyClock: Int = 0
 
-    let keyClockEncoder = Lib0IntDiffOptRleEncoder()
-    let clientEncoder = Lib0UintOptRleEncoder()
-    let leftClockEncoder = Lib0IntDiffOptRleEncoder()
-    let rightClockEncoder = Lib0IntDiffOptRleEncoder()
-    let infoEncoder = Lib0RleEncoder()
-    let stringEncoder = Lib0StringEncoder()
-    let parentInfoEncoder = Lib0RleEncoder()
-    let typeRefEncoder = Lib0UintOptRleEncoder()
-    let lenEncoder = Lib0UintOptRleEncoder()
+    let keyClockEncoder = LZIntDiffOptRleEncoder()
+    let clientEncoder = LZUintOptRleEncoder()
+    let leftClockEncoder = LZIntDiffOptRleEncoder()
+    let rightClockEncoder = LZIntDiffOptRleEncoder()
+    let infoEncoder = LZRleEncoder()
+    let stringEncoder = LZStringEncoder()
+    let parentInfoEncoder = LZRleEncoder()
+    let typeRefEncoder = LZUintOptRleEncoder()
+    let lenEncoder = LZUintOptRleEncoder()
 
     public override init() {
         super.init()
