@@ -17,43 +17,43 @@ enum Sync {
         case update = 2
     }
 
-    static func writeSyncStep1(encoder: Lib0Encoder, doc: Doc) throws {
+    static func writeSyncStep1(encoder: LZEncoder, doc: Doc) throws {
         encoder.writeUInt(MessageType.syncStep1.rawValue)
         let sv = try encodeStateVector(doc: doc)
         encoder.writeData(sv)
     }
 
-    static func writeSyncStep2(encoder: Lib0Encoder, doc: Doc, encodedStateVector: Data? = nil) throws {
+    static func writeSyncStep2(encoder: LZEncoder, doc: Doc, encodedStateVector: Data? = nil) throws {
         encoder.writeUInt(MessageType.syncStep2.rawValue)
         let update = try encodeStateAsUpdate(doc: doc, encodedTargetStateVector: encodedStateVector)
                 
         encoder.writeData(update)
     }
 
-    static func readSyncStep1(decoder: Lib0Decoder, encoder: Lib0Encoder, doc: Doc) throws {
-        try writeSyncStep2(encoder: encoder, doc: doc, encodedStateVector: decoder.readVarData())
+    static func readSyncStep1(decoder: LZDecoder, encoder: LZEncoder, doc: Doc) throws {
+        try writeSyncStep2(encoder: encoder, doc: doc, encodedStateVector: decoder.readData())
     }
 
-    static func readSyncStep2(decoder: Lib0Decoder, doc: Doc, transactionOrigin: Any? = nil) {
+    static func readSyncStep2(decoder: LZDecoder, doc: Doc, transactionOrigin: Any? = nil) {
         do {
-            let data = try decoder.readVarData()
+            let data = try decoder.readData()
             try applyUpdate(ydoc: doc, update: data, transactionOrigin: transactionOrigin)
         } catch {
             print("Caught error while handling a Yjs update. \(error)")
         }
     }
 
-    static func writeUpdate(encoder: Lib0Encoder, update: Data) {
+    static func writeUpdate(encoder: LZEncoder, update: Data) {
         encoder.writeUInt(MessageType.update.rawValue)
         encoder.writeData(update)
     }
 
-    static func readUpdate_(decoder: Lib0Decoder, doc: Doc, transactionOrigin: Any? = nil) {
+    static func readUpdate_(decoder: LZDecoder, doc: Doc, transactionOrigin: Any? = nil) {
         readSyncStep2(decoder: decoder, doc: doc, transactionOrigin: transactionOrigin)
     }
 
     @discardableResult
-    static func readSyncMessage(decoder: Lib0Decoder, encoder: Lib0Encoder, doc: Doc, transactionOrigin: Any? = nil) throws -> MessageType {
+    static func readSyncMessage(decoder: LZDecoder, encoder: LZEncoder, doc: Doc, transactionOrigin: Any? = nil) throws -> MessageType {
         let messageType = MessageType(rawValue: try decoder.readUInt())!
         
         

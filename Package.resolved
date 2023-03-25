@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "promise",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ObuchiYuki/Promise.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "e90a0ab18fbb622fa7a7f1843ed870d047e2d5d6"
+      }
+    }
+  ],
+  "version" : 2
+}
