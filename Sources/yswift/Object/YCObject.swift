@@ -14,7 +14,7 @@ public class YCObject: JSHashable {
     public var doc: Doc? = nil
 
     public var parent: YCObject? {
-        return self._item != nil ? (self._item!.parent as! YCObject) : nil
+        return self._item != nil ? self._item!.parent!.object! : nil
     }
     
     var storage: [String: Item] = [:]
@@ -60,8 +60,8 @@ public class YCObject: JSHashable {
     public func isParentOf(child: Item?) -> Bool {
         var child = child
         while (child != nil) {
-            if child!.parent is YCObject && (child!.parent as! YCObject) === self { return true }
-            child = (child!.parent as! YCObject)._item
+            if child!.parent?.object === self { return true }
+            child = child!.parent!.object!._item
         }
         return false
     }
@@ -74,7 +74,7 @@ public class YCObject: JSHashable {
             if transaction.changedParentTypes[type] == nil { transaction.changedParentTypes[type] = [] }
             transaction.changedParentTypes[type]!.append(event)
             if type._item == nil { break }
-            type = type._item!.parent as! YCObject
+            type = type._item!.parent!.object!
         }
         
         try changedType._eH.callListeners(event, transaction)
@@ -239,7 +239,7 @@ public class YCObject: JSHashable {
             if (jsonContent.count <= 0) { return }
             let id = ID(client: ownClientId, clock: store.getState(ownClientId))
             let content = AnyContent(jsonContent)
-            left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: content)
+            left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: content)
             try left!.integrate(transaction: transaction, offset: 0)
             jsonContent = []
         }
@@ -257,19 +257,19 @@ public class YCObject: JSHashable {
                 if (content is Data) {
                     let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = BinaryContent(content as! Data)
-                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else if content is Doc {
                     let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = DocumentContent(content as! Doc)
-                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     
                     try left!.integrate(transaction: transaction, offset: 0)
                     
                 } else if content is YCObject {
                     let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = TypeContent(content as! YCObject)
-                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: self, parentSub: nil, content: icontent)
+                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else {
                     throw YSwiftError.unexpectedContentType
@@ -417,7 +417,7 @@ public class YCObject: JSHashable {
             }
         }
         let id = ID(client: ownClientId, clock: doc.store.getState(ownClientId))
-        try Item(id: id, left: left, origin: left?.lastID, right: nil, rightOrigin: nil, parent: self, parentSub: key, content: content)
+        try Item(id: id, left: left, origin: left?.lastID, right: nil, rightOrigin: nil, parent: .object(self), parentSub: key, content: content)
             .integrate(transaction: transaction, offset: 0)
     }
 

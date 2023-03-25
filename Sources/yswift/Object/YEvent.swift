@@ -248,7 +248,7 @@ func getPathTo(parent: YCObject, child: YCObject) -> [PathElement] {
         } else {
             // parent is array-ish
             var i = 0
-            var c = (child._item!.parent as! YCObject)._start
+            var c = (child._item!.parent!.object!)._start
             while (c != child._item && c != nil) {
                 if !c!.deleted {
                     i += 1
@@ -257,7 +257,7 @@ func getPathTo(parent: YCObject, child: YCObject) -> [PathElement] {
             }
             path.insert(i, at: 0)
         }
-        child = child._item!.parent as! YCObject
+        child = child._item!.parent!.object!
     }
     return path
 }

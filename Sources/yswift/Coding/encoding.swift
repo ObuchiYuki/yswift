@@ -111,8 +111,8 @@ public func readClientsStructRefs(decoder: UpdateDecoder, doc: Doc) throws -> Re
                     rightOrigin: (info & 0b0100_0000) == 0b0100_0000 ? decoder.readRightID() : nil, // right origin
                     parent: cantCopyParentInfo
                     ? (decoder.readParentInfo()
-                       ? doc.get(YCObject.self, name: decoder.readString(), make: YCObject.init) as (any Object_or_ID_or_String)
-                       : decoder.readLeftID() as any Object_or_ID_or_String)
+                       ? .object(doc.get(YCObject.self, name: decoder.readString(), make: YCObject.init))
+                       : .id(decoder.readLeftID()))
                     : nil, // parent
                     parentSub: cantCopyParentInfo && (info & 0b0010_0000) == 0b0010_0000 ? decoder.readString() : nil, // parentSub
                     content: try decodeContent(from: decoder, info: info) // item content

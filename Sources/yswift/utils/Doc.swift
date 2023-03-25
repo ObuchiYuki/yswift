@@ -123,7 +123,7 @@ open class Doc: LZObservable, JSHashable {
     public func load() throws {
         let item = self._item
         if item != nil && !self.shouldLoad {
-            try (item!.parent as! YCObject).doc?.transact({ transaction in
+            try item!.parent!.object!.doc?.transact({ transaction in
                 transaction.subdocsLoaded.insert(self)
             }, origin: nil)
         }
@@ -156,14 +156,14 @@ open class Doc: LZObservable, JSHashable {
                 type_.storage.forEach({ _, n in
                     var n: Item? = n
                     while n != nil {
-                        n!.parent = t
+                        n!.parent = .object(t)
                         n = n!.left as? Item
                     }
                     
                 })
                 t._start = type_._start
                 var n = t._start; while n != nil {
-                    n!.parent = t
+                    n!.parent = .object(t)
                     n = n!.right as? Item
                 }
                 t._length = type_._length
@@ -223,7 +223,7 @@ open class Doc: LZObservable, JSHashable {
             content?.document = subdoc
             content?.document._item = item!
             
-            try (item!.parent as! YCObject).doc?.transact({ transaction in
+            try item!.parent!.object!.doc?.transact({ transaction in
                 let doc = subdoc
                 if !item!.deleted { transaction.subdocsAdded.insert(doc) }
                 transaction.subdocsRemoved.insert(self)

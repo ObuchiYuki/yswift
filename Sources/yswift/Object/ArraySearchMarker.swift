@@ -96,7 +96,8 @@ public class ArraySearchMarker {
 
         if (item == nil) { return nil }
         
-        let len = Int((item!.parent as! YText_or_YArray).length) / ArraySearchMarker.maxSearchMarker
+        
+        let len = Int((item!.parent!.object as! YText_or_YArray).length) / ArraySearchMarker.maxSearchMarker
         if marker != nil && abs(Int(marker!.index) - Int(pindex)) < len {
             // adjust existing marker
             marker!.overwrite(item!, index: pindex)

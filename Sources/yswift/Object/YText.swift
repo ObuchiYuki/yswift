@@ -157,7 +157,7 @@ public func insertNegatedAttributes(
             origin: left?.lastID,
             right: right,
             rightOrigin: right?.id,
-            parent: parent,
+            parent: .object(parent),
             parentSub: nil,
             content: FormatContent(key: key, value: val)
         )
@@ -222,7 +222,8 @@ public func insertAttributes(
                 origin: left?.lastID,
                 right: right,
                 rightOrigin: right?.id,
-                parent: parent, parentSub: nil,
+                parent: .object(parent),
+                parentSub: nil,
                 content: FormatContent(key: key, value: val)
             )
             try currPos.right!.integrate(transaction: transaction, offset: 0)
@@ -270,7 +271,7 @@ public func insertText(
         origin: left?.lastID,
         right: right,
         rightOrigin: right?.id,
-        parent: parent,
+        parent: .object(parent),
         parentSub: nil,
         content: content
     )
@@ -355,7 +356,7 @@ public func formatText(
             origin: currPos.left?.lastID,
             right: currPos.right,
             rightOrigin: currPos.right?.id,
-            parent: parent,
+            parent: .object(parent),
             parentSub: nil,
             content: StringContent(newlines as NSString)
         )
@@ -506,7 +507,7 @@ public func deleteText(
         )
     }
     
-    let parent = ((currPos.left ?? currPos.right!).parent as! YCObject)
+    let parent = (currPos.left ?? currPos.right!).parent!.object!
     if parent._searchMarker != nil {
         ArraySearchMarker.updateChanges(parent._searchMarker!, index: currPos.index, len: -startLength + length)
     }
