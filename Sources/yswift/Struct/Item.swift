@@ -5,11 +5,6 @@
 //  Created by yuki on 2023/03/15.
 //
 
-public protocol Object_or_ID_or_String: Equatable {}
-extension YCObject: Object_or_ID_or_String {}
-extension ID: Object_or_ID_or_String {}
-extension String: Object_or_ID_or_String {}
-
 extension Item {
     public enum Parent {
         case string(String)
@@ -64,7 +59,7 @@ final public class Item: Struct, JSHashable {
     
     public var countable: Bool { self.info & 0b0000_0010 > 0 }
 
-    init( id: ID, left: Struct?, origin: ID?, right: Struct?, rightOrigin: ID?, parent: Parent?, parentSub: String?, content: any Content) {
+    init(id: ID, left: Struct?, origin: ID?, right: Struct?, rightOrigin: ID?, parent: Parent?, parentSub: String?, content: any Content) {
         self.origin = origin
         self.left = left
         self.right = right
@@ -158,7 +153,7 @@ final public class Item: Struct, JSHashable {
         
         let parentType: YCObject
         
-        if let parentItem = parentItem, let parentContent = parentItem.content as? TypeContent {
+        if let parentContent = parentItem?.content as? TypeContent {
             parentType = parentContent.type
         } else if let parentObject = self.parent?.object {
             parentType = parentObject
@@ -206,20 +201,20 @@ final public class Item: Struct, JSHashable {
             right = nil
             if self.right != nil && !ignoreRemoteMapChanges {
                 left = self
-                // Iterate right while right is in itemsToDelete
-                // If it is intended to delete right while item is redone, we can expect that item should replace right.
-                while left != nil && left is Item && (left as! Item).right != nil && itemsToDelete.isDeleted((left as! Item).right!.id) {
-                    left = (left as! Item).right
-                }
                 
-                while left != nil && left is Item && (left as! Item).redone != nil {
-                    left = try StructStore.getItemCleanStart(transaction, id: (left as! Item).redone!)
+                while let uleft = left as? Item, let leftRight = uleft.right, itemsToDelete.isDeleted(leftRight.id) {
+                    left = uleft.right
                 }
-                if left != nil && left is Item && (left as! Item).right != nil {
+                while let redone = (left as? Item)?.redone {
+                    left = try StructStore.getItemCleanStart(transaction, id: redone)
+                }
+                if let uleft = left as? Item, uleft.right != nil {
                     return nil
                 }
+            } else if let parentKey = self.parentKey {
+                left = parentType.storage[parentKey]
             } else {
-                left = parentType.storage[self.parentKey!]
+                assertionFailure()
             }
         }
         let nextClock = store.getState(ownClientID)
@@ -242,37 +237,37 @@ final public class Item: Struct, JSHashable {
     
     /** Return the creator clientID of the missing op or define missing items and return nil. */
     public override func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? {
-        if self.origin != nil && self.origin!.client != self.id.client && self.origin!.clock >= store.getState(self.origin!.client) {
-            return self.origin!.client
+        if let origin = self.origin, origin.client != self.id.client, origin.clock >= store.getState(origin.client) {
+            return origin.client
         }
-        if self.rightOrigin != nil && self.rightOrigin!.client != self.id.client && self.rightOrigin!.clock >= store.getState(self.rightOrigin!.client) {
-            return self.rightOrigin!.client
+        if let rightOrigin = self.rightOrigin, rightOrigin.client != self.id.client, rightOrigin.clock >= store.getState(rightOrigin.client) {
+            return rightOrigin.client
         }
         if let parent = self.parent?.id, self.id.client != parent.client, parent.clock >= store.getState(parent.client) {
             return parent.client
         }
 
         // We have all missing ids, now find the items
-        if self.origin != nil {
-            self.left = try store.getItemCleanEnd(transaction, id: self.origin!)
+        if let origin = self.origin {
+            self.left = try store.getItemCleanEnd(transaction, id: origin)
             self.origin = (self.left as? Item)?.lastID
         }
-        if self.rightOrigin != nil {
-            self.right = try StructStore.getItemCleanStart(transaction, id: self.rightOrigin!)
+        if let rightOrigin = self.rightOrigin {
+            self.right = try StructStore.getItemCleanStart(transaction, id: rightOrigin)
             self.rightOrigin = self.right!.id
         }
-        if (self.left != nil && self.left is GC) || (self.right != nil && self.right is GC) {
+        if self.left is GC || self.right is GC {
             self.parent = nil
         }
         // only set parent if this shouldn't be garbage collected
         if self.parent == nil {
-            if self.left != nil && self.left is Item {
-                self.parent = (self.left as! Item).parent
-                self.parentKey = (self.left as! Item).parentKey
+            if let leftItem = self.left as? Item {
+                self.parent = leftItem.parent
+                self.parentKey = leftItem.parentKey
             }
-            if self.right != nil && self.right is Item {
-                self.parent = (self.right as! Item).parent
-                self.parentKey = (self.right as! Item).parentKey
+            if let rightItem = self.right as? Item {
+                self.parent = rightItem.parent
+                self.parentKey = rightItem.parentKey
             }
         } else if let parent = self.parent?.id {
             let parentItem = try store.find(parent)
@@ -297,109 +292,102 @@ final public class Item: Struct, JSHashable {
             self.length -= offset
         }
 
+        guard let parent = self.parent else {
+            try GC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
+            return
+        }
 
-        if self.parent != nil {
-            if (self.left == nil && (self.right == nil || (self.right as? Item)?.left != nil))
-                || (self.left != nil && (self.left as? Item)?.right !== self.right)
-            {
-                var left = self.left as? Item
+        if (self.left == nil && (self.right == nil || (self.right as? Item)?.left != nil))
+            || (self.left != nil && (self.left as? Item)?.right !== self.right)
+        {
+            var left = self.left as? Item
 
-                var item: Item?
-                // set o to the first conflicting item
-                if left != nil {
-                    item = (left!.right as! Item)
-                } else if self.parentKey != nil {
-                    item = self.parent!.object!.storage[self.parentKey!]
-                    while(item != nil && item!.left != nil) {
-                        item = (item!.left as! Item)
-                    }
-                } else {
-                    item = self.parent!.object!._start
+            var item: Item?
+            // set o to the first conflicting item
+            if left != nil {
+                item = (left!.right as! Item)
+            } else if self.parentKey != nil {
+                item = parent.object!.storage[self.parentKey!]
+                while(item != nil && item!.left != nil) {
+                    item = (item!.left as! Item)
                 }
-                
-                var conflictingItems = Set<Item>()
-                var itemsBeforeOrigin = Set<Item>()
-                // Let c in conflictingItems, b in itemsBeforeOrigin
-                // ***{origin}bbbb{this}{c,b}{c,b}{o}***
-                // Note that conflictingItems is a subset of itemsBeforeOrigin
-                while(item != nil && item !== self.right) {
-                    itemsBeforeOrigin.insert(item!)
-                    conflictingItems.insert(item!)
-                    if self.origin == item!.origin {
-                        // case 1
-                        if item!.id.client < self.id.client {
-                            left = item!
-                            conflictingItems.removeAll()
-                        } else if self.rightOrigin == item!.rightOrigin {
-                            // this and o are conflicting and point to the same integration points. The id decides which item comes first.
-                            // Since this is to the left of o, we can break here
-                            break
-                        } // else, o might be integrated before an item that this conflicts with. If so, we will find it in the next iterations
-                    } else if try item!.origin != nil && itemsBeforeOrigin.contains(transaction.doc.store.getItem(item!.origin!)) {
-                        // use getItem instead of getItemCleanEnd because we don't want / need to split items.
-                        // case 2
-                        if !conflictingItems.contains(try transaction.doc.store.getItem(item!.origin!)) {
-                            left = item!
-                            conflictingItems.removeAll()
-                        }
-                    } else {
+            } else {
+                item = parent.object!._start
+            }
+            
+            var conflictingItems = Set<Item>()
+            var itemsBeforeOrigin = Set<Item>()
+            
+            while (item != nil && item !== self.right) {
+                itemsBeforeOrigin.insert(item!)
+                conflictingItems.insert(item!)
+                if self.origin == item!.origin {
+                    // case 1
+                    if item!.id.client < self.id.client {
+                        left = item!
+                        conflictingItems.removeAll()
+                    } else if self.rightOrigin == item!.rightOrigin {
                         break
                     }
-                    item = (item!.right as? Item)
-                }
-                self.left = left
-            }
-            
-            if self.left != nil && self.left is Item {
-                let right = (self.left as! Item).right
-                self.right = right
-                (self.left as! Item).right = self
-            } else {
-                var r: Item?
-                if self.parentKey != nil {
-                    r = self.parent!.object!.storage[parentKey!]
-                    while r != nil && r!.left != nil {
-                        r = (r!.left as! Item)
+                } else if try item!.origin != nil && itemsBeforeOrigin.contains(transaction.doc.store.getItem(item!.origin!)) {
+                    // case 2
+                    if !conflictingItems.contains(try transaction.doc.store.getItem(item!.origin!)) {
+                        left = item!
+                        conflictingItems.removeAll()
                     }
                 } else {
-                    r = self.parent!.object!._start
-                    self.parent!.object!._start = self
+                    break
                 }
-                self.right = r
+                item = (item!.right as? Item)
             }
-            if self.right != nil {
-                (self.right as! Item).left = self
-            } else if self.parentKey != nil {
-                // set as current parent value if right == nil and this is parentSub
-                self.parent!.object!.storage[self.parentKey!] = self
-                if self.left != nil {
-                    // this is the current attribute value of parent. delete right
-                    (self.left as! Item).delete(transaction)
-                }
-            }
-            // adjust length of parent
-            if self.parentKey == nil && self.countable && !self.deleted {
-                self.parent!.object!._length += self.length
-            }
-            
-            
-            try transaction.doc.store.addStruct(self)
-            
-            try self.content.integrate(with: self, transaction)
-            
-            // add parent to transaction.changed
-            transaction.addChangedType(self.parent!.object!, parentSub: self.parentKey)
-            if (self.parent!.object!.item != nil && self.parent!.object!.item!.deleted)
-                || (self.parentKey != nil && self.right != nil)
-            {
-                // delete if parent is deleted or if this is not the current attribute value of parent
-                self.delete(transaction)
-            }
-        } else {
-            // parent is not defined. Integrate GC struct instead
-            try GC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
+            self.left = left
         }
         
+        if self.left != nil && self.left is Item {
+            let right = (self.left as! Item).right
+            self.right = right
+            (self.left as! Item).right = self
+        } else {
+            var r: Item?
+            if self.parentKey != nil {
+                r = self.parent!.object!.storage[parentKey!]
+                while r != nil && r!.left != nil {
+                    r = (r!.left as! Item)
+                }
+            } else {
+                r = self.parent!.object!._start
+                self.parent!.object!._start = self
+            }
+            self.right = r
+        }
+        if self.right != nil {
+            (self.right as! Item).left = self
+        } else if self.parentKey != nil {
+            // set as current parent value if right == nil and this is parentSub
+            self.parent!.object!.storage[self.parentKey!] = self
+            if self.left != nil {
+                // this is the current attribute value of parent. delete right
+                (self.left as! Item).delete(transaction)
+            }
+        }
+        // adjust length of parent
+        if self.parentKey == nil && self.countable && !self.deleted {
+            self.parent!.object!._length += self.length
+        }
+        
+        
+        try transaction.doc.store.addStruct(self)
+        
+        try self.content.integrate(with: self, transaction)
+        
+        // add parent to transaction.changed
+        transaction.addChangedType(self.parent!.object!, parentSub: self.parentKey)
+        if (self.parent!.object!.item != nil && self.parent!.object!.item!.deleted)
+            || (self.parentKey != nil && self.right != nil)
+        {
+            // delete if parent is deleted or if this is not the current attribute value of parent
+            self.delete(transaction)
+        }
     }
 
     public var next: Item? {
