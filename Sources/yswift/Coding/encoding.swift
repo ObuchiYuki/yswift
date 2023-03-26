@@ -32,9 +32,9 @@ public func writeStructs(encoder: UpdateEncoder, structs: Ref<[Struct]>, client:
         
     let firstStruct = structs[startNewStructs]
     // write first struct with an offset
-    try firstStruct.write(encoder: encoder, offset: clock - firstStruct.id.clock)
+    try firstStruct.encode(into: encoder, offset: clock - firstStruct.id.clock)
     for i in (startNewStructs + 1)..<structs.count {
-        try structs[i].write(encoder: encoder, offset: 0)
+        try structs[i].encode(into: encoder, offset: 0)
     }
 }
 

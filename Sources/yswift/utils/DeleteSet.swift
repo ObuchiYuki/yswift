@@ -127,7 +127,7 @@ public class DeleteSet {
                         break
                     }
                     if type(of: struct__) == Item.self && struct__.deleted && !(struct__ as! Item).keep && gcFilter(struct__ as! Item) {
-                        try (struct__ as! Item).gc(store, parentGCd: false)
+                        try (struct__ as! Item).gc(store, parentGC: false)
                     }
                     
                     struct_ = structs.value[si]

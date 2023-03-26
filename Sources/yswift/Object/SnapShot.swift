@@ -96,7 +96,7 @@ public class Snapshot: JSHashable {
                 // first clock written is 0
                 encoder.restEncoder.writeUInt(0)
                 for i in 0..<lastStructIndex {
-                    try structs[i].write(encoder: encoder, offset: 0)
+                    try structs[i].encode(into: encoder, offset: 0)
                 }
             }
             try ds.encode(encoder)

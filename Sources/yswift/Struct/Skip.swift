@@ -22,7 +22,7 @@ final public class Skip: Struct {
         throw YSwiftError.unexpectedCase
     }
 
-    public override func write(encoder: UpdateEncoder, offset: Int) throws {
+    public override func encode(into encoder: UpdateEncoder, offset: Int) throws {
         encoder.writeInfo(Skip.refID)
         encoder.restEncoder.writeUInt(UInt(self.length - offset))
     }

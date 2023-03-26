@@ -19,6 +19,9 @@ extension Item {
 
 /// Abstract public class that represents any content.
 final public class Item: Struct, JSHashable {
+    
+    // =========================================================================== //
+    // MARK: - Properties -
 
     /// The item that was originally to the left of this item.
     public var origin: ID?
@@ -58,6 +61,24 @@ final public class Item: Struct, JSHashable {
     }
     
     public var countable: Bool { self.info & 0b0000_0010 > 0 }
+    
+    public var next: Item? {
+        var item = self.right
+        while let uitem = item as? Item, uitem.deleted { item = uitem.right }
+        return item as? Item
+    }
+
+    public var prev: Item? {
+        var item = self.left
+        while let uitem = item as? Item, uitem.deleted { item = uitem.left }
+        return item as? Item
+    }
+
+    /// Computes the last content address of this Item.
+    public var lastID: ID {
+        if self.length == 1 { return self.id }
+        return ID(client: self.id.client, clock: self.id.clock + self.length - 1)
+    }
 
     init(id: ID, left: Struct?, origin: ID?, right: Struct?, rightOrigin: ID?, parent: Parent?, parentSub: String?, content: any Content) {
         self.origin = origin
@@ -75,7 +96,269 @@ final public class Item: Struct, JSHashable {
     
     // =========================================================================== //
     // MARK: - Methods -
+    
+    public override func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? {
+        if let origin = self.origin, origin.client != self.id.client, origin.clock >= store.getState(origin.client) {
+            return origin.client
+        }
+        if let rightOrigin = self.rightOrigin, rightOrigin.client != self.id.client, rightOrigin.clock >= store.getState(rightOrigin.client) {
+            return rightOrigin.client
+        }
+        if let parent = self.parent?.id, self.id.client != parent.client, parent.clock >= store.getState(parent.client) {
+            return parent.client
+        }
 
+        // We have all missing ids, now find the items
+        if let origin = self.origin {
+            self.left = try store.getItemCleanEnd(transaction, id: origin)
+            self.origin = (self.left as? Item)?.lastID
+        }
+        if let rightOrigin = self.rightOrigin {
+            self.right = try StructStore.getItemCleanStart(transaction, id: rightOrigin)
+            self.rightOrigin = self.right!.id
+        }
+        if self.left is GC || self.right is GC {
+            self.parent = nil
+        }
+        // only set parent if this shouldn't be garbage collected
+        if self.parent == nil {
+            if let leftItem = self.left as? Item {
+                self.parent = leftItem.parent
+                self.parentKey = leftItem.parentKey
+            }
+            if let rightItem = self.right as? Item {
+                self.parent = rightItem.parent
+                self.parentKey = rightItem.parentKey
+            }
+        } else if let parent = self.parent?.id {
+            let parentItem = try store.find(parent)
+            if let content = (parentItem as? Item)?.content as? TypeContent {
+                self.parent = .object(content.type)
+            } else {
+                self.parent = nil
+            }
+        }
+        return nil
+    }
+
+    public override func integrate(transaction: Transaction, offset: Int) throws {
+        if offset > 0 {
+            self.id.clock += offset
+            self.left = try transaction.doc.store.getItemCleanEnd(
+                transaction,
+                id: ID(client: self.id.client, clock: self.id.clock - 1)
+            )
+            self.origin = (self.left as? Item)?.lastID
+            self.content = self.content.splice(offset)
+            self.length -= offset
+        }
+
+        guard let parent = self.parent?.object else {
+            try GC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
+            return
+        }
+        
+        let hasLeft = self.left == nil && (self.right == nil || (self.right as? Item)?.left != nil)
+        let hasRight = (self.left != nil && (self.left as? Item)?.right !== self.right)
+
+        if hasLeft || hasRight {
+            var left = self.left as? Item
+
+            var item: Item?
+
+            if let rightItem = left?.right as? Item {
+                item = rightItem
+            } else {
+                if let parentKey = self.parentKey {
+                    item = parent.storage[parentKey]
+                    while let left = item?.left as? Item { item = left }
+                } else {
+                    item = parent._start
+                }
+            }
+            
+            var conflictingItems = Set<Item>()
+            var itemsBeforeOrigin = Set<Item>()
+            
+            while let uitem = item, uitem !== self.right {
+                itemsBeforeOrigin.insert(uitem)
+                conflictingItems.insert(uitem)
+                if self.origin == uitem.origin {
+                    // case 1
+                    if uitem.id.client < self.id.client {
+                        left = uitem
+                        conflictingItems.removeAll()
+                    } else if self.rightOrigin == uitem.rightOrigin {
+                        break
+                    }
+                } else if let origin = uitem.origin, try itemsBeforeOrigin.contains(transaction.doc.store.getItem(origin)) {
+                    // case 2
+                    if !conflictingItems.contains(try transaction.doc.store.getItem(origin)) {
+                        left = uitem
+                        conflictingItems.removeAll()
+                    }
+                } else {
+                    break
+                }
+                item = uitem.right as? Item
+            }
+            self.left = left
+        }
+        
+        if let left = self.left as? Item {
+            let right = left.right
+            self.right = right
+            left.right = self
+        } else {
+            var right: Item?
+            
+            if let parentKey = self.parentKey {
+                right = parent.storage[parentKey]
+                while let left = right?.left as? Item { right = left }
+            } else {
+                right = parent._start
+                parent._start = self
+            }
+            
+            self.right = right
+        }
+        
+        if let right = self.right as? Item {
+            right.left = self
+        } else if let parentKey = self.parentKey {
+        
+            // set as current parent value if right == nil and this is parentSub
+            parent.storage[parentKey] = self
+            
+            if let left = self.left as? Item {
+                // this is the current attribute value of parent. delete right
+                left.delete(transaction)
+            }
+        }
+        // adjust length of parent
+        if self.parentKey == nil && self.countable && !self.deleted {
+            parent._length += self.length
+        }
+        
+        try transaction.doc.store.addStruct(self)
+        
+        try self.content.integrate(with: self, transaction)
+        
+        // add parent to transaction.changed
+        transaction.addChangedType(parent, parentSub: self.parentKey)
+        
+        // delete if parent is deleted or if this is not the current attribute value of parent
+        if let parentItem = parent.item, parentItem.deleted { self.delete(transaction) }
+        if self.parentKey != nil, self.right != nil { self.delete(transaction) }
+    }
+    
+    public override func merge(with right: Struct) -> Bool {
+        guard let right = right as? Item else { return false }
+        guard right.origin == self.lastID,
+              self.right === right,
+              self.rightOrigin == right.rightOrigin,
+              self.id.client == right.id.client,
+              self.id.clock + self.length == right.id.clock,
+              self.deleted == right.deleted,
+              self.redone == nil,
+              right.redone == nil,
+              type(of: self.content) == type(of: right.content),
+              self.content.merge(with: right.content),
+              let parent = self.parent?.object
+        else { return false }
+    
+        for marker in parent.serchMarkers ?? [] where marker.item === right {
+            marker.item = self
+            if !self.deleted && self.countable {
+                marker.index -= self.length
+            }
+        }
+        
+        if right.keep { self.keep = true }
+        self.right = right.right
+        
+        if let right = self.right as? Item { right.left = self }
+        self.length += right.length
+        
+        return true
+    }
+
+    public override func encode(into encoder: UpdateEncoder, offset: Int) throws {
+        let origin = offset > 0 ? ID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
+        let rightOrigin = self.rightOrigin
+        let parentSub = self.parentKey
+        
+        let info: UInt8 =
+            (self.content.typeid    & 0b0001_1111) |
+            (origin == nil      ? 0 : 0b1000_0000) | // origin is defined
+            (rightOrigin == nil ? 0 : 0b0100_0000) | // right origin is defined
+            (parentSub == nil   ? 0 : 0b0010_0000)   // parentSub is non-nil
+        
+        encoder.writeInfo(info)
+        
+        if let origin = origin { encoder.writeLeftID(origin) }
+        if let rightOrigin = rightOrigin { encoder.writeRightID(rightOrigin) }
+        
+        if origin == nil && rightOrigin == nil {
+            switch self.parent {
+            case .object(let parent):
+                let parentItem = parent.item
+                if parentItem == nil {
+                    let ykey = try findRootTypeKey(type: parent)
+                    encoder.writeParentInfo(true)
+                    encoder.writeString(ykey)
+                } else {
+                    encoder.writeParentInfo(false)
+                    encoder.writeLeftID(parentItem!.id)
+                }
+            case .id(let parent):
+                encoder.writeParentInfo(false)
+                encoder.writeLeftID(parent)
+            case .string(let parent): // write parentYKey
+                encoder.writeParentInfo(true)
+                encoder.writeString(parent)
+            case .none:
+                throw YSwiftError.unexpectedCase
+            }
+            
+            if parentSub != nil { encoder.writeString(parentSub!) }
+        }
+        
+        try self.content.encode(into: encoder, offset: offset)
+    }
+}
+
+// =========================================================================== //
+// MARK: - Item Methods -
+
+extension Item {
+    /** Mark this Item as deleted. */
+    public func delete(_ transaction: Transaction) {
+        guard !self.deleted, let parent = self.parent?.object else { return }
+        
+        // adjust the length of parent
+        if self.countable && self.parentKey == nil {
+            parent._length -= self.length
+        }
+        
+        self.deleted = true
+        transaction.deleteSet.add(client: self.id.client, clock: self.id.clock, length: self.length)
+        transaction.addChangedType(parent, parentSub: self.parentKey)
+        self.content.delete(transaction)
+    }
+
+    public func gc(_ store: StructStore, parentGC: Bool) throws {
+        if !self.deleted { throw YSwiftError.unexpectedCase }
+        
+        try self.content.gc(store)
+        
+        if parentGC {
+            try store.replaceStruct(self, newStruct: GC(id: self.id, length: self.length))
+        } else {
+            self.content = DeletedContent(self.length)
+        }
+    }
+    
     func keepRecursive(keep: Bool) {
         var item: Item? = self
         while let uitem = item, uitem.keep != keep {
@@ -233,305 +516,5 @@ final public class Item: Struct, JSHashable {
         redoneItem.keepRecursive(keep: true)
         try redoneItem.integrate(transaction: transaction, offset: 0)
         return redoneItem
-    }
-    
-    /** Return the creator clientID of the missing op or define missing items and return nil. */
-    public override func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? {
-        if let origin = self.origin, origin.client != self.id.client, origin.clock >= store.getState(origin.client) {
-            return origin.client
-        }
-        if let rightOrigin = self.rightOrigin, rightOrigin.client != self.id.client, rightOrigin.clock >= store.getState(rightOrigin.client) {
-            return rightOrigin.client
-        }
-        if let parent = self.parent?.id, self.id.client != parent.client, parent.clock >= store.getState(parent.client) {
-            return parent.client
-        }
-
-        // We have all missing ids, now find the items
-        if let origin = self.origin {
-            self.left = try store.getItemCleanEnd(transaction, id: origin)
-            self.origin = (self.left as? Item)?.lastID
-        }
-        if let rightOrigin = self.rightOrigin {
-            self.right = try StructStore.getItemCleanStart(transaction, id: rightOrigin)
-            self.rightOrigin = self.right!.id
-        }
-        if self.left is GC || self.right is GC {
-            self.parent = nil
-        }
-        // only set parent if this shouldn't be garbage collected
-        if self.parent == nil {
-            if let leftItem = self.left as? Item {
-                self.parent = leftItem.parent
-                self.parentKey = leftItem.parentKey
-            }
-            if let rightItem = self.right as? Item {
-                self.parent = rightItem.parent
-                self.parentKey = rightItem.parentKey
-            }
-        } else if let parent = self.parent?.id {
-            let parentItem = try store.find(parent)
-            if let content = (parentItem as? Item)?.content as? TypeContent {
-                self.parent = .object(content.type)
-            } else {
-                self.parent = nil
-            }
-        }
-        return nil
-    }
-
-    public override func integrate(transaction: Transaction, offset: Int) throws {
-        if offset > 0 {
-            self.id.clock += offset
-            self.left = try transaction.doc.store.getItemCleanEnd(
-                transaction,
-                id: ID(client: self.id.client, clock: self.id.clock - 1)
-            )
-            self.origin = (self.left as? Item)?.lastID
-            self.content = self.content.splice(offset)
-            self.length -= offset
-        }
-
-        guard let parent = self.parent else {
-            try GC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
-            return
-        }
-
-        if (self.left == nil && (self.right == nil || (self.right as? Item)?.left != nil))
-            || (self.left != nil && (self.left as? Item)?.right !== self.right)
-        {
-            var left = self.left as? Item
-
-            var item: Item?
-
-            if let rightItem = left?.right as? Item {
-                item = rightItem
-            } else if let parent = parent.object {
-                if let parentKey = self.parentKey {
-                    item = parent.storage[parentKey]
-                    while(item != nil && item!.left != nil) {
-                        item = (item!.left as! Item)
-                    }
-                } else {
-                    item = parent._start
-                }
-            } else {
-                assertionFailure()
-            }
-            
-            var conflictingItems = Set<Item>()
-            var itemsBeforeOrigin = Set<Item>()
-            
-            while (item != nil && item !== self.right) {
-                itemsBeforeOrigin.insert(item!)
-                conflictingItems.insert(item!)
-                if self.origin == item!.origin {
-                    // case 1
-                    if item!.id.client < self.id.client {
-                        left = item!
-                        conflictingItems.removeAll()
-                    } else if self.rightOrigin == item!.rightOrigin {
-                        break
-                    }
-                } else if try item!.origin != nil && itemsBeforeOrigin.contains(transaction.doc.store.getItem(item!.origin!)) {
-                    // case 2
-                    if !conflictingItems.contains(try transaction.doc.store.getItem(item!.origin!)) {
-                        left = item!
-                        conflictingItems.removeAll()
-                    }
-                } else {
-                    break
-                }
-                item = (item!.right as? Item)
-            }
-            self.left = left
-        }
-        
-        if self.left != nil && self.left is Item {
-            let right = (self.left as! Item).right
-            self.right = right
-            (self.left as! Item).right = self
-        } else {
-            var r: Item?
-            if self.parentKey != nil {
-                r = self.parent!.object!.storage[parentKey!]
-                while r != nil && r!.left != nil {
-                    r = (r!.left as! Item)
-                }
-            } else {
-                r = self.parent!.object!._start
-                self.parent!.object!._start = self
-            }
-            self.right = r
-        }
-        if self.right != nil {
-            (self.right as! Item).left = self
-        } else if self.parentKey != nil {
-            // set as current parent value if right == nil and this is parentSub
-            self.parent!.object!.storage[self.parentKey!] = self
-            if self.left != nil {
-                // this is the current attribute value of parent. delete right
-                (self.left as! Item).delete(transaction)
-            }
-        }
-        // adjust length of parent
-        if self.parentKey == nil && self.countable && !self.deleted {
-            self.parent!.object!._length += self.length
-        }
-        
-        
-        try transaction.doc.store.addStruct(self)
-        
-        try self.content.integrate(with: self, transaction)
-        
-        // add parent to transaction.changed
-        transaction.addChangedType(self.parent!.object!, parentSub: self.parentKey)
-        if (self.parent!.object!.item != nil && self.parent!.object!.item!.deleted)
-            || (self.parentKey != nil && self.right != nil)
-        {
-            // delete if parent is deleted or if this is not the current attribute value of parent
-            self.delete(transaction)
-        }
-    }
-
-    public var next: Item? {
-        var n = self.right
-        while (n != nil && n!.deleted) { n = (n as! Item).right }
-        return (n as! Item)
-    }
-
-    public var prev: Item? {
-        var n = self.left
-        while(n != nil && n!.deleted) { n = (n as! Item).left }
-        return (n as! Item)
-    }
-
-    /**
-     * Computes the last content address of this Item.
-     */
-    public var lastID: ID {
-        // allocating ids is pretty costly because of the amount of ids created, so we try to reuse whenever possible
-        return self.length == 1 ? self.id : ID(
-            client: self.id.client,
-            clock: self.id.clock + self.length - 1
-        )
-    }
-    
-    public override func merge(with right: Struct) -> Bool {
-        guard let right = right as? Item else {
-            return false
-        }
-        
-        if (
-            type(of: self) == type(of: right) &&
-            right.origin == self.lastID &&
-            self.right === right &&
-            self.rightOrigin == right.rightOrigin &&
-            self.id.client == right.id.client &&
-            self.id.clock + self.length == right.id.clock &&
-            self.deleted == right.deleted &&
-            self.redone == nil &&
-            right.redone == nil &&
-            type(of: self.content) == type(of: right.content) &&
-            self.content.merge(with: right.content)
-        ) {
-            let searchMarker = self.parent!.object!.serchMarkers
-            if searchMarker != nil {
-                searchMarker!.forEach({ marker in
-                    if marker.item == right {
-                        marker.item = self
-                        if !self.deleted && self.countable { marker.index -= self.length }
-                    }
-                })
-            }
-            
-            if right.keep { self.keep = true }
-            self.right = right.right
-            if self.right != nil { (self.right as? Item)?.left = self }
-            self.length += right.length
-            return true
-        }
-        return false
-    }
-
-    /** Mark this Item as deleted. */
-    public func delete(_ transaction: Transaction) {
-        if !self.deleted {
-            let parent = self.parent!.object!
-            // adjust the length of parent
-            if self.countable && self.parentKey == nil {
-                parent._length -= self.length
-            }
-            self.deleted = true
-            transaction.deleteSet.add(client: self.id.client, clock: self.id.clock, length: self.length)
-            transaction.addChangedType(parent, parentSub: self.parentKey)
-            self.content.delete(transaction)
-        }
-    }
-
-    public func gc(_ store: StructStore, parentGCd: Bool) throws {
-        if !self.deleted {
-            throw YSwiftError.unexpectedCase
-        }
-        try self.content.gc(store)
-        if parentGCd {
-            try store.replaceStruct(self, newStruct: GC(id: self.id, length: self.length))
-        } else {
-            self.content = DeletedContent(self.length)
-        }
-    }
-
-    /**
-     * Transform the properties of this type to binary and write it to an
-     * BinaryEncoder.
-     *
-     * This is called when this Item is sent to a remote peer.
-     */
-    public override func write(encoder: UpdateEncoder, offset: Int) throws {
-        let origin = offset > 0 ? ID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
-        let rightOrigin = self.rightOrigin
-        let parentSub = self.parentKey
-        let info: UInt8 = (self.content.typeid & 0b0001_1111) |
-            (origin == nil ? 0 : 0b1000_0000) | // origin is defined
-            (rightOrigin == nil ? 0 : 0b0100_0000) | // right origin is defined
-            (parentSub == nil ? 0 : 0b0010_0000) // parentSub is non-nil
-        
-        encoder.writeInfo(info)
-        if origin !== nil {
-            encoder.writeLeftID(origin!)
-        }
-        if rightOrigin !== nil {
-            encoder.writeRightID(rightOrigin!)
-        }
-        if origin == nil && rightOrigin == nil {
-            switch self.parent {
-            case .object(let parent):
-                let parentItem = parent.item
-                if parentItem == nil {
-                    // parent type on y._map
-                    // find the correct key
-                    let ykey = try findRootTypeKey(type: parent)
-                    encoder.writeParentInfo(true) // write parentYKey
-                    encoder.writeString(ykey)
-                } else {
-                    encoder.writeParentInfo(false) // write parent id
-                    encoder.writeLeftID(parentItem!.id)
-                }
-            case .id(let parent):
-                encoder.writeParentInfo(false) // write parent id
-                encoder.writeLeftID(parent)
-            case .string(let parent):
-                encoder.writeParentInfo(true) // write parentYKey
-                encoder.writeString(parent)
-            case .none:
-                throw YSwiftError.unexpectedCase
-            }
-            
-            if parentSub != nil {
-                encoder.writeString(parentSub!)
-            }
-        }
-        
-        try self.content.encode(into: encoder, offset: offset)
     }
 }

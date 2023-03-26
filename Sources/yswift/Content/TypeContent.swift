@@ -55,7 +55,7 @@ extension TypeContent {
     func gc(_ store: StructStore) throws {
         var item = self.type._start
         while let uitem = item {
-            try uitem.gc(store, parentGCd: true)
+            try uitem.gc(store, parentGC: true)
             item = uitem.right as? Item
         }
         
@@ -63,7 +63,7 @@ extension TypeContent {
         for (_, item) in self.type.storage {
             var item: Item? = item
             while let uitem = item {
-                try uitem.gc(store, parentGCd: true)
+                try uitem.gc(store, parentGC: true)
                 item = uitem.left as? Item
             }
         }

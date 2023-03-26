@@ -454,7 +454,7 @@ public func writeStructToLazyStructWriter(lazyWriter: LazyStructWriter, struct_:
         // write startClock
         lazyWriter.encoder.restEncoder.writeUInt(UInt(struct_.id.clock + offset))
     }
-    try struct_.write(encoder: lazyWriter.encoder, offset: offset)
+    try struct_.encode(into: lazyWriter.encoder, offset: offset)
     lazyWriter.written += 1
 }
 
