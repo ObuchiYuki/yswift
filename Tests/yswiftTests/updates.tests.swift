@@ -1,6 +1,6 @@
 import XCTest
 import Promise
-import yswift
+@testable import yswift
 
 final class UpdatesTests: XCTestCase {
     func testMergeUpdates() throws {
@@ -172,11 +172,11 @@ final class UpdatesTests: XCTestCase {
                     do {
                         let decoder = LZDecoder(diffed)
                         let updateDecoder = try UpdateDecoderV2(decoder)
-                        _ = try readClientsStructRefs(decoder: updateDecoder, doc: Doc())
+                        _ = try updateDecoder.readClientsStructRefs(doc: Doc())
                         let ds = try DeleteSet.decode(decoder: updateDecoder)
                         let updateEncoder = UpdateEncoderV2()
                         updateEncoder.restEncoder.writeUInt(0) // 0 structs
-                        try ds.encode(updateEncoder)
+                        try ds.encode(into: updateEncoder)
                         let deletesUpdate = updateEncoder.toData()
                         let mergedDeletes = try mergeUpdatesV2(updates: [deletesUpdate, partMerged])
                         if !hasDeletes || enc !== YUpdateEnvironment.doc {

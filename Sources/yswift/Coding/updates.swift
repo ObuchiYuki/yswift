@@ -384,7 +384,7 @@ public func mergeUpdatesV2(
 
     let dss = try updateDecoders.map{ try DeleteSet.decode(decoder: $0) }
     let ds = DeleteSet.mergeAll(dss)
-    try ds.encode(updateEncoder)
+    try ds.encode(into: updateEncoder)
     return updateEncoder.toData()
 }
 
@@ -423,7 +423,7 @@ public func diffUpdateV2(
     finishLazyStructWriting(lazyWriter: lazyStructWriter)
     // write ds
     let ds = try DeleteSet.decode(decoder: decoder)
-    try ds.encode(encoder)
+    try ds.encode(into: encoder)
     return encoder.toData()
 }
 
@@ -490,7 +490,7 @@ public func convertUpdateFormat(
     
     finishLazyStructWriting(lazyWriter: lazyWriter)
     let ds = try DeleteSet.decode(decoder: updateDecoder)
-    try ds.encode(updateEncoder)
+    try ds.encode(into: updateEncoder)
     return updateEncoder.toData()
 }
 

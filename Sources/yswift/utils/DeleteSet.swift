@@ -91,7 +91,7 @@ public class DeleteSet {
         self.clients[client]!.value.append(DeleteItem(clock: clock, len: length))
     }
     
-    public func encode(_ encoder: any DSEncoder) throws {
+    public func encode(into encoder: any DSEncoder) throws {
         encoder.restEncoder.writeUInt(UInt(self.clients.count))
     
         // Ensure that the delete set is written in a deterministic order
@@ -291,7 +291,7 @@ public class DeleteSet {
         if unappliedDS.clients.count > 0 {
             let ds = UpdateEncoderV2()
             ds.restEncoder.writeUInt(0) // encode 0 structs
-            try unappliedDS.encode(ds)
+            try unappliedDS.encode(into: ds)
             return ds.toData()
         }
         

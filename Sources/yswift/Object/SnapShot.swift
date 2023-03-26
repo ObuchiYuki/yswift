@@ -7,29 +7,29 @@
 
 import Foundation
 
-public class Snapshot: JSHashable {
-    public var ds: DeleteSet
-    public var sv: [Int: Int]
+final public class Snapshot: JSHashable {
+    public var deleteSet: DeleteSet
+    public var stateVectors: [Int: Int]
 
-    public init(_ ds: DeleteSet, sv: [Int: Int]) {
-        self.ds = ds
-        self.sv = sv
+    public init(deleteSet: DeleteSet, stateVectors: [Int: Int]) {
+        self.deleteSet =  deleteSet
+        self.stateVectors = stateVectors
     }
-
-    static public func snapshot(_ doc: Doc) -> Snapshot {
-        return Snapshot(
-            DeleteSet.createFromStructStore(doc.store),
-            sv: doc.store.getStateVector()
+    
+    public convenience init() {
+        self.init(deleteSet: DeleteSet(), stateVectors: [:])
+    }
+    
+    public convenience init(doc: Doc) {
+        self.init(
+            deleteSet: DeleteSet.createFromStructStore(doc.store),
+            stateVectors: doc.store.getStateVector()
         )
     }
 
-    static public func empty() -> Snapshot {
-        return Snapshot(DeleteSet(), sv: [:])
-    }
-
     public func encodeV2(_ encoder: DSEncoder = DSEncoderV2()) throws -> Data {
-        try self.ds.encode(encoder)
-        _ = try writeStateVector(encoder: encoder, sv: self.sv)
+        try self.deleteSet.encode(into: encoder)
+        _ = try writeStateVector(encoder: encoder, sv: self.stateVectors)
         return encoder.toData()
     }
     
@@ -37,9 +37,12 @@ public class Snapshot: JSHashable {
         return try self.encodeV2(DSEncoderV1())
     }
     
-    static public func decodeV2(_ buf: Data, decoder: DSDecoder?) throws -> Snapshot {
+    static public func decodeV2(_ buf: Data, decoder: DSDecoder? = nil) throws -> Snapshot {
         let decoder = try decoder ?? DSDecoderV2(LZDecoder(buf))
-        return Snapshot(try DeleteSet.decode(decoder: decoder), sv: try readStateVector(decoder: decoder))
+        return Snapshot(
+            deleteSet: try DeleteSet.decode(decoder: decoder),
+            stateVectors: try readStateVector(decoder: decoder)
+        )
     }
     
     static public func decode(_ buf: Data) throws -> Snapshot {
@@ -54,12 +57,10 @@ public class Snapshot: JSHashable {
         let store = transaction.doc.store
         // check if we already split for this snapshot
         if !meta.contains(self) {
-            try self.sv.forEach({ client, clock in
-                if clock < store.getState(client) {
-                    _ = try StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
-                }
-            })
-            try self.ds.iterate(transaction, body: {_ in })
+            for (client, clock) in self.stateVectors where clock < store.getState(client) {
+                try StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
+            }
+            try self.deleteSet.iterate(transaction, body: {_ in })
             _ = meta.insert(self)
         }
         
@@ -68,25 +69,18 @@ public class Snapshot: JSHashable {
 
     
     public func toDoc(_ originDoc: Doc, newDoc: Doc = Doc()) throws -> Doc {
-        if originDoc.gc {
-            throw YSwiftError.originDocGC
-        }
-//        let { sv, ds } = self
-    
+        if originDoc.gc { throw YSwiftError.originDocGC }
+        
         let encoder = UpdateEncoderV2()
-        try originDoc.transact({ transaction in
-            var size = 0
-            self.sv.forEach({ clock, _ in
-                if clock > 0 {
-                    size += 1
-                }
-            })
+        
+        try originDoc.transact{ transaction in
+            let size = self.stateVectors.lazy.filter{ $0.key > 0 }.count
+            
             encoder.restEncoder.writeUInt(UInt(size))
-            // splitting the structs before writing them to the encoder
-            for (client, clock) in self.sv {
-                if clock == 0 { continue }
+
+            for (client, clock) in self.stateVectors where clock != 0 {
                 if clock < originDoc.store.getState(client) {
-                    _ = try StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
+                    try StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
                 }
                 let structs = originDoc.store.clients[client] ?? .init(value: [])
                 let lastStructIndex = try StructStore.findIndexSS(structs: structs, clock: clock - 1)
@@ -99,42 +93,40 @@ public class Snapshot: JSHashable {
                     try structs[i].encode(into: encoder, offset: 0)
                 }
             }
-            try ds.encode(encoder)
-        })
+            try deleteSet.encode(into: encoder)
+            
+        }
     
         try applyUpdateV2(ydoc: newDoc, update: encoder.toData(), transactionOrigin: "snapshot")
+        
         return newDoc
     }
-    
 }
 
-
-func equalSnapshots(snap1: Snapshot, snap2: Snapshot) -> Bool {
-    let ds1 = snap1.ds.clients
-    let ds2 = snap2.ds.clients
-    let sv1 = snap1.sv
-    let sv2 = snap2.sv
-    if sv1.count != sv2.count || ds1.count != ds2.count {
-        return false
-    }
-    for (key, value) in sv1 {
-        if sv2[key] != value {
-            return false
-        }
-    }
-    
-    for (client, dsitems1) in ds1  {
-        let dsitems2 = ds2[client] ?? Ref(value: [])
-        if dsitems1.count != dsitems2.count {
-            return false
-        }
-        for i in 0..<dsitems1.count {
-            let dsitem1 = dsitems1[i]
-            let dsitem2 = dsitems2[i]
-            if dsitem1.clock != dsitem2.clock || dsitem1.len != dsitem2.len {
-                return false
+extension Snapshot: Equatable {
+    public static func == (lhs: Snapshot, rhs: Snapshot) -> Bool {
+        let ds1 = lhs.deleteSet.clients
+        let ds2 = rhs.deleteSet.clients
+        let sv1 = lhs.stateVectors
+        let sv2 = rhs.stateVectors
+        
+        if sv1.count != sv2.count || ds1.count != ds2.count { return false }
+        
+        for (key, value) in sv1 where sv2[key] != value { return false }
+        
+        for (client, dsitems1) in ds1 {
+            let dsitems2 = ds2[client] ?? Ref(value: [])
+            if dsitems1.count != dsitems2.count { return false }
+            
+            for i in 0..<dsitems1.count {
+                let dsitem1 = dsitems1[i]
+                let dsitem2 = dsitems2[i]
+                if dsitem1.clock != dsitem2.clock || dsitem1.len != dsitem2.len {
+                    return false
+                }
             }
         }
+        
+        return true
     }
-    return true
 }

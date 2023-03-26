@@ -527,13 +527,13 @@ final class YTextTests: XCTestCase {
         try text0.applyDelta([
             YEventDelta(insert: "abcd"),
         ])
-        let snapshot1 = Snapshot.snapshot(doc0)
+        let snapshot1 = Snapshot(doc: doc0)
         try text0.applyDelta([
             YEventDelta(retain: 1),
             YEventDelta(insert: "x"),
             YEventDelta(delete: 1),
         ])
-        let snapshot2 = Snapshot.snapshot(doc0)
+        let snapshot2 = Snapshot(doc: doc0)
         try text0.applyDelta([
             YEventDelta(retain: 2),
             YEventDelta(delete: 3),
@@ -568,7 +568,7 @@ final class YTextTests: XCTestCase {
         try text0.applyDelta([
             YEventDelta(insert: "abcd"),
         ])
-        let snapshot1 = Snapshot.snapshot(doc0)
+        let snapshot1 = Snapshot(doc: doc0)
         try text0.applyDelta([
             YEventDelta(retain: 4),
             YEventDelta(insert: "e"),

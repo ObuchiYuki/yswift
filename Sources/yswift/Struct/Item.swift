@@ -371,7 +371,7 @@ extension Item {
         guard let snapshot = snapshot else {
             return !self.deleted
         }
-        guard let sclock = snapshot.sv[self.id.client], sclock > self.id.clock, !snapshot.ds.isDeleted(self.id) else {
+        guard let sclock = snapshot.stateVectors[self.id.client], sclock > self.id.clock, !snapshot.deleteSet.isDeleted(self.id) else {
             return false
         }
         return true

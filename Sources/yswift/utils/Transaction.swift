@@ -59,8 +59,8 @@ public class Transaction {
             return false
         }
         self.deleteSet.sortAndMerge()
-        try writeStructsFromTransaction(encoder: encoder, transaction: self)
-        try self.deleteSet.encode(encoder)
+        try encoder.encodeStructs(from: self)
+        try self.deleteSet.encode(into: encoder)
         return true
     }
 

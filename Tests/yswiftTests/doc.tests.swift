@@ -30,7 +30,7 @@ final class DocTests: XCTestCase {
             origins.append(origin)
             
             if origins.count <= 1 {
-                _ = try ytext.toDelta(Snapshot.snapshot(doc))
+                _ = try ytext.toDelta(Snapshot(doc: doc))
                 try doc.transact({ _ in
                     try ytext.insert(0, text: "a")
                 }, origin: "nested")

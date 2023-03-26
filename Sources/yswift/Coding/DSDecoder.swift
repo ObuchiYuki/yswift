@@ -13,8 +13,6 @@ public protocol DSDecoder {
     func readDeleteSetLen() throws -> Int
 }
 
-
-
 public class DSDecoderV1 {
     public let restDecoder: LZDecoder
 
@@ -34,8 +32,6 @@ extension DSDecoderV1: DSDecoder {
         return try Int(self.restDecoder.readUInt())
     }
 }
-
-
 
 public class DSDecoderV2 {
     public let restDecoder: LZDecoder

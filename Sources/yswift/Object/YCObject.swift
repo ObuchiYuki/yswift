@@ -15,9 +15,11 @@ public class YCObject: JSHashable {
 
     public var parent: YCObject? { self.item?.parent?.object }
     
+    public var item: Item? = nil
+    
     var storage: [String: Item] = [:]
     
-    public var item: Item? = nil
+    var serchMarkers: RefArray<ArraySearchMarker>? = nil
 
     // =========================================================================== //
     // MARK: - Private (Temporally public) -
@@ -25,7 +27,6 @@ public class YCObject: JSHashable {
     public var _length: Int = 0
     public var _eH: EventHandler<YEvent, Transaction> = EventHandler() /** Event handlers */
     public var _dEH: EventHandler<[YEvent], Transaction> = EventHandler() /** Deep event handlers */
-    public var serchMarkers: RefArray<ArraySearchMarker>? = nil
 
      /** The first non-deleted item */
     public var _first: Item? {
@@ -446,7 +447,7 @@ public class YCObject: JSHashable {
     // this -> parent
     public func mapGetSnapshot(_ key: String, snapshot: Snapshot) -> Any? {
         var v = self.storage[key]
-        while (v != nil && (snapshot.sv[v!.id.client] == nil || v!.id.clock >= (snapshot.sv[v!.id.client] ?? 0))) {
+        while (v != nil && (snapshot.stateVectors[v!.id.client] == nil || v!.id.clock >= (snapshot.stateVectors[v!.id.client] ?? 0))) {
             v = v!.left as? Item
         }
         return v != nil && v!.isVisible(snapshot) ? v!.content.values[Int(v!.length) - 1] : nil
