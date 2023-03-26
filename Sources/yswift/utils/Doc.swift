@@ -45,7 +45,7 @@ open class Doc: LZObservable, JSHashable {
     public var clientID: Int
     public var guid: String
     public var collectionid: String?
-    public var share: [String: YCObject] // [String: Object_<YEvent<any>>]
+    public var share: [String: YObject] // [String: Object_<YEvent<any>>]
     public var store: StructStore
     public var subdocs: Set<Doc>
     public var shouldLoad: Bool
@@ -123,9 +123,9 @@ open class Doc: LZObservable, JSHashable {
     public func load() throws {
         let item = self._item
         if item != nil && !self.shouldLoad {
-            try item!.parent!.object!.doc?.transact({ transaction in
+            try item!.parent!.object!.doc?.transact{ transaction in
                 transaction.subdocsLoaded.insert(self)
-            }, origin: nil)
+            }
         }
         self.shouldLoad = true
     }
@@ -137,20 +137,20 @@ open class Doc: LZObservable, JSHashable {
         
     }
 
-    public func transact(_ body: (Transaction) throws -> Void, origin: Any? = nil, local: Bool = true) throws {
-        try Transaction.transact(self, body: body, origin: origin, local: local)
+    public func transact(origin: Any? = nil, local: Bool = true, _ body: (Transaction) throws -> Void) throws {
+        try Transaction.transact(self, origin: origin, local: local, body)
     }
 
     // JS実装では TypeConstructor なしで呼び出すとObjectを作った
-    public func get<T: YCObject>(_: T.Type, name: String = "", make: () -> T) throws -> T {
+    public func get<T: YObject>(_: T.Type, name: String = "", make: () -> T) throws -> T {
         let type_ = try self.share.setIfUndefined(name, {
             let t = make()
             try t._integrate(self, item: nil)
             return t
         }())
         
-        if T.self != YCObject.self && !(type_ is T) {
-            if type(of: type_) == YCObject.self {
+        if T.self != YObject.self && !(type_ is T) {
+            if type(of: type_) == YObject.self {
                 let t = make()
                 t.storage = type_.storage
                 type_.storage.forEach({ _, n in
@@ -223,11 +223,11 @@ open class Doc: LZObservable, JSHashable {
             content?.document = subdoc
             content?.document._item = item!
             
-            try item!.parent!.object!.doc?.transact({ transaction in
+            try item!.parent!.object!.doc?.transact{ transaction in
                 let doc = subdoc
                 if !item!.deleted { transaction.subdocsAdded.insert(doc) }
                 transaction.subdocsRemoved.insert(self)
-            }, origin: nil)
+            }
         }
         try self.emit(On.destroyed, true)
         try self.emit(On.destroy, ())

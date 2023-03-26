@@ -68,7 +68,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
         if v == nil {
             mapRes[k] = NSNull()
         } else {
-            mapRes[k] = v is YCObject ? (v as! YCObject).toJSON() : v
+            mapRes[k] = v is YObject ? (v as! YObject).toJSON() : v
         }
     }
     
@@ -76,7 +76,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
         
     // Compare all users
     for i in 0..<docs.count-1 {
-        try XCTAssertEqual(userArrayValues[i].count, docs[i].getArray("array").length)
+        try XCTAssertEqual(userArrayValues[i].count, docs[i].getArray("array").count)
         
         XCTAssertEqualJSON(userArrayValues[i], userArrayValues[i + 1], "comparing client '\(i)' and '\(i+1)'")
         XCTAssertEqualJSON(userMapValues[i], userMapValues[i + 1], "comparing client '\(i)' and '\(i+1)'")
@@ -84,7 +84,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
             userTextValues[i].map{ a in
                 a.insert is String ? a.insert as! String : " "
             }.joined().count,
-            try docs[i].getText("text").length
+            try docs[i].getText("text").count
         )
         
         for (a, b) in zip(userTextValues[i], userTextValues[i+1]) {

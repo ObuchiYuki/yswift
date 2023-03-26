@@ -25,7 +25,7 @@ enum Sync {
 
     static func writeSyncStep2(encoder: LZEncoder, doc: Doc, encodedStateVector: Data? = nil) throws {
         encoder.writeUInt(MessageType.syncStep2.rawValue)
-        let update = try encodeStateAsUpdate(doc: doc, encodedTargetStateVector: encodedStateVector)
+        let update = try doc.encodeStateAsUpdate(encodedStateVector: encodedStateVector)
                 
         encoder.writeData(update)
     }

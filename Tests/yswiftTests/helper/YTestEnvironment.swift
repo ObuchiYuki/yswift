@@ -17,7 +17,7 @@ struct YTestEnvironment {
     let diffUpdate: (Data, Data) throws -> Data
         
     private static let v1 = YTestEnvironment(
-        encodeStateAsUpdate: yswift.encodeStateAsUpdate,
+        encodeStateAsUpdate: { try UpdateEncoderV1().encodeStateAsUpdate(doc: $0, encodedStateVector: $1) },
         mergeUpdates: yswift.mergeUpdates,
         applyUpdate: yswift.applyUpdate,
         logUpdate: yswift.logUpdate,
@@ -26,7 +26,7 @@ struct YTestEnvironment {
     )
     
     private static let v2 = YTestEnvironment(
-        encodeStateAsUpdate: { try encodeStateAsUpdateV2(doc: $0, encodedTargetStateVector: $1) },
+        encodeStateAsUpdate: { try UpdateEncoderV2().encodeStateAsUpdate(doc: $0, encodedStateVector: $1) },
         mergeUpdates: { try mergeUpdatesV2(updates: $0) },
         applyUpdate: { try applyUpdateV2(ydoc: $0, update: $1, transactionOrigin: $2) },
         logUpdate: { logUpdateV2($0) },

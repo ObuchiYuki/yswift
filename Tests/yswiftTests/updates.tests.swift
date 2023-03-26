@@ -8,8 +8,8 @@ final class UpdatesTests: XCTestCase {
         
         let docs = test.docs, array0 = test.array[0], array1 = test.array[1]
 
-        try array0.insert(0, [1])
-        try array1.insert(0, [2])
+        try array0.insert(1, at: 0)
+        try array1.insert(2, at: 0)
 
         let ndocs = try YAssertEqualDocs(docs)
 
@@ -31,7 +31,7 @@ final class UpdatesTests: XCTestCase {
         try text0.insert(0, text: "b")
         try text0.insert(0, text: "c", attributes: Ref(value: ["i": true]))
         
-        let update = try encodeStateAsUpdateV2(doc: docs[0])
+        let update = try docs[0].encodeStateAsUpdateV2()
         
         try applyUpdateV2(ydoc: docs[1], update: update)
 
@@ -52,10 +52,10 @@ final class UpdatesTests: XCTestCase {
             ydoc.on(env.updateEventName) { update, _, _ in updates.append(update) }
 
             let array = try ydoc.getArray()
-            try array.insert(0, [1])
-            try array.insert(0, [2])
-            try array.insert(0, [3])
-            try array.insert(0, [4])
+            try array.insert(1, at: 0)
+            try array.insert(2, at: 0)
+            try array.insert(3, at: 0)
+            try array.insert(4, at: 0)
 
             try checkUpdateCases(ydoc: ydoc, updates: updates, enc: env, hasDeletes: false)
         }
@@ -71,10 +71,10 @@ final class UpdatesTests: XCTestCase {
             }
 
             let array = try ydoc.getArray()
-            try array.insert(0, [1, 2])
-            try array.delete(1, length: 1)
-            try array.insert(0, [3, 4])
-            try array.delete(1, length: 2)
+            try array.insert(contentsOf: [1, 2], at: 0)
+            try array.remove(1, count: 1)
+            try array.insert(contentsOf: [3, 4], at: 0)
+            try array.remove(1, count: 2)
             
             try checkUpdateCases(ydoc: ydoc, updates: updates, enc: env, hasDeletes: true)
         }
@@ -95,27 +95,27 @@ final class UpdatesTests: XCTestCase {
 
         let yDoc1 = Doc()
         try applyUpdate(ydoc: yDoc1, update: serverUpdates[0])
-        let update1 = try encodeStateAsUpdate(doc: yDoc1)
+        let update1 = try yDoc1.encodeStateAsUpdate()
 
         let yDoc2 = Doc()
         try applyUpdate(ydoc: yDoc2, update: update1)
         try applyUpdate(ydoc: yDoc2, update: serverUpdates[1])
-        let update2 = try encodeStateAsUpdate(doc: yDoc2)
+        let update2 = try yDoc2.encodeStateAsUpdate()
 
         let yDoc3 = Doc()
         try applyUpdate(ydoc: yDoc3, update: update2)
         try applyUpdate(ydoc: yDoc3, update: serverUpdates[3])
-        let update3 = try encodeStateAsUpdate(doc: yDoc3)
+        let update3 = try yDoc3.encodeStateAsUpdate()
 
         let yDoc4 = Doc()
         try applyUpdate(ydoc: yDoc4, update: update3)
         try applyUpdate(ydoc: yDoc4, update: serverUpdates[2])
-        let update4 = try encodeStateAsUpdate(doc: yDoc4)
+        let update4 = try yDoc4.encodeStateAsUpdate()
 
         let yDoc5 = Doc()
         try applyUpdate(ydoc: yDoc5, update: update4)
         try applyUpdate(ydoc: yDoc5, update: serverUpdates[4])
-        _ = try encodeStateAsUpdate(doc: yDoc5)
+        _ = try yDoc5.encodeStateAsUpdate()
 
         let yText5 = try yDoc5.getText("textBlock")
         XCTAssertEqual(yText5.toString(), "nenor")

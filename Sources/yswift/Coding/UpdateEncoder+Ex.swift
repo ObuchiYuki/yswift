@@ -20,6 +20,16 @@ import Foundation
  * 7: Item with Type
  */
 
+extension Doc {
+    public func encodeStateAsUpdate(encodedStateVector: Data? = nil, encoder: UpdateEncoder = UpdateEncoderV1()) throws -> Data {
+        try encoder.encodeStateAsUpdate(doc: self, encodedStateVector: encodedStateVector)
+    }
+    
+    public func encodeStateAsUpdateV2(encodedStateVector: Data? = nil) throws -> Data {
+        try self.encodeStateAsUpdate(encodedStateVector: encodedStateVector, encoder: UpdateEncoderV2())
+    }
+}
+
 extension UpdateEncoder {
     func writeStructs(structs: Ref<[Struct]>, client: Int, clock: Int) throws {
         // write first id
@@ -39,7 +49,7 @@ extension UpdateEncoder {
         }
     }
     
-    func encodeClientsStructs(store: StructStore, stateVector: [Int: Int]) throws {
+    func writeClientsStructs(store: StructStore, stateVector: [Int: Int]) throws {
         // we filter all valid _sm entries into sm
         var _stateVector = [Int: Int]()
         
@@ -58,76 +68,74 @@ extension UpdateEncoder {
         }
     }
     
-    func encodeStructs(from transaction: Transaction) throws {
-        try self.encodeClientsStructs(store: transaction.doc.store, stateVector: transaction.beforeState)
+    func writeStructs(from transaction: Transaction) throws {
+        try self.writeClientsStructs(store: transaction.doc.store, stateVector: transaction.beforeState)
     }
     
-    func encodeStateAsUpdate(doc: Doc, targetStateVector: [Int: Int] = [:]) throws {
-        try self.encodeClientsStructs(store: doc.store, stateVector: targetStateVector)
+    func writeStateAsUpdate(doc: Doc, targetStateVector: [Int: Int] = [:]) throws {
+        try self.writeClientsStructs(store: doc.store, stateVector: targetStateVector)
         try DeleteSet.createFromStructStore(doc.store).encode(into: self)
     }
 
-}
-
-public func encodeStateAsUpdateV2(doc: Doc, encodedTargetStateVector: Data? = nil, encoder: UpdateEncoder = UpdateEncoderV2()) throws -> Data {
-    let encodedTargetStateVector = encodedTargetStateVector ?? Data([0])
-    
-    let targetStateVector = try decodeStateVector(decodedState: encodedTargetStateVector)
-    
-    try encoder.encodeStateAsUpdate(doc: doc, targetStateVector: targetStateVector)
+    public func encodeStateAsUpdate(doc: Doc, encodedStateVector: Data? = nil) throws -> Data {
+        let encoder = self
         
-    var updates = [encoder.toData()]
-    // also add the pending updates (if there are any)
-    
-    if doc.store.pendingDs != nil {
-        updates.append(doc.store.pendingDs!)
-    }
-    if doc.store.pendingStructs != nil {
-        updates.append(try diffUpdateV2(update: doc.store.pendingStructs!.update, sv: encodedTargetStateVector))
-    }
-    
-    
-    if updates.count > 1 {
-        if encoder is UpdateEncoderV1 {
-            return try mergeUpdates(updates: updates.enumerated().map{ i, update in
-                try i == 0 ? update : convertUpdateFormatV2ToV1(update: update)
-            })
-        } else if encoder is UpdateEncoderV2 {
-            return try mergeUpdatesV2(updates: updates)
+        let encodedStateVector = encodedStateVector ?? Data([0])
+        
+        let targetStateVector = try decodeStateVector(decodedState: encodedStateVector)
+        
+        try encoder.writeStateAsUpdate(doc: doc, targetStateVector: targetStateVector)
+            
+        var updates = [encoder.toData()]
+        // also add the pending updates (if there are any)
+        
+        if doc.store.pendingDs != nil {
+            updates.append(doc.store.pendingDs!)
         }
+        if doc.store.pendingStructs != nil {
+            updates.append(try diffUpdateV2(update: doc.store.pendingStructs!.update, sv: encodedStateVector))
+        }
+        
+        
+        if updates.count > 1 {
+            if encoder is UpdateEncoderV1 {
+                return try mergeUpdates(updates: updates.enumerated().map{ i, update in
+                    try i == 0 ? update : convertUpdateFormatV2ToV1(update: update)
+                })
+            } else if encoder is UpdateEncoderV2 {
+                return try mergeUpdatesV2(updates: updates)
+            }
+        }
+
+        return updates[0]
     }
-
-    return updates[0]
 }
 
-public func encodeStateAsUpdate(doc: Doc, encodedTargetStateVector: Data? = nil) throws -> Data {
-    return try encodeStateAsUpdateV2(doc: doc, encodedTargetStateVector: encodedTargetStateVector, encoder: UpdateEncoderV1())
-}
+extension DSEncoder {
+    
+    public func writeStateVector(_ stateVector: [Int: Int]) throws {
+        self.restEncoder.writeUInt(UInt(stateVector.count))
+        
+        for (client, clock) in stateVector.sorted(by: { $0.key > $1.key }) {
+            self.restEncoder.writeUInt(UInt(client))
+            self.restEncoder.writeUInt(UInt(clock))
+        }
 
-public func decodeStateVector(decodedState: Data) throws -> [Int: Int] {
-    return try readStateVector(decoder: DSDecoderV1(LZDecoder(decodedState)))
-}
-
-public func writeStateVector(encoder: DSEncoder, sv: [Int: Int]) throws -> DSEncoder {
-    encoder.restEncoder.writeUInt(UInt(sv.count))
-    sv.sorted(by: { $0.key > $1.key }).forEach{ client, clock in
-        encoder.restEncoder.writeUInt(UInt(client))
-        encoder.restEncoder.writeUInt(UInt(clock))
     }
-    return encoder
 }
 
-public func writeDocumentStateVector(encoder: DSEncoder, doc: Doc) throws -> DSEncoder {
-    return try writeStateVector(encoder: encoder, sv: doc.store.getStateVector())
+
+public func writeDocumentStateVector(encoder: DSEncoder, doc: Doc) throws {
+    return try encoder.writeStateVector(doc.store.getStateVector())
 }
 
 public func encodeStateVectorV2(doc: [Int: Int], encoder: DSEncoder = DSEncoderV2()) throws -> Data {
-    try _ = writeStateVector(encoder: encoder, sv: doc)
+    try encoder.writeStateVector(doc)
     return encoder.toData()
 }
 
 public func encodeStateVectorV2(doc: Doc, encoder: DSEncoder = DSEncoderV2()) throws -> Data {
-    try _ = writeDocumentStateVector(encoder: encoder, doc: doc)
+    try writeDocumentStateVector(encoder: encoder, doc: doc)
     return encoder.toData()
 }
 
@@ -143,6 +151,10 @@ public func encodeStateVector(doc: [Int: Int]) throws -> Data {
 // Decoding //
 
 
+
+public func decodeStateVector(decodedState: Data) throws -> [Int: Int] {
+    return try readStateVector(decoder: DSDecoderV1(LZDecoder(decodedState)))
+}
 
 public func readStateVector(decoder: DSDecoder) throws -> [Int: Int] {
     var ss = [Int:Int]()
@@ -208,7 +220,7 @@ extension UpdateDecoder {
                         rightOrigin: (info & 0b0100_0000) == 0b0100_0000 ? decoder.readRightID() : nil, // right origin
                         parent: cantCopyParentInfo
                         ? (decoder.readParentInfo()
-                           ? .object(doc.get(YCObject.self, name: decoder.readString(), make: YCObject.init))
+                           ? .object(doc.get(YObject.self, name: decoder.readString(), make: YObject.init))
                            : .id(decoder.readLeftID()))
                         : nil, // parent
                         parentSub: cantCopyParentInfo && (info & 0b0010_0000) == 0b0010_0000 ? decoder.readString() : nil, // parentSub
@@ -344,7 +356,7 @@ func integrateStructs(transaction: Transaction, store: StructStore, clientsStruc
     
     if restStructs.clients.count > 0 {
         let encoder = UpdateEncoderV2()
-        try encoder.encodeClientsStructs(store: restStructs, stateVector: [:])
+        try encoder.writeClientsStructs(store: restStructs, stateVector: [:])
         // write empty deleteset
         // writeDeleteSet(encoder, DeleteSet())
         encoder.restEncoder.writeUInt(0) // -> no need for an extra function call, just write 0 deletes
@@ -357,7 +369,7 @@ func integrateStructs(transaction: Transaction, store: StructStore, clientsStruc
 public func readUpdateV2(decoder: LZDecoder, ydoc: Doc, transactionOrigin: Any?, structDecoder: UpdateDecoder? = nil) throws {
     let structDecoder = try structDecoder ?? UpdateDecoderV2(decoder)
     
-    try ydoc.transact({ transaction in
+    try ydoc.transact(origin: transactionOrigin, local: false) { transaction in
         transaction.local = false
         var retry = false
         let doc = transaction.doc
@@ -411,7 +423,7 @@ public func readUpdateV2(decoder: LZDecoder, ydoc: Doc, transactionOrigin: Any?,
             store.pendingStructs = nil
             try applyUpdateV2(ydoc: transaction.doc, update: update, transactionOrigin: nil)
         }
-    }, origin: transactionOrigin, local: false)
+    }
 }
 
 public func readUpdate(decoder: LZDecoder, ydoc: Doc, transactionOrigin: Any? = nil) throws {

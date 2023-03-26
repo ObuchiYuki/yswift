@@ -26,28 +26,6 @@ final public class Snapshot: JSHashable {
             stateVectors: doc.store.getStateVector()
         )
     }
-
-    public func encodeV2(_ encoder: DSEncoder = DSEncoderV2()) throws -> Data {
-        try self.deleteSet.encode(into: encoder)
-        _ = try writeStateVector(encoder: encoder, sv: self.stateVectors)
-        return encoder.toData()
-    }
-    
-    public func encode() throws -> Data {
-        return try self.encodeV2(DSEncoderV1())
-    }
-    
-    static public func decodeV2(_ buf: Data, decoder: DSDecoder? = nil) throws -> Snapshot {
-        let decoder = try decoder ?? DSDecoderV2(LZDecoder(buf))
-        return Snapshot(
-            deleteSet: try DeleteSet.decode(decoder: decoder),
-            stateVectors: try readStateVector(decoder: decoder)
-        )
-    }
-    
-    static public func decode(_ buf: Data) throws -> Snapshot {
-        return try Snapshot.decodeV2(buf, decoder: DSDecoderV1(LZDecoder(buf)))
-    }
    
     public func splitAffectedStructs(_ transaction: Transaction) throws {
         enum __ { static let marker = UUID() }
@@ -68,7 +46,8 @@ final public class Snapshot: JSHashable {
     }
 
     
-    public func toDoc(_ originDoc: Doc, newDoc: Doc = Doc()) throws -> Doc {
+    public func toDoc(_ originDoc: Doc) throws -> Doc {
+        let newDoc = Doc()
         if originDoc.gc { throw YSwiftError.originDocGC }
         
         let encoder = UpdateEncoderV2()
@@ -100,6 +79,31 @@ final public class Snapshot: JSHashable {
         try applyUpdateV2(ydoc: newDoc, update: encoder.toData(), transactionOrigin: "snapshot")
         
         return newDoc
+    }
+}
+
+// Coding
+extension Snapshot {
+    public func encodeV2(_ encoder: DSEncoder = DSEncoderV2()) throws -> Data {
+        try self.deleteSet.encode(into: encoder)
+        try encoder.writeStateVector(self.stateVectors)
+        return encoder.toData()
+    }
+    
+    public func encode() throws -> Data {
+        return try self.encodeV2(DSEncoderV1())
+    }
+    
+    static public func decodeV2(_ buf: Data, decoder: DSDecoder? = nil) throws -> Snapshot {
+        let decoder = try decoder ?? DSDecoderV2(LZDecoder(buf))
+        return Snapshot(
+            deleteSet: try DeleteSet.decode(decoder: decoder),
+            stateVectors: try readStateVector(decoder: decoder)
+        )
+    }
+    
+    static public func decode(_ buf: Data) throws -> Snapshot {
+        return try Snapshot.decodeV2(buf, decoder: DSDecoderV1(LZDecoder(buf)))
     }
 }
 

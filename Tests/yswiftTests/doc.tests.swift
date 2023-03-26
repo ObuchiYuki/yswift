@@ -12,11 +12,11 @@ final class DocTests: XCTestCase {
                 _ = ymap.toJSON()
             }
         }
-        try ydoc.transact({ _ in
+        try ydoc.transact(origin: "test") { _ in
             for _ in 0..<1500  { // as Swift slow in DEBUG mode
-                try ymap.push([YText("a")])
+                try ymap.append(contentsOf: [YText("a")])
             }
-        }, origin: "test")
+        }
     }
 
     func testOriginInTransaction() throws {
@@ -31,15 +31,15 @@ final class DocTests: XCTestCase {
             
             if origins.count <= 1 {
                 _ = try ytext.toDelta(Snapshot(doc: doc))
-                try doc.transact({ _ in
+                try doc.transact(origin: "nested") { _ in
                     try ytext.insert(0, text: "a")
-                }, origin: "nested")
+                }
             }
         }
         
-        try doc.transact({ _ in
+        try doc.transact(origin: "first") { _ in
             try ytext.insert(0, text: "0")
-        }, origin: "first")
+        }
         
         XCTAssertEqual(origins, ["first", "cleanup", "nested"])
     }
@@ -50,8 +50,8 @@ final class DocTests: XCTestCase {
         let doc2 = Doc()
         doc2.clientID = 0
         XCTAssertEqual(doc2.clientID, doc1.clientID)
-        try doc1.getArray("a").insert(0, [1, 2])
-        try applyUpdate(ydoc: doc2, update: encodeStateAsUpdate(doc: doc1))
+        try doc1.getArray("a").insert(contentsOf: [1, 2], at: 0)
+        try applyUpdate(ydoc: doc2, update: doc1.encodeStateAsUpdate())
         XCTAssertNotEqual(doc2.clientID, doc1.clientID)
     }
 
@@ -62,7 +62,7 @@ final class DocTests: XCTestCase {
                 
         let doc2 = Doc(opts: .init(cliendID: 101))
         
-        let update = try encodeStateAsUpdate(doc: doc1)
+        let update = try doc1.encodeStateAsUpdate()
                 
         try applyUpdate(ydoc: doc2, update: update)
         
@@ -75,7 +75,7 @@ final class DocTests: XCTestCase {
         XCTAssertTrue(doc.toJSON().isEmpty, "doc.toJSON yields empty object")
 
         let arr = try doc.getArray("array")
-        try arr.push(["test1"])
+        try arr.append(contentsOf: ["test1"])
 
         let map = try doc.getMap("map")
         try map.set("k1", value: "v1")
@@ -154,7 +154,7 @@ final class DocTests: XCTestCase {
                 ]
             }
             
-            try applyUpdate(ydoc: doc2, update: encodeStateAsUpdate(doc: doc))
+            try applyUpdate(ydoc: doc2, update: doc.encodeStateAsUpdate())
             XCTAssertEqual(event, [["a", "a", "c"], [], []])
 
             try (doc2.getMap("mysubdocs").get("a") as! Doc).load()
@@ -177,7 +177,7 @@ final class DocTests: XCTestCase {
         ydoc.on(Doc.On.subdocs) { event, _ in
             lastEvent = event
         }
-        try yarray.insert(0, [subdoc1])
+        try yarray.insert(subdoc1, at: 0)
         XCTAssert(subdoc1.shouldLoad)
         XCTAssert(subdoc1.autoLoad == false)
         try XCTAssert(XCTUnwrap(lastEvent).loaded.contains(subdoc1))
@@ -185,7 +185,7 @@ final class DocTests: XCTestCase {
         
         // destroy and check whether lastEvent adds it again to added (it shouldn"t)
         try subdoc1.destroy()
-        let subdoc2 = try XCTUnwrap(yarray.get(0) as? Doc)
+        let subdoc2 = try XCTUnwrap(yarray[0] as? Doc)
         XCTAssert(subdoc1 != subdoc2)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc2))
         try XCTAssert(!XCTUnwrap(lastEvent).loaded.contains(subdoc2))
@@ -198,8 +198,8 @@ final class DocTests: XCTestCase {
         ydoc2.on(Doc.On.subdocs) { event, _ in
             lastEvent = event
         }
-        try applyUpdate(ydoc: ydoc2, update: encodeStateAsUpdate(doc: ydoc))
-        let subdoc3 = try XCTUnwrap(try ydoc2.getArray("").get(0) as? Doc)
+        try applyUpdate(ydoc: ydoc2, update: ydoc.encodeStateAsUpdate())
+        let subdoc3 = try XCTUnwrap(try ydoc2.getArray("")[0] as? Doc)
         XCTAssert(subdoc3.shouldLoad == false)
         XCTAssert(subdoc3.autoLoad == false)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc3))
@@ -221,7 +221,7 @@ final class DocTests: XCTestCase {
             lastEvent = event
         }
         
-        try yarray.insert(0, [subdoc1])
+        try yarray.insert(subdoc1, at: 0)
         
         
         XCTAssertTrue(subdoc1.shouldLoad)
@@ -231,7 +231,7 @@ final class DocTests: XCTestCase {
         
         // destroy and check whether lastEvent adds it again to added (it shouldn"t)
         try subdoc1.destroy()
-        let subdoc2 = try XCTUnwrap(yarray.get(0) as? Doc)
+        let subdoc2 = try XCTUnwrap(yarray[0] as? Doc)
         XCTAssertNotIdentical(subdoc1, subdoc2)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc2))
         try XCTAssert(!XCTUnwrap(lastEvent).loaded.contains(subdoc2))
@@ -246,9 +246,9 @@ final class DocTests: XCTestCase {
         ydoc2.on(Doc.On.subdocs) { event, _ in
             lastEvent = event
         }
-        let update = try encodeStateAsUpdate(doc: ydoc)
+        let update = try ydoc.encodeStateAsUpdate()
         try applyUpdate(ydoc: ydoc2, update: update)
-        let subdoc3 = try XCTUnwrap(ydoc2.getArray("").get(0) as? Doc)
+        let subdoc3 = try XCTUnwrap(ydoc2.getArray("")[0] as? Doc)
         XCTAssert(subdoc1.shouldLoad)
         XCTAssert(subdoc1.autoLoad)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc3))
@@ -260,10 +260,10 @@ final class DocTests: XCTestCase {
         let elems = try ydoc.getArray()
         let undoManager = UndoManager(typeScope: elems, options: .init())
         let subdoc = Doc()
-        try elems.insert(0, [subdoc])
+        try elems.insert(subdoc, at: 0)
         try undoManager.undo()
         try undoManager.redo()
-        XCTAssert(elems.length == 1)
+        XCTAssert(elems.count == 1)
     }
 
     func testLoadDocsEvent() async throws {

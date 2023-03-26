@@ -15,12 +15,12 @@ extension NSArray: YEventDeltaInsertType {}
 extension String: YEventDeltaInsertType {}
 extension [Any?]: YEventDeltaInsertType {}
 extension [String: Any?]: YEventDeltaInsertType {}
-extension YCObject: YEventDeltaInsertType {}
+extension YObject: YEventDeltaInsertType {}
 
 extension YEventDeltaInsertType {
     public func isEqual(to other: any YEventDeltaInsertType) -> Bool {
         if equalJSON(self, other) { return true }
-        if let a = self as? YCObject, let b = other as? YCObject {
+        if let a = self as? YObject, let b = other as? YObject {
             return equalJSON(a.toJSON(), b.toJSON())
         }
         return false
@@ -100,15 +100,15 @@ public class YEventChange {
 
 /** YEvent describes the changes on a YType. */
 public class YEvent {
-    public var target: YCObject // T
-    public var currentTarget: YCObject
+    public var target: YObject // T
+    public var currentTarget: YObject
     public var transaction: Transaction
     
     public var _changes: YEventChange? = nil
     public var _keys: [String: YEventKey]? = nil
     public var _delta: [YEventDelta]? = nil
 
-    public init(_ target: YCObject, transaction: Transaction) {
+    public init(_ target: YObject, transaction: Transaction) {
         self.target = target
         self.currentTarget = target
         self.transaction = transaction
@@ -238,8 +238,8 @@ public protocol PathElement {}
 extension String: PathElement {}
 extension Int: PathElement {}
 
-func getPathTo(parent: YCObject, child: YCObject) -> [PathElement] {
-    var child: YCObject? = child
+func getPathTo(parent: YObject, child: YObject) -> [PathElement] {
+    var child: YObject? = child
     var path: [PathElement] = []
     while let childItem = child?.item, child != parent {
         if let parentKey = childItem.parentKey {

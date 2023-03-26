@@ -8,9 +8,9 @@
 import Foundation
 
 final class TypeContent: Content {
-    var type: YCObject
+    var type: YObject
     
-    init(_ type: YCObject) { self.type = type }
+    init(_ type: YObject) { self.type = type }
 }
 
 extension TypeContent {

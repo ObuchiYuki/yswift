@@ -8,25 +8,25 @@
 import Foundation
 
 public protocol Object_or_ObjectArray {}
-extension YCObject: Object_or_ObjectArray {}
-extension [YCObject]: Object_or_ObjectArray {}
+extension YObject: Object_or_ObjectArray {}
+extension [YObject]: Object_or_ObjectArray {}
 
 extension Object_or_ObjectArray {
     var doc: Doc? {
-        if let type = self as? YCObject {
+        if let type = self as? YObject {
             return type.doc
         }
-        if let typea = self as? [YCObject] {
+        if let typea = self as? [YObject] {
             return typea[0].doc
         }
         return nil
     }
     
-    var asObjectArray: [YCObject] {
-        if let type = self as? YCObject {
+    var asObjectArray: [YObject] {
+        if let type = self as? YObject {
             return [type]
         }
-        if let typea = self as? [YCObject] {
+        if let typea = self as? [YObject] {
             return typea
         }
         fatalError()
@@ -80,9 +80,9 @@ extension UndoManager {
         public var stackItem: StackItem
         public var type: EvnetType
         public var undoStackCleared: Bool?
-        public var changedParentTypes: [YCObject: [YEvent]]
+        public var changedParentTypes: [YObject: [YEvent]]
         
-        init(origin: Any? = nil, stackItem: StackItem, type: EvnetType, undoStackCleared: Bool? = nil , changedParentTypes: [YCObject : [YEvent]]) {
+        init(origin: Any? = nil, stackItem: StackItem, type: EvnetType, undoStackCleared: Bool? = nil , changedParentTypes: [YObject : [YEvent]]) {
             self.origin = origin
             self.stackItem = stackItem
             self.type = type
@@ -138,7 +138,7 @@ extension UndoManager {
 
 final public class UndoManager: LZObservable, JSHashable {
 
-    public var scope: Ref<[YCObject]> = .init(value: [])
+    public var scope: Ref<[YObject]> = .init(value: [])
     public var deleteFilter: (Item) -> Bool
     public var trackedOrigins: Ref<Set<AnyHashable?>>
     public var captureTransaction: (Transaction) -> Bool
@@ -265,7 +265,7 @@ final public class UndoManager: LZObservable, JSHashable {
         let doc = self.doc
         let scope = self.scope
         
-        try doc.transact({ transaction in
+        try doc.transact(origin: self) { transaction in
             while (stack.count > 0 && result == nil) {
                 let store = doc.store
                 let stackItem = stack.value.popLast()!
@@ -321,7 +321,7 @@ final public class UndoManager: LZObservable, JSHashable {
                 }
             })
             _tr = transaction
-        }, origin: self)
+        }
         
         if result != nil {
             let changedParentTypes = _tr!.changedParentTypes

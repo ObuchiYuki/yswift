@@ -16,7 +16,7 @@ public class YMapEvent: YEvent {
     }
 }
 
-public class YMap: YCObject {
+final public class YMap: YObject {
     public var _prelimContent: [String: Any?]?
 
     public init(_ dict: [String: Any?]? = nil) {
@@ -46,7 +46,7 @@ public class YMap: YCObject {
     public override func clone() throws -> YMap {
         let map = YMap()
         try self.forEach({ value, key, _ in
-            try map.set(key, value: value is YCObject ? (value as! YCObject).clone() : value)
+            try map.set(key, value: value is YObject ? (value as! YObject).clone() : value)
         })
         return map
     }
@@ -70,7 +70,7 @@ public class YMap: YCObject {
                 if v == nil {
                     map[key] = NSNull()
                 } else {
-                    map[key] = v is YCObject ? (v as! YCObject).toJSON() : v
+                    map[key] = v is YObject ? (v as! YObject).toJSON() : v
                 }
             }
         })

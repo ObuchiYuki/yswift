@@ -92,9 +92,8 @@ final class YMapTests: XCTestCase {
         let map = try XCTUnwrap(map0.get("y-map") as? YMap)
         try map.set("y-array", value: YArray())
         let array = try XCTUnwrap(map.get("y-array") as? YArray)
-        try array.insert(0, [0])
-        try array.insert(0, [-1])
-                
+        try array.insert(0, at: 0)
+        try array.insert(-1, at: 0)
         
         XCTAssertEqualJSON(map0.get("nil"), nil, "client 0 computed the change (nil)")
         XCTAssertEqualJSON(map0.get("number"), 1, "client 0 computed the change (number)")
@@ -102,7 +101,7 @@ final class YMapTests: XCTestCase {
         XCTAssertEqualJSON(map0.get("boolean0"), false, "client 0 computed the change (boolean)")
         XCTAssertEqualJSON(map0.get("boolean1"), true, "client 0 computed the change (boolean)")
         XCTAssertEqualJSON(map0.get("object"), ["key": ["key2": "value"]], "client 0 computed the change (object)")
-        XCTAssertEqualJSON(((map0.get("y-map") as? YMap)?.get("y-array") as? YArray)?.get(0), -1, "client 0 computed the change (type)")
+        XCTAssertEqualJSON(((map0.get("y-map") as? YMap)?.get("y-array") as? YArray)?[0], -1, "client 0 computed the change (type)")
         XCTAssertEqualJSON(map0.size, 7, "client 0 map has correct size")
         
         try docs[2].connect()
@@ -114,7 +113,7 @@ final class YMapTests: XCTestCase {
         XCTAssertEqualJSON(map1.get("boolean0"), false, "client 1 computed the change (boolean)")
         XCTAssertEqualJSON(map1.get("boolean1"), true, "client 1 computed the change (boolean)")
         XCTAssertEqualJSON(map1.get("object"), ["key": ["key2": "value"]], "client 1 received the update (object)")
-        XCTAssertEqualJSON(((map1.get("y-map") as? YMap)?.get("y-array") as? YArray)?.get(0), -1, "client 1 computed the change (type)")
+        XCTAssertEqualJSON(((map1.get("y-map") as? YMap)?.get("y-array") as? YArray)?[0], -1, "client 1 computed the change (type)")
         XCTAssertEqualJSON(map1.size, 7, "client 1 map has correct size")
 
         // compare disconnected user
@@ -124,7 +123,7 @@ final class YMapTests: XCTestCase {
         XCTAssertEqualJSON(map2.get("boolean0"), false, "client 2 computed the change (boolean)")
         XCTAssertEqualJSON(map2.get("boolean1"), true, "client 2 computed the change (boolean)")
         XCTAssertEqualJSON(map2.get("object"), ["key": ["key2": "value"]], "client 2 received the update (object) - was disconnected")
-        XCTAssertEqualJSON(((map2.get("y-map") as? YMap)?.get("y-array") as? YArray)?.get(0), -1, "client 2 received the update (type) - was disconnected")
+        XCTAssertEqualJSON(((map2.get("y-map") as? YMap)?.get("y-array") as? YArray)?[0], -1, "client 2 received the update (type) - was disconnected")
         XCTAssertEqualJSON(map2.size, 7, "client 2 map has correct size")
         
         try YAssertEqualDocs(docs)
@@ -176,7 +175,7 @@ final class YMapTests: XCTestCase {
         try map0.set("array", value: array)
         XCTAssert(map0.get("array") as? AnyObject === array)
         
-        try array.insert(0, [1, 2, 3])
+        try array.insert(contentsOf: [1, 2, 3], at: 0)
         
         XCTAssertEqualJSON(map0.toJSON(), ["array": [1, 2, 3]])
         
@@ -406,7 +405,7 @@ final class YMapTests: XCTestCase {
         try map0.set("map", value: YMap())
         let _map = try XCTUnwrap(map0.get("map") as? YMap)
         try _map.set("array", value: YArray())
-        try XCTUnwrap(_map.get("array") as? YArray).insert(0, ["content"])
+        try XCTUnwrap(_map.get("array") as? YArray).insert("content", at: 0)
         
         XCTAssertEqual(calls, 3)
         XCTAssertEqualJSON(pathes, [[], ["map"], ["map", "array"]])
@@ -579,7 +578,7 @@ final class YMapTests: XCTestCase {
             let type = test.gen.oneOf([YArray(), YMap()])
             try doc.getMap("map").set(key, value: type)
             if let type = type as? YArray {
-                try type.insert(0, [1, 2, 3, 4])
+                try type.insert(contentsOf: [1, 2, 3, 4], at: 0)
             } else if let type = type as? YMap {
                 try type.set("deepkey", value: "deepvalue")
             }

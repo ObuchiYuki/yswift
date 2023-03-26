@@ -6,8 +6,8 @@ final class YArrayTests: XCTestCase {
     func testBasicUpdate() throws {
         let doc1 = Doc()
         let doc2 = Doc()
-        try doc1.getArray("array").insert(0, ["hi"])
-        let update = try encodeStateAsUpdate(doc: doc1)
+        try doc1.getArray("array").insert("hi", at: 0)
+        let update = try doc1.encodeStateAsUpdate()
         try applyUpdate(ydoc: doc2, update: update)
         try XCTAssertEqualJSON(doc2.getArray("array").toArray(), ["hi"])
     }
@@ -15,11 +15,11 @@ final class YArrayTests: XCTestCase {
     func testSlice() throws {
         let doc1 = Doc()
         let arr = try doc1.getArray("array")
-        try arr.insert(0, [1, 2, 3])
+        try arr.insert(contentsOf: [1, 2, 3], at: 0)
         XCTAssertEqualJSON(arr.slice(0), [1, 2, 3])
         XCTAssertEqualJSON(arr.slice(1), [2, 3])
         XCTAssertEqualJSON(arr.slice(0, end: -1), [1, 2])
-        try arr.insert(0, [0])
+        try arr.insert(0, at: 0)
         XCTAssertEqualJSON(arr.slice(0), [0, 1, 2, 3])
         XCTAssertEqualJSON(arr.slice(0, end: 2), [0, 1])
     }
@@ -41,25 +41,25 @@ final class YArrayTests: XCTestCase {
     func testLengthIssue() throws {
         let doc1 = Doc()
         let arr = try doc1.getArray("array")
-        try arr.push([0, 1, 2, 3])
-        try arr.delete(0)
-        try arr.insert(0, [0])
-        XCTAssert(arr.length == arr.toArray().count)
+        try arr.append(contentsOf: [0, 1, 2, 3])
+        try arr.remove(0)
+        try arr.insert(0, at: 0)
+        XCTAssert(arr.count == arr.toArray().count)
         try doc1.transact{ _ in
-            try arr.delete(1)
-            XCTAssert(arr.length == arr.toArray().count)
-            try arr.insert(1, [1])
-            XCTAssert(arr.length == arr.toArray().count)
-            try arr.delete(2)
-            XCTAssert(arr.length == arr.toArray().count)
-            try arr.insert(2, [2])
-            XCTAssert(arr.length == arr.toArray().count)
+            try arr.remove(1)
+            XCTAssert(arr.count == arr.toArray().count)
+            try arr.insert(1, at: 1)
+            XCTAssert(arr.count == arr.toArray().count)
+            try arr.remove(2)
+            XCTAssert(arr.count == arr.toArray().count)
+            try arr.insert(2, at: 2)
+            XCTAssert(arr.count == arr.toArray().count)
         }
-        XCTAssert(arr.length == arr.toArray().count)
-        try arr.delete(1)
-        XCTAssert(arr.length == arr.toArray().count)
-        try arr.insert(1, [1])
-        XCTAssert(arr.length == arr.toArray().count)
+        XCTAssert(arr.count == arr.toArray().count)
+        try arr.remove(1)
+        XCTAssert(arr.count == arr.toArray().count)
+        try arr.insert(1, at: 1)
+        XCTAssert(arr.count == arr.toArray().count)
     }
 
     /**
@@ -71,33 +71,33 @@ final class YArrayTests: XCTestCase {
         let doc = Doc()
         let next = try doc.getArray()
         try doc.transact({ _ in
-            try next.insert(0, ["group2"])
+            try next.insert("group2", at: 0)
         })
         try doc.transact({ _ in
-            try next.insert(1, ["rectangle3"])
+            try next.insert("rectangle3", at: 1)
         })
         try doc.transact({ _ in
-            try next.delete(0)
-            try next.insert(0, ["rectangle3"])
+            try next.remove(0)
+            try next.insert("rectangle3", at: 0)
         })
-        try next.delete(1)
+        try next.remove(1)
         try doc.transact({ _ in
-            try next.insert(1, ["ellipse4"])
-        })
-        try doc.transact({ _ in
-            try next.insert(2, ["ellipse3"])
+            try next.insert("ellipse4", at: 1)
         })
         try doc.transact({ _ in
-            try next.insert(3, ["ellipse2"])
+            try next.insert("ellipse3", at: 2)
+        })
+        try doc.transact({ _ in
+            try next.insert("ellipse2", at: 3)
         })
         try doc.transact({ _ in
             try doc.transact({ _ in
-                XCTAssertThrowsError(try next.insert(5, ["rectangle2"]))
-                try next.insert(4, ["rectangle2"])
+                XCTAssertThrowsError(try next.insert("rectangle2", at: 5))
+                try next.insert("rectangle2", at: 4)
             })
             try doc.transact({ _ in
                 // self should not throw an error message
-                try next.delete(4)
+                try next.remove(4)
             })
         })
         print(next.toArray())
@@ -107,12 +107,12 @@ final class YArrayTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let docs = test.docs, array0 = test.array[0]
         
-        try array0.delete(0, length: 0)
+        try array0.remove(0, count: 0)
         
         print("Does not throw when deleting zero elements with position 0")
-        XCTAssertThrowsError(try array0.delete(1, length: 1))
-        try array0.insert(0, ["A"])
-        try array0.delete(1, length: 0)
+        XCTAssertThrowsError(try array0.remove(1, count: 1))
+        try array0.insert("A", at: 0)
+        try array0.remove(1, count: 0)
         
         print("Does not throw when deleting zero elements with valid position 1")
         try YAssertEqualDocs(docs)
@@ -122,7 +122,7 @@ final class YArrayTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let connector = test.connector, docs = test.docs, array0 = test.array[0], array1 = test.array[1]
         
-        try array0.insert(0, [1, true, false])
+        try array0.insert(contentsOf: [1, true, false], at: 0)
         XCTAssertEqualJSON(array0.toJSON(), [1, true, false], ".toJSON() works")
         
         try connector.flushAllMessages()
@@ -135,9 +135,9 @@ final class YArrayTests: XCTestCase {
         let test = try YTest<Any>(docs: 3)
         let docs = test.docs, array0 = test.array[0], array1 = test.array[1], array2 = test.array[2]
         
-        try array0.insert(0, [0])
-        try array1.insert(0, [1])
-        try array2.insert(0, [2])
+        try array0.insert(0, at: 0)
+        try array1.insert(1, at: 0)
+        try array2.insert(2, at: 0)
         
         try YAssertEqualDocs(docs)
     }
@@ -146,12 +146,12 @@ final class YArrayTests: XCTestCase {
         let test = try YTest<Any>(docs: 3)
         let connector = test.connector, docs = test.docs, array0 = test.array[0], array1 = test.array[1], array2 = test.array[2]
         
-        try array0.insert(0, ["x", "y", "z"])
+        try array0.insert(contentsOf: ["x", "y", "z"], at: 0)
         try connector.flushAllMessages()
-        try array0.insert(1, [0])
-        try array1.delete(0)
-        try array1.delete(1, length: 1)
-        try array2.insert(1, [2])
+        try array0.insert(0, at: 1)
+        try array1.remove(0)
+        try array1.remove(1, count: 1)
+        try array2.insert(2, at: 1)
         try YAssertEqualDocs(docs)
     }
 
@@ -160,15 +160,15 @@ final class YArrayTests: XCTestCase {
         
         let connector = test.connector, docs = test.docs, array0 = test.array[0], array1 = test.array[1], array2 = test.array[2]
         
-        try array0.insert(0, ["x", "y"])
+        try array0.insert(contentsOf: ["x", "y"], at: 0)
         try connector.flushAllMessages()
         
         docs[1].disconnect()
         docs[2].disconnect()
         
-        try array0.insert(1, ["user0"])
-        try array1.insert(1, ["user1"])
-        try array2.insert(1, ["user2"])
+        try array0.insert("user0", at: 1)
+        try array1.insert("user1", at: 1)
+        try array2.insert("user2", at: 1)
         
         try docs[1].connect()
         try docs[2].connect()
@@ -182,14 +182,14 @@ final class YArrayTests: XCTestCase {
         
         let connector = test.connector, docs = test.docs, array0 = test.array[0], array1 = test.array[1]
         
-        try array0.insert(0, ["x", "y"])
+        try array0.insert(contentsOf: ["x", "y"], at: 0)
         try connector.flushAllMessages()
         
         docs[1].disconnect()
         docs[2].disconnect()
         
-        try array0.insert(1, ["user0"])
-        try array1.insert(1, ["user1"])
+        try array0.insert("user0", at: 1)
+        try array1.insert("user1", at: 1)
         
         XCTAssertEqualJSON(array0.toJSON(), ["x", "user0", "y"])
         XCTAssertEqualJSON(array1.toJSON(), ["x", "user1", "y"])
@@ -205,13 +205,13 @@ final class YArrayTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let connector = test.connector, users = test.docs, array0 = test.array[0], array1 = test.array[1]
         
-        try array0.insert(0, ["x", "y"])
+        try array0.insert(contentsOf: ["x", "y"], at: 0)
         try connector.flushAllMessages()
         
         users[1].disconnect()
         
-        try array1.delete(1, length: 1)
-        try array0.delete(0, length: 2)
+        try array1.remove(1, count: 1)
+        try array0.remove(0, count: 2)
         
         try users[1].connect()
         
@@ -222,12 +222,12 @@ final class YArrayTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let connector = test.connector, docs = test.docs, array0 = test.array[0], array1 = test.array[1]
         
-        try array0.insert(0, ["x", "y", "z"])
+        try array0.insert(contentsOf: ["x", "y", "z"], at: 0)
         try connector.flushAllMessages()
         
         docs[0].disconnect()
         
-        try array1.delete(0, length: 3)
+        try array1.remove(0, count: 3)
         
         try docs[0].connect()
         
@@ -240,15 +240,15 @@ final class YArrayTests: XCTestCase {
         var event: YEvent?
         
         array0.observe{ e, _ in event = e }
-        try array0.insert(0, [0, 1, 2])
+        try array0.insert(contentsOf: [0, 1, 2], at: 0)
         XCTAssert(event != nil)
         
         event = nil
-        try array0.delete(0)
+        try array0.remove(0)
         XCTAssert(event != nil)
         
         event = nil
-        try array0.delete(0, length: 2)
+        try array0.remove(0, count: 2)
         XCTAssert(event != nil)
         
         event = nil
@@ -261,14 +261,14 @@ final class YArrayTests: XCTestCase {
         var vals: [Int] = []
         
         array0.observe{ e, _ in
-            if array0.length == 1 {
-                try array0.insert(1, [1])
+            if array0.count == 1 {
+                try array0.insert(1, at: 1)
                 vals.append(0)
             } else {
                 vals.append(1)
             }
         }
-        try array0.insert(0, [0])
+        try array0.insert(0, at: 0)
         XCTAssertEqual(vals, [0, 1])
         XCTAssertEqualJSON(array0.toArray(), [0, 1])
         
@@ -282,11 +282,11 @@ final class YArrayTests: XCTestCase {
         
         array0.observe{ e, _ in event = e }
         
-        try array0.insert(0, [Array<Int>()])
+        try array0.insert([], at: 0)
         XCTAssert(event != nil)
         
         event = nil
-        try array0.delete(0)
+        try array0.remove(0)
         XCTAssert(event != nil)
         
         event = nil
@@ -309,11 +309,11 @@ final class YArrayTests: XCTestCase {
         var events: [YEvent] = []
         array0.observeDeep{ e, _ in events = e }
         
-        try array0.insert(0, [YMap()])
+        try array0.insert(YMap(), at: 0)
         
         try docs[0].transact{ _ in
-            try XCTUnwrap(array0.get(0) as? YMap).set("a", value: "a")
-            try array0.insert(0, [0])
+            try XCTUnwrap(array0[0] as? YMap).set("a", value: "a")
+            try array0.insert(0, at: 0)
         }
         
         for i in 1..<events.count {
@@ -332,7 +332,7 @@ final class YArrayTests: XCTestCase {
         array0.observe{ e, _ in changes = try e.changes() }
         
         let newArr = YArray()
-        try array0.insert(0, [newArr, 4, "dtrn"])
+        try array0.insert(contentsOf: [newArr, 4, "dtrn"], at: 0)
         
         var wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 2)
@@ -341,7 +341,7 @@ final class YArrayTests: XCTestCase {
 
 
         changes = nil
-        try array0.delete(0, length: 2)
+        try array0.remove(0, count: 2)
 
         wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 0)
@@ -349,7 +349,7 @@ final class YArrayTests: XCTestCase {
         XCTAssertEqual(wchanges.delta, [YEventDelta(delete: 2)])
 
         changes = nil
-        try array0.insert(1, [0.1])
+        try array0.insert(0.1, at: 1)
 
         wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 1)
@@ -367,10 +367,10 @@ final class YArrayTests: XCTestCase {
         var events: [YEvent] = []
         array0.observe{ e, _ in events.append(e) }
         
-        try array0.insert(0, ["hi", YMap()])
+        try array0.insert(contentsOf: ["hi", YMap()], at: 0)
         XCTAssert(events.count == 1, "Event is triggered exactly once for insertion of two elements")
         
-        try array0.delete(1)
+        try array0.remove(1)
         XCTAssert(events.count == 2, "Event is triggered exactly once for deletion")
         
         try YAssertEqualDocs(docs)
@@ -387,7 +387,7 @@ final class YArrayTests: XCTestCase {
         try docs[0].transact{ _ in
             let newMap = YMap()
             newMap.observe{ _, _ in fired = true }
-            try array0.insert(0, [newMap])
+            try array0.insert(newMap, at: 0)
             try newMap.set("tst", value: 42)
         }
         
@@ -399,11 +399,11 @@ final class YArrayTests: XCTestCase {
         
         let connector = test.connector, docs = test.docs, array0 = test.array[0]
         
-        try array0.insert(0, ["x", "y", "z"])
+        try array0.insert(contentsOf: ["x", "y", "z"], at: 0)
         try connector.flushAllMessages()
         docs[0].disconnect()
         
-        try array0.delete(0, length: 3)
+        try array0.remove(0, count: 3)
         try docs[0].connect()
         try connector.flushAllMessages()
         
@@ -417,7 +417,7 @@ final class YArrayTests: XCTestCase {
         var event: YEvent?
         array0.observe{ e, _ in event = e }
         
-        try array0.insert(0, ["stuff"])
+        try array0.insert("stuff", at: 0)
         XCTAssert(
             try XCTUnwrap(event).target === array0,
             "\"target\" property is set correctly"
@@ -433,7 +433,7 @@ final class YArrayTests: XCTestCase {
         var event: YEvent?
         array0.observe{ e, _ in event = e }
         
-        try array1.insert(0, ["stuff"])
+        try array1.insert("stuff", at: 0)
         try connector.flushAllMessages()
         
         XCTAssert(
@@ -451,7 +451,7 @@ final class YArrayTests: XCTestCase {
         for i in 0..<numItems {
             let map = YMap()
             try map.set("value", value: i)
-            try arr.push([map])
+            try arr.append(contentsOf: [map])
         }
         var cnt = 0
         for item in arr.toArray() {
@@ -478,45 +478,45 @@ final class YArrayTests: XCTestCase {
             for _ in 0..<len {
                 content.append(uniqueNumber)
             }
-            let pos = test.gen.int(in: 0...yarray.length)
+            let pos = test.gen.int(in: 0...yarray.count)
             var oldContent = yarray.toArray()
             test.log("insert \(content) at '\(pos)'")
             
-            try yarray.insert(pos, content)
+            try yarray.insert(contentsOf: content, at: pos)
             oldContent.insert(contentsOf: content, at: pos)
             XCTAssertEqualJSON(yarray.toArray(), oldContent)
         },
         { doc, test, _ in // insertTypeArray
             let yarray = try doc.getArray("array")
-            let pos = test.gen.int(in: 0...yarray.length)
-            try yarray.insert(pos, [YArray()])
+            let pos = test.gen.int(in: 0...yarray.count)
+            try yarray.insert(YArray(), at: pos)
             
             test.log("insert YArray at '\(pos)'")
             
-            let array2 = try XCTUnwrap(yarray.get(pos) as? YArray)
-            try array2.insert(0, [1, 2, 3, 4])
+            let array2 = try XCTUnwrap(yarray[pos] as? YArray)
+            try array2.insert(contentsOf: [1, 2, 3, 4], at: 0)
         },
         { doc, test, _ in // insertTypeMap
             let yarray = try doc.getArray("array")
-            let pos = test.gen.int(in: 0...yarray.length)
+            let pos = test.gen.int(in: 0...yarray.count)
             
             test.log("insert YMap at '\(pos)'")
             
-            try yarray.insert(pos, [YMap()])
-            let map = try XCTUnwrap(yarray.get(pos) as? YMap)
+            try yarray.insert(YMap(), at: pos)
+            let map = try XCTUnwrap(yarray[pos] as? YMap)
             try map.set("someprop", value: 42)
             try map.set("someprop", value: 43)
             try map.set("someprop", value: 44)
         },
         { doc, test, _ in // insertTypeNull
             let yarray = try doc.getArray("array")
-            let pos = test.gen.int(in: 0...yarray.length)
+            let pos = test.gen.int(in: 0...yarray.count)
             test.log("insert 'nil' at '\(pos)'")
-            try yarray.insert(pos, [nil])
+            try yarray.insert(nil, at: pos)
         },
         { doc, test, _ in // delete
             let yarray = try doc.getArray("array")
-            let length = yarray.length
+            let length = yarray.count
             guard length > 0 else {
                 test.log("no delete")
                 return
@@ -526,18 +526,18 @@ final class YArrayTests: XCTestCase {
             var delLength = test.gen.int(in: 1...min(2, length-somePos))
             
             if test.gen.bool() {
-                let type = yarray.get(somePos)
-                if let type = type as? YArray, type.length > 0 {
-                    somePos = test.gen.int(in: 0...type.length-1)
-                    delLength = test.gen.int(in: 0...min(2, type.length - somePos))
+                let type = yarray[somePos]
+                if let type = type as? YArray, type.count > 0 {
+                    somePos = test.gen.int(in: 0...type.count-1)
+                    delLength = test.gen.int(in: 0...min(2, type.count - somePos))
                     
                     test.log("delete nested YArray at '\(somePos)..<\(somePos+delLength)'")
-                    try type.delete(somePos, length: delLength)
+                    try type.remove(somePos, count: delLength)
                 }
             } else {
                 var oldContent = yarray.toArray()
                 test.log("delete at '\(somePos)..<\(somePos+delLength)'")
-                try yarray.delete(somePos, length: delLength)
+                try yarray.remove(somePos, count: delLength)
                 oldContent.removeSubrange(somePos..<somePos+delLength)
                 XCTAssertEqualJSON(yarray.toArray(), oldContent)
             }

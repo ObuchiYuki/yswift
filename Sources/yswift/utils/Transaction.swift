@@ -27,9 +27,9 @@ public class Transaction {
 
     public var afterState: [Int: Int] = [:]
 
-    public var changed: [YCObject: Set<String?>] = [:] // Map<Object_<YEvent<any>>, Set<String?>>
+    public var changed: [YObject: Set<String?>] = [:] // Map<Object_<YEvent<any>>, Set<String?>>
 
-    public var changedParentTypes: [YCObject: [YEvent]] = [:] //[Object_<YEvent<any>>: YEvent<any][]> = [:]
+    public var changedParentTypes: [YObject: [YEvent]] = [:] //[Object_<YEvent<any>>: YEvent<any][]> = [:]
 
     public var meta: [AnyHashable: Any] = [:]
 
@@ -59,7 +59,7 @@ public class Transaction {
             return false
         }
         self.deleteSet.sortAndMerge()
-        try encoder.encodeStructs(from: self)
+        try encoder.writeStructs(from: self)
         try self.deleteSet.encode(into: encoder)
         return true
     }
@@ -69,7 +69,7 @@ public class Transaction {
         return ID(client: y.clientID, clock: y.store.getState(y.clientID))
     }
 
-    public func addChangedType(_ type: YCObject, parentSub: String?) {
+    public func addChangedType(_ type: YObject, parentSub: String?) {
         let item = type.item
         if item == nil || (item!.id.clock < (self.beforeState[item!.id.client] ?? 0) && !item!.deleted) {
             var changed = self.changed[type] ?? Set<String?>() => {
@@ -185,7 +185,7 @@ public class Transaction {
             
             var fs: [() throws -> Void] = []
             
-            transaction.changed.forEach{ (itemtype: YCObject, subs: Set<String?>) in
+            transaction.changed.forEach{ (itemtype: YObject, subs: Set<String?>) in
                 fs.append{
                     if itemtype.item == nil || !itemtype.item!.deleted {
                         try itemtype._callObserver(transaction, _parentSubs: subs)
@@ -209,7 +209,7 @@ public class Transaction {
                             events
                                 .sort{ event1, event2 in event1.path.count < event2.path.count }
                             
-                            try type._dEH.callListeners(events, transaction)
+                            try type._deepEventHandler.callListeners(events, transaction)
                         }
                     }
                 }
@@ -242,7 +242,7 @@ public class Transaction {
     
 
     /** Implements the functionality of `y.transact(()->{..})` */
-    static public func transact(_ doc: Doc, body: (Transaction) throws -> Void, origin: Any? = nil, local: Bool = true) throws {
+    static public func transact(_ doc: Doc, origin: Any? = nil, local: Bool = true, _ body: (Transaction) throws -> Void) throws {
         
         var initialCall = false
         

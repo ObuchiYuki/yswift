@@ -8,7 +8,7 @@
 import Foundation
 
 protocol YText_or_YArray {
-    var length: Int { get }
+    var count: Int { get }
 }
 extension YText: YText_or_YArray {}
 extension YArray: YText_or_YArray {}
@@ -51,7 +51,7 @@ final class ArraySearchMarker {
      * A maximum of `maxSearchMarker` objects are created.
      * This function always returns a refreshed marker (updated timestamp)
      */
-    static func find(_ yarray: YCObject, index: Int) -> ArraySearchMarker? {
+    static func find(_ yarray: YObject, index: Int) -> ArraySearchMarker? {
         guard let _ = yarray._start, let arraySearchMarkers = yarray.serchMarkers, index != 0 else {
             return nil
         }
@@ -94,7 +94,7 @@ final class ArraySearchMarker {
 
         guard let item = item, let lobject = item.parent?.object as? YText_or_YArray else { return nil }
 
-        let len = Int(lobject.length) / ArraySearchMarker.maxSearchMarker
+        let len = Int(lobject.count) / ArraySearchMarker.maxSearchMarker
         if let marker = marker, abs(marker.index - pindex) < len {
             // adjust existing marker
             marker.overwrite(item, index: pindex)

@@ -22,12 +22,12 @@ final class EncodingTests: XCTestCase {
         
         await Promise.wait(for: 1).value()
         
-        try applyUpdate(ydoc: ydoc2, update: encodeStateAsUpdate(doc: ydoc1))
-        try applyUpdate(ydoc: ydoc1, update: encodeStateAsUpdate(doc: ydoc2))
+        try applyUpdate(ydoc: ydoc2, update: ydoc1.encodeStateAsUpdate())
+        try applyUpdate(ydoc: ydoc1, update: ydoc2.encodeStateAsUpdate())
 
         // now sync a third doc with same name as doc1 and then create PermanentUserData
         let ydoc3 = Doc()
-        try applyUpdate(ydoc: ydoc3, update: encodeStateAsUpdate(doc: ydoc1))
+        try applyUpdate(ydoc: ydoc3, update: ydoc1.encodeStateAsUpdate())
         let pd3 = try PermanentUserData(doc: ydoc3, storeType: nil)
         try pd3.setUserMapping(doc: ydoc3, clientid: Int(ydoc3.clientID), userDescription: "user a")
     }

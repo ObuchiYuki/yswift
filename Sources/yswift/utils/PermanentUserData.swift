@@ -41,7 +41,7 @@ public class PermanentUserData {
             }
             
             self.dss[userDescription] = DeleteSet.mergeAll(
-                try ds.map{ data, _, _ in
+                try ds.map{ data in
                     try DeleteSet.decode(decoder: DSDecoderV1(LZDecoder(data as! Data)))
                 }
             )
@@ -54,7 +54,7 @@ public class PermanentUserData {
                 })
             }
             
-            ids.forEach{ i, _, _ in
+            ids.forEach{ i in
                 addClientId(clientid: i as! Int)
             }
         }
@@ -88,7 +88,7 @@ public class PermanentUserData {
             try users.set(userDescription, value: user!)
         }
         
-        try (user!.get("ids") as! YArray).push([clientid])
+        try (user!.get("ids") as! YArray).append(contentsOf: [clientid])
         
         users.observe{ _, _ in
             // may be for Dispatch
@@ -99,14 +99,14 @@ public class PermanentUserData {
                     
                     try self.clients.forEach({ clientid, _userDescription in
                         if userDescription == _userDescription {
-                            try (user!.get("ids") as? YArray)?.push([clientid])
+                            try (user!.get("ids") as? YArray)?.append(contentsOf: [clientid])
                         }
                     })
                     let encoder = DSEncoderV1() as any DSEncoder
                     let ds = self.dss[userDescription]
                     if ds != nil {
                         try ds!.encode(into: encoder)
-                        try (user!.get("ds") as! YArray).push([encoder.toData()])
+                        try (user!.get("ds") as! YArray).append(contentsOf: [encoder.toData()])
                     }
                 }
             }
@@ -120,7 +120,7 @@ public class PermanentUserData {
                 if transaction.local && ds.clients.count > 0 && filter(transaction, ds) {
                     let encoder = DSEncoderV1()
                     try ds.encode(into: encoder)
-                    try yds.push([encoder.toData()])
+                    try yds.append(contentsOf: [encoder.toData()])
                 }
             }.catch{ print($0) }
         }

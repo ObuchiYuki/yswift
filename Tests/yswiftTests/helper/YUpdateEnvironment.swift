@@ -50,7 +50,7 @@ final public class YUpdateEnvironment {
     
     static let v1 = YUpdateEnvironment(
         mergeUpdates: { try yswift.mergeUpdates(updates: $0) },
-        encodeStateAsUpdate: { try yswift.encodeStateAsUpdate(doc: $0, encodedTargetStateVector: $1) },
+        encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1) },
         applyUpdate: { try yswift.applyUpdate(ydoc: $0, update: $1, transactionOrigin: $2) },
         logUpdate: { yswift.logUpdate($0) },
         parseUpdateMeta: { try yswift.parseUpdateMeta(update: $0) },
@@ -64,7 +64,7 @@ final public class YUpdateEnvironment {
 
     static let v2 = YUpdateEnvironment(
         mergeUpdates: { try mergeUpdatesV2(updates: $0) },
-        encodeStateAsUpdate: { try encodeStateAsUpdateV2(doc: $0, encodedTargetStateVector: $1) },
+        encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: UpdateEncoderV2()) },
         applyUpdate: { try applyUpdateV2(ydoc: $0, update: $1, transactionOrigin: $2) },
         logUpdate: { logUpdateV2($0) },
         parseUpdateMeta: { try parseUpdateMetaV2(update: $0) },
@@ -82,9 +82,9 @@ final public class YUpdateEnvironment {
             try updates.forEach({ update in
                 try applyUpdateV2(ydoc: ydoc, update: update)
             })
-            return try encodeStateAsUpdateV2(doc: ydoc)
+            return try ydoc.encodeStateAsUpdate(encoder: UpdateEncoderV2())
         },
-        encodeStateAsUpdate: { try encodeStateAsUpdateV2(doc: $0, encodedTargetStateVector: $1) },
+        encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: UpdateEncoderV2()) },
         applyUpdate: { try applyUpdateV2(ydoc: $0, update: $1, transactionOrigin: $2) },
         logUpdate: { logUpdateV2($0) },
         parseUpdateMeta: { try parseUpdateMetaV2(update: $0) },
@@ -96,7 +96,7 @@ final public class YUpdateEnvironment {
         diffUpdate: { update, sv in
             let ydoc = Doc(opts: DocOpts(gc: false))
             try applyUpdateV2(ydoc: ydoc, update: update)
-            return try encodeStateAsUpdateV2(doc: ydoc, encodedTargetStateVector: sv)
+            return try ydoc.encodeStateAsUpdate(encodedStateVector: sv, encoder: UpdateEncoderV2())
         }
     )
 

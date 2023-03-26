@@ -100,7 +100,7 @@ public class ItemTextListPosition {
         return self
     }
 
-    static public func find(_ transaction: Transaction, parent: YCObject, index: Int) throws -> ItemTextListPosition {
+    static public func find(_ transaction: Transaction, parent: YObject, index: Int) throws -> ItemTextListPosition {
         let currentAttributes: YTextAttributes = .init(value: [:])
         let marker = ArraySearchMarker.find(parent, index: index)
         
@@ -122,7 +122,7 @@ public class ItemTextListPosition {
 
 public func insertNegatedAttributes(
     transaction: Transaction,
-    parent: YCObject,
+    parent: YObject,
     currPos: ItemTextListPosition,
     negatedAttributes: YTextAttributes
 ) throws {
@@ -196,7 +196,7 @@ func minimizeAttributeChanges(currPos: ItemTextListPosition, attributes: YTextAt
 
 public func insertAttributes(
     transaction: Transaction,
-    parent: YCObject,
+    parent: YObject,
     currPos: ItemTextListPosition,
     attributes: YTextAttributes
 ) throws -> YTextAttributes {
@@ -237,7 +237,7 @@ public func insertAttributes(
 
 public func insertText(
     transaction: Transaction,
-    parent: YCObject,
+    parent: YObject,
     currPos: ItemTextListPosition,
     text: YEventDeltaInsertType,
     attributes: YTextAttributes
@@ -255,8 +255,8 @@ public func insertText(
     // insert content
     let content = text is String
         ? StringContent((text as! String as NSString)) as any Content
-        : (text is YCObject
-           ? TypeContent(text as! YCObject) as any Content
+        : (text is YObject
+           ? TypeContent(text as! YObject) as any Content
            : EmbedContent(text as! [String: Any?]) as any Content
         )
     
@@ -285,7 +285,7 @@ public func insertText(
  
 public func formatText(
     transaction: Transaction,
-    parent: YCObject,
+    parent: YObject,
     currPos: ItemTextListPosition,
     length: Int,
     attributes: YTextAttributes
@@ -696,7 +696,7 @@ public class YTextEvent: YEvent {
 }
 
 
-public class YText: YCObject {
+final public class YText: YObject {
     public var _pending: [(() throws -> Void)]?
 
     public init(_ string: String? = nil) {
@@ -709,7 +709,7 @@ public class YText: YCObject {
         self.serchMarkers = []
     }
 
-    public var length: Int { return self._length }
+    public var count: Int { return self._length }
 
     public override func _integrate(_ y: Doc, item: Item?) throws {
         try super._integrate(y, item: item)
@@ -722,11 +722,11 @@ public class YText: YCObject {
         self._pending = nil
     }
 
-    public override func _copy() -> YCObject {
+    override func _copy() -> YObject {
         return YText()
     }
 
-    public override func clone() throws -> YCObject {
+    public override func clone() throws -> YText {
         let text = YText()
         try text.applyDelta(self.toDelta())
         return text
@@ -790,7 +790,7 @@ public class YText: YCObject {
                         if item is GC {
                             return
                         }
-                        if ((item as! Item).parent?.object as? YCObject) === self {
+                        if ((item as! Item).parent?.object as? YObject) === self {
                             cleanupContextlessFormattingGap(transaction: t, item: (item as! Item))
                         }
                     })
@@ -884,7 +884,7 @@ public class YText: YCObject {
         
         // snapshots are merged again after the transaction, so we need to keep the
         // transalive until we are done
-        try doc.transact({ transaction in
+        try doc.transact(origin: "cleanup") { transaction in
             if snapshot != nil {
                 try snapshot!.splitAffectedStructs(transaction)
             }
@@ -944,7 +944,7 @@ public class YText: YCObject {
                 n = n!.right as? Item
             }
             packStr()
-        }, origin: "cleanup")
+        }
         
         return ops
     }
