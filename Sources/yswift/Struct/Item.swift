@@ -303,16 +303,20 @@ final public class Item: Struct, JSHashable {
             var left = self.left as? Item
 
             var item: Item?
-            // set o to the first conflicting item
-            if left != nil {
-                item = (left!.right as! Item)
-            } else if self.parentKey != nil {
-                item = parent.object!.storage[self.parentKey!]
-                while(item != nil && item!.left != nil) {
-                    item = (item!.left as! Item)
+
+            if let rightItem = left?.right as? Item {
+                item = rightItem
+            } else if let parent = parent.object {
+                if let parentKey = self.parentKey {
+                    item = parent.storage[parentKey]
+                    while(item != nil && item!.left != nil) {
+                        item = (item!.left as! Item)
+                    }
+                } else {
+                    item = parent._start
                 }
             } else {
-                item = parent.object!._start
+                assertionFailure()
             }
             
             var conflictingItems = Set<Item>()
