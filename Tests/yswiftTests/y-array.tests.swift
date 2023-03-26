@@ -1,6 +1,6 @@
 import XCTest
 import Promise
-import yswift
+@testable import yswift
 
 final class YArrayTests: XCTestCase {
     func testBasicUpdate() throws {

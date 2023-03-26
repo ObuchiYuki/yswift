@@ -17,7 +17,7 @@ final class UpdatesTests: XCTestCase {
             let merged = try env.docFromUpdates(ndocs.map{ $0 })
         
             try XCTAssertEqualJSON(
-                array0.toArray(), merged.getArray("array").toArray()
+                array0.map{ $0 }, merged.getArray("array").map{ $0 }
             )
         }
     }
@@ -27,9 +27,9 @@ final class UpdatesTests: XCTestCase {
         
         let docs = test.docs, text0 = test.text[0], text1 = test.text[1]
 
-        try text0.insert(0, text: "a", attributes: Ref(value: ["i": true]))
+        try text0.insert(0, text: "a", attributes: ["i": true])
         try text0.insert(0, text: "b")
-        try text0.insert(0, text: "c", attributes: Ref(value: ["i": true]))
+        try text0.insert(0, text: "c", attributes: ["i": true])
         
         let update = try docs[0].encodeStateAsUpdateV2()
         
@@ -154,7 +154,7 @@ final class UpdatesTests: XCTestCase {
         for mergedUpdates in cases {
             let merged = Doc(opts: DocOpts(gc: false))
             try enc.applyUpdate(merged, mergedUpdates, nil)
-            try XCTAssertEqualJSON(merged.getArray().toArray(), ydoc.getArray().toArray())
+            try XCTAssertEqualJSON(merged.getArray().map{ $0 }, ydoc.getArray().map{ $0 })
             
             try XCTAssertEqual(
                 enc.encodeStateVector_Doc(merged).map{ $0 },

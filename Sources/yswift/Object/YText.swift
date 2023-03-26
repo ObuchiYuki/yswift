@@ -30,7 +30,7 @@ extension YTextAttributeValue {
     }
 }
 
-public typealias YTextAttributes = Ref<[String: YTextAttributeValue?]>
+public typealias YTextAttributes = RefDictionary<String, YTextAttributeValue?>
 
 extension YTextAttributes {
     public func isEqual(to other: YTextAttributes) -> Bool {
@@ -101,7 +101,7 @@ public class ItemTextListPosition {
     }
 
     static public func find(_ transaction: Transaction, parent: YObject, index: Int) throws -> ItemTextListPosition {
-        let currentAttributes: YTextAttributes = .init(value: [:])
+        let currentAttributes: YTextAttributes = [:]
         let marker = ArraySearchMarker.find(parent, index: index)
         
         if marker != nil && marker!.item != nil {
@@ -202,7 +202,7 @@ public func insertAttributes(
 ) throws -> YTextAttributes {
     let doc = transaction.doc
     let ownClientId = doc.clientID
-    let negatedAttributes: YTextAttributes = .init(value: [:])
+    let negatedAttributes: YTextAttributes = [:]
     // insert format-start items
 
     for (key, val) in attributes {
@@ -449,8 +449,8 @@ func cleanupYTextFormatting(type: YText) throws -> Int {
     try type.doc?.transact({ transaction in
         var start = type._start!
         var end = type._start
-        var startAttributes = YTextAttributes(value: [:])
-        let currentAttributes = YTextAttributes(value: [:])
+        var startAttributes = YTextAttributes()
+        let currentAttributes = YTextAttributes()
         while end != nil {
             if end!.deleted == false {
                 if end!.content is FormatContent {
@@ -550,12 +550,12 @@ public class YTextEvent: YEvent {
         let deltas: Ref<[YEventDelta]> = Ref(value: [])
 
         try self.target.doc?.transact({ transaction in
-            let currentAttributes = YTextAttributes(value: [:]) // saves all current attributes for insert
-            let oldAttributes = YTextAttributes(value: [:])
+            let currentAttributes = YTextAttributes([:]) // saves all current attributes for insert
+            let oldAttributes = YTextAttributes([:])
             var item = self.target._start
             var action: YTextAction? = nil
             
-            let attributes = YTextAttributes(value: [:]) // counts added or removed attributes for retain
+            let attributes = YTextAttributes([:]) // counts added or removed attributes for retain
             
             var insert: YEventDeltaInsertType = ""
             var retain = 0
@@ -572,7 +572,7 @@ public class YTextEvent: YEvent {
                 } else if action == .insert {
                     delta = YEventDelta(insert: insert)
                     if currentAttributes.count > 0 {
-                        delta.attributes = .init(value: [:])
+                        delta.attributes = [:]
                         currentAttributes.forEach({ key, value in
                             if value != nil {
                                 delta.attributes!.value[key] = value
@@ -583,7 +583,7 @@ public class YTextEvent: YEvent {
                 } else {
                     delta = YEventDelta(retain: retain)
                     if attributes.value.keys.count > 0 {
-                        delta.attributes = .init(value: [:])
+                        delta.attributes = [:]
                         for key in attributes.value.keys {
                             delta.attributes!.value[key] = removeDualOptional(attributes.value[key]) ?? NSNull()
                         }
@@ -818,7 +818,7 @@ final public class YText: YObject {
     public func applyDelta(_ delta: [YEventDelta], sanitize: Bool = true) throws {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
-                let currPos = ItemTextListPosition(left: nil, right: self._start, index: 0, currentAttributes: .init(value: [:]))
+                let currPos = ItemTextListPosition(left: nil, right: self._start, index: 0, currentAttributes: [:])
                 for i in 0..<delta.count {
                     let op = delta[i]
                     if op.insert != nil {
@@ -828,7 +828,7 @@ final public class YText: YObject {
                                 : op.insert!
                         
                         if !(ins is String) || (ins as! String).count > 0 {
-                            try insertText(transaction: transaction, parent: self, currPos: currPos, text: ins, attributes: op.attributes ?? .init(value: [:]))
+                            try insertText(transaction: transaction, parent: self, currPos: currPos, text: ins, attributes: op.attributes ?? [:])
                         }
                     } else if op.retain != nil {
                         // swift add
@@ -837,7 +837,7 @@ final public class YText: YObject {
                             parent: self,
                             currPos: currPos,
                             length: op.retain!,
-                            attributes: op.attributes ?? .init(value: [:])
+                            attributes: op.attributes ?? [:]
                         )
                     } else if op.delete != nil {
                         _ = try deleteText(transaction: transaction, currPos: currPos, length: Int(op.delete!))
@@ -858,7 +858,7 @@ final public class YText: YObject {
         computeYChange: ((YChangeAction, ID) -> YTextAttributeValue)? = nil
     ) throws -> [YEventDelta] {
         var ops: [YEventDelta] = []
-        let currentAttributes: YTextAttributes = Ref(value: [:])
+        let currentAttributes: YTextAttributes = [:]
         
         let doc = self.doc!
         var str = ""
@@ -867,7 +867,7 @@ final public class YText: YObject {
         func packStr() {
             if str.count > 0 {
                 // pack str with attributes to ops
-                let attributes: YTextAttributes = .init(value: [:])
+                let attributes: YTextAttributes = [:]
                 var addAttributes = false
                 currentAttributes.forEach({ key, value in
                     addAttributes = true
@@ -927,7 +927,7 @@ final public class YText: YObject {
                         packStr()
                         let op: YEventDelta = .init(insert: (n!.content.values[0] as! YEventDeltaInsertType))
                         if currentAttributes.count > 0 {
-                            op.attributes = .init(value: [:])
+                            op.attributes = [:]
                             currentAttributes.forEach({ key, value in
                                 op.attributes!.value[key] = value
                             })
@@ -963,7 +963,7 @@ final public class YText: YObject {
                         
             var attributes = attributes
             if attributes == nil {
-                attributes = .init(value: [:])
+                attributes = [:]
                 pos.currentAttributes.forEach{ k, v in
                     attributes!.value[k] = v
                 }
@@ -978,7 +978,7 @@ final public class YText: YObject {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
                 let pos = try ItemTextListPosition.find(transaction, parent: self, index: index)
-                try insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: attributes ?? Ref(value: [:]))
+                try insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: attributes ?? [:])
             })
         } else {
             (self._pending)?.append{

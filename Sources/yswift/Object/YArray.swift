@@ -28,25 +28,17 @@ final public class YArray: YObject {
         self.serchMarkers = []
     }
     
-    public convenience init(_ contents: [Any?]) throws {
+    public convenience init<S: Sequence>(_ contents: S) throws {
         self.init()
-        try self.append(contentsOf: contents)
+        try self.append(contentsOf: contents.map{ $0 })
     }
     
-    public func append(_ content: Any?) throws {
-        try self.append(contentsOf: [content])
-    }
-
     public func append(contentsOf contents: [Any?]) throws {
         if let doc = self.doc {
             try doc.transact{ try self.listPush(contents, $0) }
         } else {
             self._prelimContent?.append(contentsOf: contents)
         }
-    }
-    
-    public func insert(_ content: Any?, at index: Int) throws {
-        try self.insert(contentsOf: [content], at: index)
     }
     
     public func insert(contentsOf contents: [Any?], at index: Int) throws {
@@ -69,7 +61,7 @@ final public class YArray: YObject {
 
     public override func clone() throws -> YArray {
         let array = YArray()
-        try array.insert(contentsOf: self.toArray().map{ element in
+        try array.insert(contentsOf: self.map{ element in
             try element is YObject ? (element as! YObject).clone() : element
         }, at: 0)
         return array
@@ -78,16 +70,18 @@ final public class YArray: YObject {
     public subscript(index: Int) -> Any? {
         return self.listGet(index)
     }
-    
+        
     public func slice(_ start: Int = 0, end: Int? = nil) -> [Any?] {
         let end = end ?? Int(self.count)
-        return self.listSlice(start, end: end)
+        return self.listSlice(start: start, end: end)
     }
     
-    public func toArray() -> [Any?] {
-        return self.listToArray()
+    public override func toJSON() -> Any? {
+        return self.map{ c in
+            c is YObject ? (c as! YObject).toJSON() : c
+        }
     }
-    
+
     override func _integrate(_ y: Doc, item: Item?) throws {
         try super._integrate(y, item: item)
         try self.insert(contentsOf: self._prelimContent ?? [], at: 0)
@@ -101,48 +95,30 @@ final public class YArray: YObject {
         try self.callObservers(transaction: transaction, event: YArrayEvent(self, transaction: transaction))
     }
 
-    /**
-     * Transforms this Shared Type to a JSON object.
-     */
-    public override func toJSON() -> Any? {
-        return self.map{ c in
-            c is YObject ? (c as! YObject).toJSON() : c
-        }
-    }
-
-    /**
-     * Returns an Array with the result of calling a provided function on every
-     * element of this YArray.
-     *
-     * @template M
-     * @param {function(T,Int,YArray<T>):M} f Function that produces an element of the Array
-     * @return {Array<M>} A array with each element being the result of the
-     *                                 callback function
-     */
-    public func map<U>(_ body: (Any?) throws -> U) rethrows -> [U] {
-        return try self.listMap{
-            try body($0)
-        }
-    }
-
-    /**
-     * Executes a provided function on once on overy element of this YArray.
-     *
-     * @param {function(T,Int,YArray<T>):Void} f A function to execute on every element of this YArray.
-     */
-    public func forEach(_ f: (Any?) throws -> Void) rethrows {
-        try self.listForEach{ value in
-            try f(value)
-        }
-    }
-
-//    [Symbol.iterator]() -> IterableIterator<T> {
-//        return self.listCreateIterator()
-//    }
-
     public override func _write(_ encoder: UpdateEncoder) {
         encoder.writeTypeRef(YArrayRefID)
     }
+}
+
+extension YArray: Sequence {
+    public typealias Element = Any?
+    
+    public func makeIterator() -> some IteratorProtocol<Element> {
+        self.listCreateIterator()
+    }
+}
+
+extension YArray {
+    public func append(_ content: Any?) throws {
+        try self.append(contentsOf: [content])
+    }
+    
+    public func insert(_ content: Any?, at index: Int) throws {
+        try self.insert(contentsOf: [content], at: index)
+    }
+    
+    // deprecated
+    func toArray() -> [Any?] { Array(self) }
 }
 
 func readYArray(_decoder: UpdateDecoder) -> YArray {

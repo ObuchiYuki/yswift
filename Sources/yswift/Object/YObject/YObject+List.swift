@@ -9,7 +9,7 @@ import Foundation
 
 // list extensions
 extension YObject {
-    func listSlice(_ start: Int, end: Int) -> [Any?] {
+    func listSlice(start: Int, end: Int) -> [Any?] {
         var start = start, end = end
         
         if start < 0 { start = self._length + start }
@@ -37,20 +37,20 @@ extension YObject {
         return result
     }
 
-    func listToArray() -> [Any?] {
-        var cs: [Any?] = []
-        var n = self._start
-        while (n != nil) {
-            if n!.countable && !n!.deleted {
-                let c = n!.content.values
-                for i in 0..<c.count {
-                    cs.append(c[i])
-                }
-            }
-            n = n!.right as? Item
-        }
-        return cs
-    }
+//    func listToArray() -> [Any?] {
+//        var cs: [Any?] = []
+//        var n = self._start
+//        while (n != nil) {
+//            if n!.countable && !n!.deleted {
+//                let c = n!.content.values
+//                for i in 0..<c.count {
+//                    cs.append(c[i])
+//                }
+//            }
+//            n = n!.right as? Item
+//        }
+//        return cs
+//    }
 
     func listToArray(snapshot: Snapshot) -> [Any?] {
         var cs: [Any?] = []
@@ -67,23 +67,23 @@ extension YObject {
         return cs
     }
 
-    func listForEach(_ body: (Any?) throws -> Void) rethrows {
-        var item = self._start
-        while let uitem = item {
-            if uitem.countable && !uitem.deleted {
-               try uitem.content.values.forEach(body)
-            }
-            item = uitem.right as? Item
-        }
-    }
+//    func listForEach(_ body: (Any?) throws -> Void) rethrows {
+//        var item = self._start
+//        while let uitem = item {
+//            if uitem.countable && !uitem.deleted {
+//               try uitem.content.values.forEach(body)
+//            }
+//            item = uitem.right as? Item
+//        }
+//    }
+//
+//    func listMap<R>(_ body: (Any?) throws -> R) rethrows -> [R] {
+//        var result: [R] = []
+//        try self.listForEach{ try result.append(body($0)) }
+//        return result
+//    }
 
-    func listMap<R>(_ body: (Any?) throws -> R) rethrows -> [R] {
-        var result: [R] = []
-        try self.listForEach{ try result.append(body($0)) }
-        return result
-    }
-
-    func listCreateIterator() -> any IteratorProtocol<Any?> {
+    func listCreateIterator() -> some IteratorProtocol<Any?> {
         var item = self._start
         var currentContent: [Any?]? = nil
         var currentContentIndex = 0
