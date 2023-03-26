@@ -51,7 +51,7 @@ final class DocTests: XCTestCase {
         doc2.clientID = 0
         XCTAssertEqual(doc2.clientID, doc1.clientID)
         try doc1.getArray("a").insert(contentsOf: [1, 2], at: 0)
-        try applyUpdate(ydoc: doc2, update: doc1.encodeStateAsUpdate())
+        try doc2.applyUpdate(doc1.encodeStateAsUpdate())
         XCTAssertNotEqual(doc2.clientID, doc1.clientID)
     }
 
@@ -64,7 +64,7 @@ final class DocTests: XCTestCase {
         
         let update = try doc1.encodeStateAsUpdate()
                 
-        try applyUpdate(ydoc: doc2, update: update)
+        try doc2.applyUpdate(update)
         
         try XCTAssertEqual(doc2.getText("").toString(), "hi")
         try XCTAssertEqual(doc2.getText("").toString(), "hi")
@@ -154,7 +154,7 @@ final class DocTests: XCTestCase {
                 ]
             }
             
-            try applyUpdate(ydoc: doc2, update: doc.encodeStateAsUpdate())
+            try doc2.applyUpdate(doc.encodeStateAsUpdate())
             XCTAssertEqual(event, [["a", "a", "c"], [], []])
 
             try (doc2.getMap("mysubdocs").get("a") as! Doc).load()
@@ -198,7 +198,7 @@ final class DocTests: XCTestCase {
         ydoc2.on(Doc.On.subdocs) { event, _ in
             lastEvent = event
         }
-        try applyUpdate(ydoc: ydoc2, update: ydoc.encodeStateAsUpdate())
+        try ydoc2.applyUpdate(ydoc.encodeStateAsUpdate())
         let subdoc3 = try XCTUnwrap(try ydoc2.getArray("")[0] as? Doc)
         XCTAssert(subdoc3.shouldLoad == false)
         XCTAssert(subdoc3.autoLoad == false)
@@ -247,7 +247,7 @@ final class DocTests: XCTestCase {
             lastEvent = event
         }
         let update = try ydoc.encodeStateAsUpdate()
-        try applyUpdate(ydoc: ydoc2, update: update)
+        try ydoc2.applyUpdate(update)
         let subdoc3 = try XCTUnwrap(ydoc2.getArray("")[0] as? Doc)
         XCTAssert(subdoc1.shouldLoad)
         XCTAssert(subdoc1.autoLoad)

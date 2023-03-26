@@ -41,13 +41,14 @@ extension YEventDelta: Equatable {
     }
 }
 
-
+// todo: remove
 public protocol YEventDeltaInsertType {}
-
-extension String: YEventDeltaInsertType {}
 extension NSNumber: YEventDeltaInsertType {}
 extension NSDictionary: YEventDeltaInsertType {}
 extension NSArray: YEventDeltaInsertType {}
+extension String: YEventDeltaInsertType {}
+extension [Any?]: YEventDeltaInsertType {}
+extension [String: Any?]: YEventDeltaInsertType {}
 extension YObject: YEventDeltaInsertType {}
 
 extension YEventDeltaInsertType {

@@ -19,7 +19,7 @@ enum Sync {
 
     static func writeSyncStep1(encoder: LZEncoder, doc: Doc) throws {
         encoder.writeUInt(MessageType.syncStep1.rawValue)
-        let sv = try encodeStateVector(doc: doc)
+        let sv = try doc.encodeStateVector()
         encoder.writeData(sv)
     }
 
@@ -37,7 +37,7 @@ enum Sync {
     static func readSyncStep2(decoder: LZDecoder, doc: Doc, transactionOrigin: Any? = nil) {
         do {
             let data = try decoder.readData()
-            try applyUpdate(ydoc: doc, update: data, transactionOrigin: transactionOrigin)
+            try doc.applyUpdate(data, transactionOrigin: transactionOrigin)
         } catch {
             print("Caught error while handling a Yjs update. \(error)")
         }

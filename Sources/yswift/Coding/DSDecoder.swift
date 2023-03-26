@@ -5,6 +5,8 @@
 //  Created by yuki on 2023/03/25.
 //
 
+import Foundation
+
 public protocol DSDecoder {
     var restDecoder: LZDecoder { get }
 
@@ -16,9 +18,8 @@ public protocol DSDecoder {
 public class DSDecoderV1 {
     public let restDecoder: LZDecoder
 
-    public init(_ decoder: LZDecoder) {
-        self.restDecoder = decoder
-    }
+    public init(_ decoder: LZDecoder) { self.restDecoder = decoder }
+    public init(_ data: Data) { self.restDecoder = LZDecoder(data) }
 }
 
 extension DSDecoderV1: DSDecoder {
@@ -38,9 +39,8 @@ public class DSDecoderV2 {
     
     private var deleteSetCurrentValue = 0
 
-    public init(_ decoder: LZDecoder) throws {
-        self.restDecoder = decoder
-    }
+    public init(_ decoder: LZDecoder) throws { self.restDecoder = decoder }
+    public init(_ data: Data) { self.restDecoder = LZDecoder(data) }
 }
 
 extension DSDecoderV2: DSDecoder {

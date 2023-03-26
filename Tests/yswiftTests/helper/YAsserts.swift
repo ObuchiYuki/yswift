@@ -91,10 +91,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
             XCTAssertEqual(a, b)
         }
         
-        try XCTAssertEqual(
-            encodeStateVector(doc: docs[i]),
-            encodeStateVector(doc: docs[i + 1])
-        )
+        try XCTAssertEqual(docs[i].encodeStateVector(), docs[i+1].encodeStateVector())
         try YAssertEqualDeleteSet(
             DeleteSet.createFromStructStore(docs[i].store),
             DeleteSet.createFromStructStore(docs[i+1].store)

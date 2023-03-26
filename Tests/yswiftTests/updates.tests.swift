@@ -33,7 +33,7 @@ final class UpdatesTests: XCTestCase {
         
         let update = try docs[0].encodeStateAsUpdateV2()
         
-        try applyUpdateV2(ydoc: docs[1], update: update)
+        try docs[1].applyUpdateV2(update)
 
         try XCTAssertEqual(text1.toDelta(), [
             YEventDelta(insert: "c", attributes: ["i": true]),
@@ -94,27 +94,27 @@ final class UpdatesTests: XCTestCase {
         try yText.applyDelta([ YEventDelta(insert: "n") ])
 
         let yDoc1 = Doc()
-        try applyUpdate(ydoc: yDoc1, update: serverUpdates[0])
+        try yDoc1.applyUpdate(serverUpdates[0])
         let update1 = try yDoc1.encodeStateAsUpdate()
 
         let yDoc2 = Doc()
-        try applyUpdate(ydoc: yDoc2, update: update1)
-        try applyUpdate(ydoc: yDoc2, update: serverUpdates[1])
+        try yDoc2.applyUpdate(update1)
+        try yDoc2.applyUpdate(serverUpdates[1])
         let update2 = try yDoc2.encodeStateAsUpdate()
 
         let yDoc3 = Doc()
-        try applyUpdate(ydoc: yDoc3, update: update2)
-        try applyUpdate(ydoc: yDoc3, update: serverUpdates[3])
+        try yDoc3.applyUpdate(update2)
+        try yDoc3.applyUpdate(serverUpdates[3])
         let update3 = try yDoc3.encodeStateAsUpdate()
 
         let yDoc4 = Doc()
-        try applyUpdate(ydoc: yDoc4, update: update3)
-        try applyUpdate(ydoc: yDoc4, update: serverUpdates[2])
+        try yDoc4.applyUpdate(update3)
+        try yDoc4.applyUpdate(serverUpdates[2])
         let update4 = try yDoc4.encodeStateAsUpdate()
 
         let yDoc5 = Doc()
-        try applyUpdate(ydoc: yDoc5, update: update4)
-        try applyUpdate(ydoc: yDoc5, update: serverUpdates[4])
+        try yDoc5.applyUpdate(update4)
+        try yDoc5.applyUpdate(serverUpdates[4])
         _ = try yDoc5.encodeStateAsUpdate()
 
         let yText5 = try yDoc5.getText("textBlock")

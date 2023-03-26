@@ -393,7 +393,7 @@ public func diffUpdateV2(
     YDecoder: (LZDecoder) throws -> UpdateDecoder = UpdateDecoderV2.init,
     YEncoder: () -> UpdateEncoder = UpdateEncoderV2.init
 ) throws -> Data {
-    let state = try decodeStateVector(decodedState: sv)
+    let state = try DSDecoderV1(sv).readStateVector()
     let encoder = YEncoder()
     let lazyStructWriter = LazyStructWriter(encoder)
     let decoder = try YDecoder(LZDecoder(update))

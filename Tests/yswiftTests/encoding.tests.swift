@@ -22,12 +22,12 @@ final class EncodingTests: XCTestCase {
         
         await Promise.wait(for: 1).value()
         
-        try applyUpdate(ydoc: ydoc2, update: ydoc1.encodeStateAsUpdate())
-        try applyUpdate(ydoc: ydoc1, update: ydoc2.encodeStateAsUpdate())
+        try ydoc2.applyUpdate(ydoc1.encodeStateAsUpdate())
+        try ydoc1.applyUpdate(ydoc2.encodeStateAsUpdate())
 
         // now sync a third doc with same name as doc1 and then create PermanentUserData
         let ydoc3 = Doc()
-        try applyUpdate(ydoc: ydoc3, update: ydoc1.encodeStateAsUpdate())
+        try ydoc3.applyUpdate(ydoc1.encodeStateAsUpdate())
         let pd3 = try PermanentUserData(doc: ydoc3, storeType: nil)
         try pd3.setUserMapping(doc: ydoc3, clientid: Int(ydoc3.clientID), userDescription: "user a")
     }
@@ -58,7 +58,7 @@ final class EncodingTests: XCTestCase {
         let update13 = try mergeUpdates(updates: [updates[0], updates[2]])
                 
         let sv = try encodeStateVectorFromUpdate(update: update13)
-        let state = try decodeStateVector(decodedState: sv)
+        let state = try DSDecoderV1(sv).readStateVector()
         XCTAssertEqual(state[ydoc.clientID], 1)
         XCTAssertEqual(state.count, 1)
     }

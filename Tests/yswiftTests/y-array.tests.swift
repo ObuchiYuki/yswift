@@ -8,7 +8,7 @@ final class YArrayTests: XCTestCase {
         let doc2 = Doc()
         try doc1.getArray("array").insert("hi", at: 0)
         let update = try doc1.encodeStateAsUpdate()
-        try applyUpdate(ydoc: doc2, update: update)
+        try doc2.applyUpdate(update)
         try XCTAssertEqualJSON(doc2.getArray("array").toArray(), ["hi"])
     }
     

@@ -76,7 +76,7 @@ final public class Snapshot: JSHashable {
             
         }
     
-        try applyUpdateV2(ydoc: newDoc, update: encoder.toData(), transactionOrigin: "snapshot")
+        try newDoc.applyUpdateV2(encoder.toData(), transactionOrigin: "snapshot")
         
         return newDoc
     }
@@ -86,7 +86,7 @@ final public class Snapshot: JSHashable {
 extension Snapshot {
     public func encodeV2(_ encoder: DSEncoder = DSEncoderV2()) throws -> Data {
         try self.deleteSet.encode(into: encoder)
-        try encoder.writeStateVector(self.stateVectors)
+        try encoder.writeStateVector(from: self.stateVectors)
         return encoder.toData()
     }
     
@@ -98,7 +98,7 @@ extension Snapshot {
         let decoder = try decoder ?? DSDecoderV2(LZDecoder(buf))
         return Snapshot(
             deleteSet: try DeleteSet.decode(decoder: decoder),
-            stateVectors: try readStateVector(decoder: decoder)
+            stateVectors: try decoder.readStateVector()
         )
     }
     
