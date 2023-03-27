@@ -7,13 +7,13 @@
 
 import Foundation
 
-final class EmbedContent: Content {
+final class YEmbedContent: YContent {
     let embed: Any?
     
     init(_ embed: Any?) { self.embed = embed }
 }
 
-extension EmbedContent {
+extension YEmbedContent {
     var count: Int { 1 }
     
     var typeid: UInt8 { 5 }
@@ -22,11 +22,11 @@ extension EmbedContent {
 
     var values: [Any?] { [self.embed] }
 
-    func copy() -> EmbedContent { EmbedContent(self.embed) }
+    func copy() -> YEmbedContent { YEmbedContent(self.embed) }
 
-    func splice(_ offset: Int) -> EmbedContent { fatalError() }
+    func splice(_ offset: Int) -> YEmbedContent { fatalError() }
 
-    func merge(with right: Content) -> Bool { false }
+    func merge(with right: YContent) -> Bool { false }
 
     func integrate(with item: YItem, _ transaction: YTransaction) {}
     
@@ -36,7 +36,7 @@ extension EmbedContent {
 
     func encode(into encoder: YUpdateEncoder, offset: Int) throws { try encoder.writeJSON(self.embed) }
     
-    static func decode(from decoder: YUpdateDecoder) throws -> EmbedContent {
-        try EmbedContent(decoder.readJSON())
+    static func decode(from decoder: YUpdateDecoder) throws -> YEmbedContent {
+        try YEmbedContent(decoder.readJSON())
     }
 }

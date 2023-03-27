@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class DocumentContent: Content {
+final class YDocumentContent: YContent {
     var document: Doc
     var options: Options
 
@@ -19,7 +19,7 @@ final class DocumentContent: Content {
     }
 }
 
-extension DocumentContent {
+extension YDocumentContent {
     var count: Int { 1 }
     
     var typeid: UInt8 { 9 }
@@ -28,14 +28,14 @@ extension DocumentContent {
 
     var values: [Any?] { return [self.document] }
     
-    func copy() -> DocumentContent {
+    func copy() -> YDocumentContent {
         let options = self.options.documentOptions(guid: self.document.guid)
-        return DocumentContent(Doc(opts: options))
+        return YDocumentContent(Doc(opts: options))
     }
 
-    func splice(_ offset: Int) -> DocumentContent { fatalError() }
+    func splice(_ offset: Int) -> YDocumentContent { fatalError() }
 
-    func merge(with right: Content) -> Bool { return false }
+    func merge(with right: YContent) -> Bool { return false }
 
     func integrate(with item: YItem, _ transaction: YTransaction) {
         self.document._item = item
@@ -60,15 +60,15 @@ extension DocumentContent {
         encoder.writeAny(self.options.encode())
     }
     
-    static func decode(from decoder: YUpdateDecoder) throws -> DocumentContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> YDocumentContent {
         let guid = try decoder.readString()
         let options = try Options.decode(decoder.readAny()).documentOptions(guid: guid)
-        return DocumentContent(Doc(opts: options))
+        return YDocumentContent(Doc(opts: options))
     }
 }
 
 
-extension DocumentContent {
+extension YDocumentContent {
     struct Options {
         var gc: Bool?
         var meta: Any?

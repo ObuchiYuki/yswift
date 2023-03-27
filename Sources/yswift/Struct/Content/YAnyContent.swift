@@ -7,13 +7,13 @@
 
 import Foundation
 
-final class AnyContent: Content {
+final class YAnyContent: YContent {
     var array: [Any?]
     
     init(_ array: [Any?]) { self.array = array }
 }
 
-extension AnyContent {
+extension YAnyContent {
     var count: Int { return self.array.count }
     
     var typeid: UInt8 { 8 }
@@ -22,16 +22,16 @@ extension AnyContent {
 
     var values: [Any?] { self.array }
     
-    func copy() -> AnyContent { return AnyContent(self.array) }
+    func copy() -> YAnyContent { return YAnyContent(self.array) }
 
-    func splice(_ offset: Int) -> AnyContent {
-        let right = AnyContent(self.array[offset...].map{ $0 })
+    func splice(_ offset: Int) -> YAnyContent {
+        let right = YAnyContent(self.array[offset...].map{ $0 })
         self.array = self.array[0..<offset].map{ $0 }
         return right
     }
 
-    func merge(with right: Content) -> Bool {
-        self.array = self.array + (right as! AnyContent).array
+    func merge(with right: YContent) -> Bool {
+        self.array = self.array + (right as! YAnyContent).array
         return true
     }
 
@@ -50,12 +50,12 @@ extension AnyContent {
         }
     }
     
-    static func decode(from decoder: YUpdateDecoder) throws -> AnyContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> YAnyContent {
         let len = try decoder.readLen()
         var cs = [Any?]()
         for _ in 0..<len {
             try cs.append(decoder.readAny())
         }
-        return AnyContent(cs)
+        return YAnyContent(cs)
     }
 }

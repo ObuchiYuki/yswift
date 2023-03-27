@@ -209,7 +209,7 @@ public class Doc: LZObservable, JSHashable {
         if item != nil {
             self._item = nil
                         
-            let content = item!.content as? DocumentContent
+            let content = item!.content as? YDocumentContent
             
             // swift add
             var __copyOpts = DocOpts()

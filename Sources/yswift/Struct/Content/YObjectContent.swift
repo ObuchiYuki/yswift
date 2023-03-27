@@ -7,13 +7,13 @@
 
 import Foundation
 
-final class TypeContent: Content {
+final class YObjectContent: YContent {
     var type: YObject
     
     init(_ type: YObject) { self.type = type }
 }
 
-extension TypeContent {
+extension YObjectContent {
     var count: Int { 1 }
     
     var typeid: UInt8 { 7 }
@@ -22,11 +22,11 @@ extension TypeContent {
 
     var values: [Any?] { [self.type] }
 
-    func copy() -> TypeContent { TypeContent(self.type._copy()) }
+    func copy() -> YObjectContent { YObjectContent(self.type._copy()) }
 
-    func splice(_ offset: Int) -> TypeContent { fatalError() }
+    func splice(_ offset: Int) -> YObjectContent { fatalError() }
 
-    func merge(with right: Content) -> Bool { false }
+    func merge(with right: YContent) -> Bool { false }
 
     func integrate(with item: YItem, _ transaction: YTransaction) throws {
         try self.type._integrate(transaction.doc, item: item)
@@ -74,8 +74,8 @@ extension TypeContent {
         self.type._write(encoder)
     }
     
-    static func decode(from decoder: YUpdateDecoder) throws -> TypeContent {
-        return try TypeContent(
+    static func decode(from decoder: YUpdateDecoder) throws -> YObjectContent {
+        return try YObjectContent(
             typeRefs[Int(decoder.readTypeRef())](decoder)
         )
     }

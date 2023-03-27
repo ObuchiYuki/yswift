@@ -679,7 +679,7 @@ extension YStruct {
     var asItemRight: YStruct? {
         return (self as? YItem)?.right
     }
-    var asItemContentString: StringContent? {
-        return (self as? YItem)?.content as? StringContent
+    var asItemContentString: YStringContent? {
+        return (self as? YItem)?.content as? YStringContent
     }
 }

@@ -16,19 +16,19 @@ extension YObject {
         let left = self.storage[key]
         let doc = transaction.doc
         let ownClientId = doc.clientID
-        var content: any Content
+        var content: any YContent
         if value == nil {
-            content = AnyContent([value])
+            content = YAnyContent([value])
         } else {
             if value! is Int || value! is NSDictionary || value! is Bool || value! is NSArray || value! is String {
-                content = AnyContent([value])
+                content = YAnyContent([value])
             } else if value! is Data {
-                content = BinaryContent(value as! Data)
+                content = YBinaryContent(value as! Data)
             } else if value! is Doc {
-                content = DocumentContent(value as! Doc)
+                content = YDocumentContent(value as! Doc)
             } else {
                 if value! is YObject {
-                    content = TypeContent(value as! YObject)
+                    content = YObjectContent(value as! YObject)
                 } else {
                     throw YSwiftError.unexpectedContentType
                 }

@@ -19,9 +19,7 @@ final public class YDeleteItem {
 }
 
 extension YDeleteItem: CustomStringConvertible {
-    
-    public var description: String { "DeleteItem(clock: \(clock), len: \(len))" }
-
+    public var description: String { "YDeleteItem(clock: \(clock), len: \(len))" }
 }
 
 extension YDeleteItem {

@@ -7,14 +7,14 @@
 
 import Foundation
 
-final class StringContent: Content {
+final class YStringContent: YContent {
     // As JavaScript using UTF-16 String. We use NSString (UTF-16 String)
     var string: NSString
     
     init(_ str: NSString) { self.string = str }
 }
 
-extension StringContent {
+extension YStringContent {
     var count: Int { self.string.length }
     
     var typeid: UInt8 { 4 }
@@ -30,10 +30,10 @@ extension StringContent {
         }
     }
 
-    func copy() -> StringContent { return StringContent(self.string) }
+    func copy() -> YStringContent { return YStringContent(self.string) }
 
-    func splice(_ offset: Int) -> StringContent {
-        let right = StringContent(self.string.substring(from: offset) as NSString)
+    func splice(_ offset: Int) -> YStringContent {
+        let right = YStringContent(self.string.substring(from: offset) as NSString)
         self.string = self.string.substring(to: offset) as NSString
 
         // Prevent encoding invalid documents because of splitting of surrogate pairs: https://github.com/yjs/yjs/issues/248
@@ -50,8 +50,8 @@ extension StringContent {
         return right
     }
 
-    func merge(with right: Content) -> Bool {
-        self.string = self.string.appending((right as! StringContent).string as String) as NSString
+    func merge(with right: YContent) -> Bool {
+        self.string = self.string.appending((right as! YStringContent).string as String) as NSString
         return true
     }
 
@@ -69,7 +69,7 @@ extension StringContent {
         }
     }
     
-    static func decode(from decoder: YUpdateDecoder) throws -> StringContent {
-        try StringContent(decoder.readString() as NSString)
+    static func decode(from decoder: YUpdateDecoder) throws -> YStringContent {
+        try YStringContent(decoder.readString() as NSString)
     }
 }

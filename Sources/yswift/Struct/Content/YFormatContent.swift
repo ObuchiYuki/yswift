@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class FormatContent: Content {
+final class YFormatContent: YContent {
     var key: String
     var value: YTextAttributeValue?
     
@@ -17,7 +17,7 @@ final class FormatContent: Content {
     }
 }
 
-extension FormatContent {
+extension YFormatContent {
     var count: Int { 1 }
     
     var typeid: UInt8 { return 6 }
@@ -26,11 +26,11 @@ extension FormatContent {
     
     var values: [Any?] { [] }
 
-    func copy() -> FormatContent { return FormatContent(key: self.key, value: self.value) }
+    func copy() -> YFormatContent { return YFormatContent(key: self.key, value: self.value) }
 
-    func splice(_ offset: Int) -> FormatContent { fatalError() }
+    func splice(_ offset: Int) -> YFormatContent { fatalError() }
 
-    func merge(with right: Content) -> Bool { false }
+    func merge(with right: YContent) -> Bool { false }
 
     func integrate(with item: YItem, _ transaction: YTransaction) {
         item.parent?.object?.serchMarkers = nil
@@ -45,17 +45,17 @@ extension FormatContent {
         try encoder.writeJSON(self.value)
     }
 
-    static func decode(from decoder: YUpdateDecoder) throws -> FormatContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> YFormatContent {
         // TODO: this as? may be wrong
         let key = try decoder.readKey()
         let value = try decoder.readJSON()
         if !(value is YTextAttributeValue?) {
             assertionFailure("'\(value as Any)' (\(type(of: value))) is not YTextAttributeValue")
         }
-        return FormatContent(key: key, value: value as? YTextAttributeValue)
+        return YFormatContent(key: key, value: value as? YTextAttributeValue)
     }
 }
 
-extension FormatContent: CustomStringConvertible {
+extension YFormatContent: CustomStringConvertible {
     var description: String { "ContentFormat(key: \(key), value: \(value as Any?))" }
 }

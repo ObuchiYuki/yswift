@@ -7,13 +7,13 @@
 
 import Foundation
 
-final class BinaryContent: Content {
+final class YBinaryContent: YContent {
     var data: Data
     
     init(_ content: Data) { self.data = content }
 }
 
-extension BinaryContent {
+extension YBinaryContent {
     var count: Int { 1 }
     
     var typeid: UInt8 { 3 }
@@ -22,11 +22,11 @@ extension BinaryContent {
 
     var values: [Any?] { return [self.data] }
 
-    func copy() -> BinaryContent { return BinaryContent(self.data) }
+    func copy() -> YBinaryContent { return YBinaryContent(self.data) }
 
-    func splice(_ offset: Int) -> BinaryContent { fatalError() }
+    func splice(_ offset: Int) -> YBinaryContent { fatalError() }
 
-    func merge(with right: Content) -> Bool { return false }
+    func merge(with right: YContent) -> Bool { return false }
     
     func integrate(with item: YItem, _ transaction: YTransaction) {}
     
@@ -36,7 +36,7 @@ extension BinaryContent {
     
     func encode(into encoder: YUpdateEncoder, offset: Int) { encoder.writeBuf(self.data) }
     
-    static func decode(from decoder: YUpdateDecoder) throws -> BinaryContent {
-        try BinaryContent(decoder.readBuf())
+    static func decode(from decoder: YUpdateDecoder) throws -> YBinaryContent {
+        try YBinaryContent(decoder.readBuf())
     }
 }

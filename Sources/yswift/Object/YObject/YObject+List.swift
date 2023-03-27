@@ -148,7 +148,7 @@ extension YObject {
         func packJsonContent() throws {
             if (jsonContent.count <= 0) { return }
             let id = YID(client: ownClientId, clock: store.getState(ownClientId))
-            let content = AnyContent(jsonContent)
+            let content = YAnyContent(jsonContent)
             left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: content)
             try left!.integrate(transaction: transaction, offset: 0)
             jsonContent = []
@@ -166,19 +166,19 @@ extension YObject {
                 try packJsonContent()
                 if (content is Data) {
                     let id = YID(client: ownClientId, clock: store.getState(ownClientId))
-                    let icontent = BinaryContent(content as! Data)
+                    let icontent = YBinaryContent(content as! Data)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else if content is Doc {
                     let id = YID(client: ownClientId, clock: store.getState(ownClientId))
-                    let icontent = DocumentContent(content as! Doc)
+                    let icontent = YDocumentContent(content as! Doc)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     
                     try left!.integrate(transaction: transaction, offset: 0)
                     
                 } else if content is YObject {
                     let id = YID(client: ownClientId, clock: store.getState(ownClientId))
-                    let icontent = TypeContent(content as! YObject)
+                    let icontent = YObjectContent(content as! YObject)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else {

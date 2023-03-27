@@ -7,13 +7,13 @@
 
 import Foundation
 
-final class DeletedContent {
+final class YDeletedContent {
     var length: Int
     
     init(_ len: Int) { self.length = len }
 }
 
-extension DeletedContent: Content {
+extension YDeletedContent: YContent {
     var count: Int { self.length }
     
     var typeid: UInt8 { 1 }
@@ -22,16 +22,16 @@ extension DeletedContent: Content {
 
     var values: [Any?] { return [] }
 
-    func copy() -> DeletedContent { return DeletedContent(self.length) }
+    func copy() -> YDeletedContent { return YDeletedContent(self.length) }
 
-    func splice(_ offset: Int) -> DeletedContent {
-        let right = DeletedContent(self.length - offset)
+    func splice(_ offset: Int) -> YDeletedContent {
+        let right = YDeletedContent(self.length - offset)
         self.length = offset
         return right
     }
 
-    func merge(with right: Content) -> Bool {
-        self.length += (right as! DeletedContent).length
+    func merge(with right: YContent) -> Bool {
+        self.length += (right as! YDeletedContent).length
         return true
     }
 
@@ -47,7 +47,7 @@ extension DeletedContent: Content {
     func encode(into encoder: YUpdateEncoder, offset: Int) { encoder.writeLen(self.length - offset) }
 
     
-    static func decode(from decoder: YUpdateDecoder) throws -> DeletedContent {
-        try DeletedContent(decoder.readLen())
+    static func decode(from decoder: YUpdateDecoder) throws -> YDeletedContent {
+        try YDeletedContent(decoder.readLen())
     }
 }
