@@ -28,7 +28,7 @@ extension TypeContent {
 
     func merge(with right: Content) -> Bool { false }
 
-    func integrate(with item: Item, _ transaction: Transaction) throws {
+    func integrate(with item: YItem, _ transaction: Transaction) throws {
         try self.type._integrate(transaction.doc, item: item)
     }
 
@@ -40,7 +40,7 @@ extension TypeContent {
             } else {
                 transaction._mergeStructs.value.append(uitem)
             }
-            item = uitem.right as? Item
+            item = uitem.right as? YItem
         }
         for (_, item) in self.type.storage {
             if !item.deleted {
@@ -56,15 +56,15 @@ extension TypeContent {
         var item = self.type._start
         while let uitem = item {
             try uitem.gc(store, parentGC: true)
-            item = uitem.right as? Item
+            item = uitem.right as? YItem
         }
         
         self.type._start = nil
         for (_, item) in self.type.storage {
-            var item: Item? = item
+            var item: YItem? = item
             while let uitem = item {
                 try uitem.gc(store, parentGC: true)
-                item = uitem.left as? Item
+                item = uitem.left as? YItem
             }
         }
         self.type.storage = [:]

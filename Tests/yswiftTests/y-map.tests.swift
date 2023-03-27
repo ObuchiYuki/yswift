@@ -7,7 +7,7 @@
 
 import XCTest
 import Promise
-import yswift
+@testable import yswift
 
 private struct IntentionalError: Error {}
 
@@ -17,16 +17,16 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let map0 = test.map[0], map1 = test.map[1]
         
-        try map0.set("map", value: YMap(["nil": nil]))
+        try map0.setThrowingError("map", value: YMap(["nil": nil]))
         
         try test.connector.flushAllMessages()
         
         XCTAssertEqualJSON(
-            try XCTUnwrap(map0.get("map") as? YMap).toJSON(),
+            try XCTUnwrap(map0["map"] as? YMap).toJSON(),
             ["nil": nil]
         )
         XCTAssertEqualJSON(
-            try XCTUnwrap(map1.get("map") as? YMap).toJSON(),
+            try XCTUnwrap(map1["map"] as? YMap).toJSON(),
             ["nil": nil]
         )
     }
@@ -35,15 +35,15 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let docs = test.docs, map0 = test.map[0], map1 = test.map[1]
         
-        try map0.set("nil", value: nil)
+        try map0.setThrowingError("nil", value: nil)
         
         try test.connector.flushAllMessages()
 
-        XCTAssertEqual(map0.size, 1)
-        XCTAssertNil(map0.get("nil"))
+        XCTAssertEqual(map0.count, 1)
+        XCTAssertNil(map0["nil"])
         
-        XCTAssertEqual(map1.size, 1)
-        XCTAssertNil(map1.get("nil"))
+        XCTAssertEqual(map1.count, 1)
+        XCTAssertNil(map1["nil"])
         
         try YAssertEqualDocs(docs)
     }
@@ -53,27 +53,26 @@ final class YMapTests: XCTestCase {
         let map0 = test.map[0]
         
         let m1 = YMap([ "int": 1, "string": "hello" ])
-        try map0.set("m1", value: m1)
-        XCTAssertEqual(try XCTUnwrap(m1.get("int") as? Int), 1)
-        XCTAssertEqual(try XCTUnwrap(m1.get("string") as? String), "hello")
+        try map0.setThrowingError("m1", value: m1)
+        XCTAssertEqual(try XCTUnwrap(m1["int"] as? Int), 1)
+        XCTAssertEqual(try XCTUnwrap(m1["string"] as? String), "hello")
         
         let m2 = YMap([
             "object": ["x": 1],
             "boolean": true
         ])
         
-        try map0.set("m2", value: m2)
-        XCTAssertEqual(try XCTUnwrap(m2.get("object") as? [String: Int])["x"], 1)
-        XCTAssertEqual(try XCTUnwrap(m2.get("boolean") as? Bool), true)
+        try map0.setThrowingError("m2", value: m2)
+        XCTAssertEqual(try XCTUnwrap(m2["object"] as? [String: Int])["x"], 1)
+        XCTAssertEqual(try XCTUnwrap(m2["boolean"] as? Bool), true)
         
-        
-        let dict = Dictionary(m1.entries().map{ $0 } + m2.entries(), uniquingKeysWith: { a, _ in a })
+        let dict = Dictionary(uniqueKeysWithValues: m1.map{ $0 } + m2)
         let m3 = YMap(dict)
-        try map0.set("m3", value: m3)
-        XCTAssertEqual(try XCTUnwrap(m3.get("int") as? Int), 1)
-        XCTAssertEqual(try XCTUnwrap(m3.get("string") as? String), "hello")
-        XCTAssertEqual(try XCTUnwrap(m3.get("object") as? [String: Int]), ["x": 1])
-        XCTAssertEqual(try XCTUnwrap(m3.get("boolean") as? Bool), true)
+        try map0.setThrowingError("m3", value: m3)
+        XCTAssertEqual(try XCTUnwrap(m3["int"] as? Int), 1)
+        XCTAssertEqual(try XCTUnwrap(m3["string"] as? String), "hello")
+        XCTAssertEqual(try XCTUnwrap(m3["object"] as? [String: Int]), ["x": 1])
+        XCTAssertEqual(try XCTUnwrap(m3["boolean"] as? Bool), true)
     }
     
     func testBasicMapTests() throws {
@@ -82,49 +81,49 @@ final class YMapTests: XCTestCase {
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1], map2 = test.map[2]
         docs[2].disconnect()
         
-        try map0.set("nil", value: nil)
-        try map0.set("number", value: 1)
-        try map0.set("string", value: "hello Y")
-        try map0.set("object", value: ["key": [ "key2": "value" ]])
-        try map0.set("y-map", value: YMap())
-        try map0.set("boolean1", value: true)
-        try map0.set("boolean0", value: false)
-        let map = try XCTUnwrap(map0.get("y-map") as? YMap)
-        try map.set("y-array", value: YArray())
-        let array = try XCTUnwrap(map.get("y-array") as? YArray)
+        try map0.setThrowingError("nil", value: nil)
+        try map0.setThrowingError("number", value: 1)
+        try map0.setThrowingError("string", value: "hello Y")
+        try map0.setThrowingError("object", value: ["key": [ "key2": "value" ]])
+        try map0.setThrowingError("y-map", value: YMap())
+        try map0.setThrowingError("boolean1", value: true)
+        try map0.setThrowingError("boolean0", value: false)
+        let map = try XCTUnwrap(map0["y-map"] as? YMap)
+        try map.setThrowingError("y-array", value: YArray())
+        let array = try XCTUnwrap(map["y-array"] as? YArray)
         try array.insert(0, at: 0)
         try array.insert(-1, at: 0)
         
-        XCTAssertEqualJSON(map0.get("nil"), nil, "client 0 computed the change (nil)")
-        XCTAssertEqualJSON(map0.get("number"), 1, "client 0 computed the change (number)")
-        XCTAssertEqualJSON(map0.get("string"), "hello Y", "client 0 computed the change (string)")
-        XCTAssertEqualJSON(map0.get("boolean0"), false, "client 0 computed the change (boolean)")
-        XCTAssertEqualJSON(map0.get("boolean1"), true, "client 0 computed the change (boolean)")
-        XCTAssertEqualJSON(map0.get("object"), ["key": ["key2": "value"]], "client 0 computed the change (object)")
-        XCTAssertEqualJSON(((map0.get("y-map") as? YMap)?.get("y-array") as? YArray)?[0], -1, "client 0 computed the change (type)")
-        XCTAssertEqualJSON(map0.size, 7, "client 0 map has correct size")
+        XCTAssertEqualJSON(map0["nil"], nil, "client 0 computed the change (nil)")
+        XCTAssertEqualJSON(map0["number"], 1, "client 0 computed the change (number)")
+        XCTAssertEqualJSON(map0["string"], "hello Y", "client 0 computed the change (string)")
+        XCTAssertEqualJSON(map0["boolean0"], false, "client 0 computed the change (boolean)")
+        XCTAssertEqualJSON(map0["boolean1"], true, "client 0 computed the change (boolean)")
+        XCTAssertEqualJSON(map0["object"], ["key": ["key2": "value"]], "client 0 computed the change (object)")
+        XCTAssertEqualJSON(((map0["y-map"] as? YMap)?["y-array"] as? YArray)?[0], -1, "client 0 computed the change (type)")
+        XCTAssertEqualJSON(map0.count, 7, "client 0 map has correct size")
         
         try docs[2].connect()
         try connector.flushAllMessages()
 
-        XCTAssertEqualJSON(map1.get("nil"), nil, "client 1 received the update (nil)")
-        XCTAssertEqualJSON(map1.get("number"), 1, "client 1 received the update (number)")
-        XCTAssertEqualJSON(map1.get("string"), "hello Y", "client 1 received the update (string)")
-        XCTAssertEqualJSON(map1.get("boolean0"), false, "client 1 computed the change (boolean)")
-        XCTAssertEqualJSON(map1.get("boolean1"), true, "client 1 computed the change (boolean)")
-        XCTAssertEqualJSON(map1.get("object"), ["key": ["key2": "value"]], "client 1 received the update (object)")
-        XCTAssertEqualJSON(((map1.get("y-map") as? YMap)?.get("y-array") as? YArray)?[0], -1, "client 1 computed the change (type)")
-        XCTAssertEqualJSON(map1.size, 7, "client 1 map has correct size")
+        XCTAssertEqualJSON(map1["nil"], nil, "client 1 received the update (nil)")
+        XCTAssertEqualJSON(map1["number"], 1, "client 1 received the update (number)")
+        XCTAssertEqualJSON(map1["string"], "hello Y", "client 1 received the update (string)")
+        XCTAssertEqualJSON(map1["boolean0"], false, "client 1 computed the change (boolean)")
+        XCTAssertEqualJSON(map1["boolean1"], true, "client 1 computed the change (boolean)")
+        XCTAssertEqualJSON(map1["object"], ["key": ["key2": "value"]], "client 1 received the update (object)")
+        XCTAssertEqualJSON(((map1["y-map"] as? YMap)?["y-array"] as? YArray)?[0], -1, "client 1 computed the change (type)")
+        XCTAssertEqualJSON(map1.count, 7, "client 1 map has correct size")
 
         // compare disconnected user
-        XCTAssertEqualJSON(map2.get("nil"), nil, "client 2 received the update (nil) - was disconnected")
-        XCTAssertEqualJSON(map2.get("number"), 1, "client 2 received the update (number) - was disconnected")
-        XCTAssertEqualJSON(map2.get("string"), "hello Y", "client 2 received the update (string) - was disconnected")
-        XCTAssertEqualJSON(map2.get("boolean0"), false, "client 2 computed the change (boolean)")
-        XCTAssertEqualJSON(map2.get("boolean1"), true, "client 2 computed the change (boolean)")
-        XCTAssertEqualJSON(map2.get("object"), ["key": ["key2": "value"]], "client 2 received the update (object) - was disconnected")
-        XCTAssertEqualJSON(((map2.get("y-map") as? YMap)?.get("y-array") as? YArray)?[0], -1, "client 2 received the update (type) - was disconnected")
-        XCTAssertEqualJSON(map2.size, 7, "client 2 map has correct size")
+        XCTAssertEqualJSON(map2["nil"], nil, "client 2 received the update (nil) - was disconnected")
+        XCTAssertEqualJSON(map2["number"], 1, "client 2 received the update (number) - was disconnected")
+        XCTAssertEqualJSON(map2["string"], "hello Y", "client 2 received the update (string) - was disconnected")
+        XCTAssertEqualJSON(map2["boolean0"], false, "client 2 computed the change (boolean)")
+        XCTAssertEqualJSON(map2["boolean1"], true, "client 2 computed the change (boolean)")
+        XCTAssertEqualJSON(map2["object"], ["key": ["key2": "value"]], "client 2 received the update (object) - was disconnected")
+        XCTAssertEqualJSON(((map2["y-map"] as? YMap)?["y-array"] as? YArray)?[0], -1, "client 2 received the update (type) - was disconnected")
+        XCTAssertEqualJSON(map2.count, 7, "client 2 map has correct size")
         
         try YAssertEqualDocs(docs)
     }
@@ -134,19 +133,19 @@ final class YMapTests: XCTestCase {
         
         let connector = test.connector, docs = test.docs, map0 = test.map[0]
         
-        try map0.set("stuff", value: "stuffy")
+        try map0.setThrowingError("stuff", value: "stuffy")
 //        map0.set("undefined", value: undefined) // No undefined in Swift
-        try map0.set("nil", value: nil)
+        try map0.setThrowingError("nil", value: nil)
         
-        XCTAssertEqualJSON(map0.get("stuff"), "stuffy")
+        XCTAssertEqualJSON(map0["stuff"], "stuffy")
 
         try connector.flushAllMessages()
 
         for doc in docs {
             let u = try doc.getMap("map")
-            XCTAssertEqualJSON(u.get("stuff"), "stuffy")
+            XCTAssertEqualJSON(u["stuff"], "stuffy")
 //            XCTAssertEqualJSON(u.get("undefined") == undefined, "undefined")
-            XCTAssertEqualJSON(u.get("nil"), nil, "nil")
+            XCTAssertEqualJSON(u["nil"], nil, "nil")
         }
         
         try YAssertEqualDocs(docs)
@@ -157,11 +156,11 @@ final class YMapTests: XCTestCase {
         
         let docs = test.docs, map0 = test.map[0]
         let map = YMap()
-        try map0.set("map", value: map)
+        try map0.setThrowingError("map", value: map)
         
-        XCTAssert(map0.get("map") as? AnyObject === map)
-        try map.set("one", value: 1)
-        XCTAssertEqualJSON(map.get("one"), 1)
+        XCTAssert(map0["map"] as? AnyObject === map)
+        try map.setThrowingError("one", value: 1)
+        XCTAssertEqualJSON(map["one"], 1)
         
         try YAssertEqualDocs(docs)
     }
@@ -172,8 +171,8 @@ final class YMapTests: XCTestCase {
         let docs = test.docs, map0 = test.map[0]
         let array = YArray()
         
-        try map0.set("array", value: array)
-        XCTAssert(map0.get("array") as? AnyObject === array)
+        try map0.setThrowingError("array", value: array)
+        XCTAssert(map0["array"] as? AnyObject === array)
         
         try array.insert(contentsOf: [1, 2, 3], at: 0)
         
@@ -186,13 +185,13 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let connector = test.connector, docs = test.docs, map0 = test.map[0]
         
-        try map0.set("stuff", value: "stuffy")
-        XCTAssertEqualJSON(map0.get("stuff"), "stuffy")
+        try map0.setThrowingError("stuff", value: "stuffy")
+        XCTAssertEqualJSON(map0["stuff"], "stuffy")
         try connector.flushAllMessages()
         
         for doc in docs {
             let u = try doc.getMap("map")
-            XCTAssertEqualJSON(u.get("stuff"), "stuffy")
+            XCTAssertEqualJSON(u["stuff"], "stuffy")
         }
         
         try YAssertEqualDocs(docs)
@@ -202,13 +201,13 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 3)
         
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1]
-        try map0.set("stuff", value: "c0")
-        try map1.set("stuff", value: "c1")
+        try map0.setThrowingError("stuff", value: "c0")
+        try map1.setThrowingError("stuff", value: "c1")
         try connector.flushAllMessages()
         
         for doc in docs {
             let u = try doc.getMap("map")
-            XCTAssertEqualJSON(u.get("stuff"), "c1")
+            XCTAssertEqualJSON(u["stuff"], "c1")
         }
         
         try YAssertEqualDocs(docs)
@@ -218,30 +217,30 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         let map0 = test.map[0]
         
-        try map0.set("stuff", value: "c0")
-        try map0.set("otherstuff", value: "c1")
-        XCTAssertEqual(map0.size, 2, "map size is \(map0.size) expected 2")
+        try map0.setThrowingError("stuff", value: "c0")
+        try map0.setThrowingError("otherstuff", value: "c1")
+        XCTAssertEqual(map0.count, 2, "map size is \(map0.count) expected 2")
         
-        try map0.delete("stuff")
-        XCTAssertEqual(map0.size, 1, "map size after delete is \(map0.size), expected 1")
+        try map0.removeValue(forKey: "stuff")
+        XCTAssertEqual(map0.count, 1, "map size after delete is \(map0.count), expected 1")
         
-        try map0.delete("otherstuff")
-        XCTAssertEqual(map0.size, 0, "map size after delete is \(map0.size), expected 0")
+        try map0.removeValue(forKey: "otherstuff")
+        XCTAssertEqual(map0.count, 0, "map size after delete is \(map0.count), expected 0")
     }
 
     func testGetAndSetAndDeleteOfMapProperty() throws {
         let test = try YTest<Any>(docs: 3)
         
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1]
-        try map0.set("stuff", value: "c0")
-        try map1.set("stuff", value: "c1")
-        try map1.delete("stuff")
+        try map0.setThrowingError("stuff", value: "c0")
+        try map1.setThrowingError("stuff", value: "c1")
+        try map1.removeValue(forKey: "stuff")
         
         try connector.flushAllMessages()
         
         for doc in docs {
             let u = try doc.getMap("map")
-            XCTAssertNil(u.get("stuff"))
+            XCTAssertNil(u["stuff"])
         }
         
         try YAssertEqualDocs(docs)
@@ -251,17 +250,17 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         
         let connector = test.connector, docs = test.docs, map0 = test.map[0]
-        try map0.set("stuff", value: "c0")
-        try map0.set("otherstuff", value: "c1")
-        try map0.clear()
+        try map0.setThrowingError("stuff", value: "c0")
+        try map0.setThrowingError("otherstuff", value: "c1")
+        try map0.removeAll()
         
         try connector.flushAllMessages()
         
         for doc in docs {
             let u = try doc.getMap("map")
-            XCTAssertNil(u.get("stuff"))
-            XCTAssertNil(u.get("otherstuff"))
-            XCTAssert(u.size == 0, "map size after clear is \(u.size), expected 0")
+            XCTAssertNil(u["stuff"])
+            XCTAssertNil(u["otherstuff"])
+            XCTAssert(u.count == 0, "map size after clear is \(u.count), expected 0")
         }
         
         try YAssertEqualDocs(docs)
@@ -273,26 +272,26 @@ final class YMapTests: XCTestCase {
         let connector = test.connector, docs = test.docs,
         map0 = test.map[0], map1 = test.map[1], map2 = test.map[2], map3 = test.map[3]
         
-        try map0.set("stuff", value: "c0")
-        try map1.set("stuff", value: "c1")
-        try map1.set("stuff", value: "c2")
-        try map2.set("stuff", value: "c3")
+        try map0.setThrowingError("stuff", value: "c0")
+        try map1.setThrowingError("stuff", value: "c1")
+        try map1.setThrowingError("stuff", value: "c2")
+        try map2.setThrowingError("stuff", value: "c3")
         
         try connector.flushAllMessages()
         
-        try map0.set("otherstuff", value: "c0")
-        try map1.set("otherstuff", value: "c1")
-        try map2.set("otherstuff", value: "c2")
-        try map3.set("otherstuff", value: "c3")
-        try map3.clear()
+        try map0.setThrowingError("otherstuff", value: "c0")
+        try map1.setThrowingError("otherstuff", value: "c1")
+        try map2.setThrowingError("otherstuff", value: "c2")
+        try map3.setThrowingError("otherstuff", value: "c3")
+        try map3.removeAll()
         
         try connector.flushAllMessages()
         
         for doc in docs {
             let u = try doc.getMap("map")
-            XCTAssertNil(u.get("stuff"))
-            XCTAssertNil(u.get("otherstuff"))
-            XCTAssert(u.size == 0, "map size after clear is \(u.size), expected 0")
+            XCTAssertNil(u["stuff"])
+            XCTAssertNil(u["otherstuff"])
+            XCTAssert(u.count == 0, "map size after clear is \(u.count), expected 0")
         }
         
         try YAssertEqualDocs(docs)
@@ -302,16 +301,16 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 3)
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1], map2 = test.map[2]
         
-        try map0.set("stuff", value: "c0")
-        try map1.set("stuff", value: "c1")
-        try map1.set("stuff", value: "c2")
-        try map2.set("stuff", value: "c3")
+        try map0.setThrowingError("stuff", value: "c0")
+        try map1.setThrowingError("stuff", value: "c1")
+        try map1.setThrowingError("stuff", value: "c2")
+        try map2.setThrowingError("stuff", value: "c3")
         
         try connector.flushAllMessages()
         
         for doc in docs {
             let u = try doc.getMap("map")
-            XCTAssertEqualJSON(u.get("stuff"), "c3")
+            XCTAssertEqualJSON(u["stuff"], "c3")
         }
         
         try YAssertEqualDocs(docs)
@@ -321,24 +320,24 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 4)
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1], map2 = test.map[2], map3 = test.map[3]
         
-        try map0.set("stuff", value: "c0")
-        try map1.set("stuff", value: "c1")
-        try map1.set("stuff", value: "c2")
-        try map2.set("stuff", value: "c3")
+        try map0.setThrowingError("stuff", value: "c0")
+        try map1.setThrowingError("stuff", value: "c1")
+        try map1.setThrowingError("stuff", value: "c2")
+        try map2.setThrowingError("stuff", value: "c3")
         
         try connector.flushAllMessages()
         
-        try map0.set("stuff", value: "deleteme")
-        try map1.set("stuff", value: "c1")
-        try map2.set("stuff", value: "c2")
-        try map3.set("stuff", value: "c3")
-        try map3.delete("stuff")
+        try map0.setThrowingError("stuff", value: "deleteme")
+        try map1.setThrowingError("stuff", value: "c1")
+        try map2.setThrowingError("stuff", value: "c2")
+        try map3.setThrowingError("stuff", value: "c3")
+        try map3.removeValue(forKey: "stuff")
         
         try connector.flushAllMessages()
         
         for doc in docs {
             let u = try doc.getMap("map")
-            XCTAssertNil(u.get("stuff"))
+            XCTAssertNil(u["stuff"])
         }
         
         try YAssertEqualDocs(docs)
@@ -349,7 +348,7 @@ final class YMapTests: XCTestCase {
         let connector = test.connector, docs = test.docs, map1 = test.map[1], map2 = test.map[2], map3 = test.map[3]
         
         let _map1 = YMap()
-        try map1.set("map", value: _map1)
+        try map1.setThrowingError("map", value: _map1)
         
         var calls = 0
         var dmapid: ID?
@@ -362,23 +361,23 @@ final class YMapTests: XCTestCase {
                 XCTAssertEqual(mevent.path.count, 1)
                 XCTAssertEqualJSON(mevent.path[0], "map")
                 let emap = try XCTUnwrap(event.target as? YMap)
-                dmapid = try XCTUnwrap(emap.get("deepmap") as? YMap).item?.id
+                dmapid = try XCTUnwrap(emap["deepmap"] as? YMap).item?.id
             })
         })
         
         try connector.flushAllMessages()
         
-        let _map3 = try XCTUnwrap(map3.get("map") as? YMap)
-        try _map3.set("deepmap", value: YMap())
+        let _map3 = try XCTUnwrap(map3["map"] as? YMap)
+        try _map3.setThrowingError("deepmap", value: YMap())
         try connector.flushAllMessages()
         
-        let _map2 = try XCTUnwrap(map2.get("map") as? YMap)
-        try _map2.set("deepmap", value: YMap())
+        let _map2 = try XCTUnwrap(map2["map"] as? YMap)
+        try _map2.setThrowingError("deepmap", value: YMap())
         try connector.flushAllMessages()
         
-        let dmap1 = try XCTUnwrap(_map1.get("deepmap") as? YMap)
-        let dmap2 = try XCTUnwrap(_map2.get("deepmap") as? YMap)
-        let dmap3 = try XCTUnwrap(_map3.get("deepmap") as? YMap)
+        let dmap1 = try XCTUnwrap(_map1["deepmap"] as? YMap)
+        let dmap2 = try XCTUnwrap(_map2["deepmap"] as? YMap)
+        let dmap3 = try XCTUnwrap(_map3["deepmap"] as? YMap)
         
         XCTAssertGreaterThan(calls, 0)
         XCTAssertEqual(dmap1.item?.id, dmap2.item?.id)
@@ -402,10 +401,10 @@ final class YMapTests: XCTestCase {
             calls += 1
         }
         
-        try map0.set("map", value: YMap())
-        let _map = try XCTUnwrap(map0.get("map") as? YMap)
-        try _map.set("array", value: YArray())
-        try XCTUnwrap(_map.get("array") as? YArray).insert("content", at: 0)
+        try map0.setThrowingError("map", value: YMap())
+        let _map = try XCTUnwrap(map0["map"] as? YMap)
+        try _map.setThrowingError("array", value: YArray())
+        try XCTUnwrap(_map["array"] as? YArray).insert("content", at: 0)
         
         XCTAssertEqual(calls, 3)
         XCTAssertEqualJSON(pathes, [[], ["map"], ["map", "array"]])
@@ -430,17 +429,17 @@ final class YMapTests: XCTestCase {
         var event: YEvent?
         map0.observe{ e, _ in event = e }
         
-        try map0.set("stuff", value: 4)
+        try map0.setThrowingError("stuff", value: 4)
         compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
         
         // update, oldValue is in contents
-        try map0.set("stuff", value: YArray())
+        try map0.setThrowingError("stuff", value: YArray())
         compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
         
         // update, oldValue is in opContents
-        try map0.set("stuff", value: 5)
+        try map0.setThrowingError("stuff", value: 5)
         // delete
-        try map0.delete("stuff")
+        try map0.removeValue(forKey: "stuff")
         compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
         
         try YAssertEqualDocs(docs)
@@ -454,10 +453,10 @@ final class YMapTests: XCTestCase {
         map0.observe{ e, _ in event = e }
         
         // set values
-        try map0.set("stuff", value: 4)
-        try map0.set("otherstuff", value: YArray())
+        try map0.setThrowingError("stuff", value: 4)
+        try map0.setThrowingError("otherstuff", value: YArray())
         // clear
-        try map0.clear()
+        try map0.removeAll()
         
         compareEvent(event, keysChanged: Set(["stuff", "otherstuff"]), target: map0)
         
@@ -473,21 +472,21 @@ final class YMapTests: XCTestCase {
         
         map0.observe{ e, _ in changes = try e.changes() }
         
-        try map0.set("a", value: 1)
+        try map0.setThrowingError("a", value: 1)
         keyChange = changes?.keys["a"]
         XCTAssertNotNil(changes)
         XCTAssertEqual(keyChange?.action, .add)
         XCTAssertNil(keyChange?.oldValue)
         
-        try map0.set("a", value: 2)
+        try map0.setThrowingError("a", value: 2)
         keyChange = changes?.keys["a"]
         XCTAssertNotNil(changes)
         XCTAssertEqual(keyChange?.action, .update)
         XCTAssertEqualJSON(keyChange?.oldValue, 1)
         
         try docs[0].transact{ _ in
-            try map0.set("a", value: 3)
-            try map0.set("a", value: 4)
+            try map0.setThrowingError("a", value: 3)
+            try map0.setThrowingError("a", value: 4)
         }
         
         keyChange = changes?.keys["a"]
@@ -496,8 +495,8 @@ final class YMapTests: XCTestCase {
         XCTAssertEqualJSON(keyChange?.oldValue, 2)
         
         try docs[0].transact{ _ in
-            try map0.set("b", value: 1)
-            try map0.set("b", value: 2)
+            try map0.setThrowingError("b", value: 1)
+            try map0.setThrowingError("b", value: 2)
         }
         
         keyChange = changes?.keys["b"]
@@ -506,15 +505,15 @@ final class YMapTests: XCTestCase {
         XCTAssertNil(keyChange?.oldValue)
         
         try docs[0].transact{ _ in
-            try map0.set("c", value: 1)
-            try map0.delete("c")
+            try map0.setThrowingError("c", value: 1)
+            try map0.removeValue(forKey: "c")
         }
         XCTAssertNotNil(changes)
         XCTAssertEqual(changes?.keys.count, 0)
         
         try docs[0].transact{ _ in
-            try map0.set("d", value: 1)
-            try map0.set("d", value: 2)
+            try map0.setThrowingError("d", value: 1)
+            try map0.setThrowingError("d", value: 2)
         }
         
         keyChange = changes?.keys["d"]
@@ -547,7 +546,7 @@ final class YMapTests: XCTestCase {
         map.observe{ _, _ in try throwingObserver() }
         map.observeDeep{ _, _ in try throwingDeepObserver() }
 
-        XCTAssertThrowsError(try map.set("y", value: "2"))
+        XCTAssertThrowsError(try map.setThrowingError("y", value: "2"))
         
         XCTAssert(updateCalled)
         XCTAssert(throwingObserverCalled)
@@ -557,13 +556,13 @@ final class YMapTests: XCTestCase {
         updateCalled = false
         throwingObserverCalled = false
         throwingDeepObserverCalled = false
-        XCTAssertThrowsError(try map.set("z", value: "3"))
+        XCTAssertThrowsError(try map.setThrowingError("z", value: "3"))
 
         XCTAssert(updateCalled)
         XCTAssert(throwingObserverCalled)
         XCTAssert(throwingDeepObserverCalled)
 
-        XCTAssertEqualJSON(map.get("z"), "3")
+        XCTAssertEqualJSON(map["z"], "3")
     }
     
 
@@ -571,21 +570,21 @@ final class YMapTests: XCTestCase {
         { doc, test, _ in // set
             let key = test.gen.oneOf(["one", "two"])
             let value = test.gen.string()
-            try doc.getMap("map").set(key, value: value)
+            try doc.getMap("map").setThrowingError(key, value: value)
         },
         { doc, test, _ in // setType
             let key = test.gen.oneOf(["one", "two"])
             let type = test.gen.oneOf([YArray(), YMap()])
-            try doc.getMap("map").set(key, value: type)
+            try doc.getMap("map").setThrowingError(key, value: type)
             if let type = type as? YArray {
                 try type.insert(contentsOf: [1, 2, 3, 4], at: 0)
             } else if let type = type as? YMap {
-                try type.set("deepkey", value: "deepvalue")
+                try type.setThrowingError("deepkey", value: "deepvalue")
             }
         },
         { doc, test, _ in // delete
             let key = test.gen.oneOf(["one", "two"])
-            try doc.getMap("map").delete(key)
+            try doc.getMap("map").removeValue(forKey: key)
         }
     ]
 

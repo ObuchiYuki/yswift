@@ -5,8 +5,8 @@
 //  Created by yuki on 2023/03/15.
 //
 
-extension Item {
-    public enum Parent {
+extension YItem {
+    enum Parent {
         case string(String)
         case id(ID)
         case object(YObject)
@@ -17,70 +17,70 @@ extension Item {
     }
 }
 
-/// Abstract public class that represents any content.
-final public class Item: Struct, JSHashable {
+/// Abstract class that represents any content.
+final class YItem: YStruct, JSHashable {
     
     // =========================================================================== //
     // MARK: - Properties -
 
     /// The item that was originally to the left of this item.
-    public var origin: ID?
+    var origin: ID?
 
     /// The item that is currently to the left of this item.
-    public var left: Struct?
+    var left: YStruct?
 
     /// The item that is currently to the right of this item.
-    public var right: Struct?
+    var right: YStruct?
 
     /// The item that was originally to the right of this item. */
-    public var rightOrigin: ID?
+    var rightOrigin: ID?
     
-    public var parent: Parent?
+    var parent: Parent?
     
-    public var parentKey: String?
+    var parentKey: String?
     
-    public var redone: ID?
+    var redone: ID?
     
     var content: any Content
 
     var info: UInt8
 
-    public var marker: Bool {
+    var marker: Bool {
         get { self.info & 0b0000_1000 > 0 }
         set { if self.marker != newValue { self.info ^= 0b0000_1000 } }
     }
 
-    public var keep: Bool {
+    var keep: Bool {
         get { self.info & 0b0000_0001 > 0 }
         set { if self.keep != newValue { self.info ^= 0b0000_0001 } }
     }
     
-    public override var deleted: Bool {
+    override var deleted: Bool {
         get { return self.info & 0b0000_0100 > 0 }
         set { if self.deleted != newValue { self.info ^= 0b0000_0100 } }
     }
     
-    public var countable: Bool { self.info & 0b0000_0010 > 0 }
+    var countable: Bool { self.info & 0b0000_0010 > 0 }
     
-    public var next: Item? {
+    var next: YItem? {
         var item = self.right
-        while let uitem = item as? Item, uitem.deleted { item = uitem.right }
-        return item as? Item
+        while let uitem = item as? YItem, uitem.deleted { item = uitem.right }
+        return item as? YItem
     }
 
-    public var prev: Item? {
+    var prev: YItem? {
         var item = self.left
-        while let uitem = item as? Item, uitem.deleted { item = uitem.left }
-        return item as? Item
+        while let uitem = item as? YItem, uitem.deleted { item = uitem.left }
+        return item as? YItem
     }
 
     /// Computes the last content address of this Item.
-    public var lastID: ID {
+    var lastID: ID {
         if self.length == 1 { return self.id }
         return ID(client: self.id.client, clock: self.id.clock + self.length - 1)
     }
 
-    init(id: ID, left: Struct?, origin: ID?, right: Struct?, rightOrigin: ID?, parent: Parent?, parentSub: String?, content: any Content) {
+    init(id: ID, left: YStruct?, origin: ID?, right: YStruct?, rightOrigin: ID?, parent: Parent?, parentSub: String?, content: any Content) {
         self.origin = origin
         self.left = left
         self.right = right
@@ -97,7 +97,7 @@ final public class Item: Struct, JSHashable {
     // =========================================================================== //
     // MARK: - Methods -
     
-    public override func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? {
+    override func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? {
         if let origin = self.origin, origin.client != self.id.client, origin.clock >= store.getState(origin.client) {
             return origin.client
         }
@@ -111,28 +111,28 @@ final public class Item: Struct, JSHashable {
         // We have all missing ids, now find the items
         if let origin = self.origin {
             self.left = try store.getItemCleanEnd(transaction, id: origin)
-            self.origin = (self.left as? Item)?.lastID
+            self.origin = (self.left as? YItem)?.lastID
         }
         if let rightOrigin = self.rightOrigin {
             self.right = try StructStore.getItemCleanStart(transaction, id: rightOrigin)
             self.rightOrigin = self.right!.id
         }
-        if self.left is GC || self.right is GC {
+        if self.left is YGC || self.right is YGC {
             self.parent = nil
         }
         // only set parent if this shouldn't be garbage collected
         if self.parent == nil {
-            if let leftItem = self.left as? Item {
+            if let leftItem = self.left as? YItem {
                 self.parent = leftItem.parent
                 self.parentKey = leftItem.parentKey
             }
-            if let rightItem = self.right as? Item {
+            if let rightItem = self.right as? YItem {
                 self.parent = rightItem.parent
                 self.parentKey = rightItem.parentKey
             }
         } else if let parent = self.parent?.id {
             let parentItem = try store.find(parent)
-            if let content = (parentItem as? Item)?.content as? TypeContent {
+            if let content = (parentItem as? YItem)?.content as? TypeContent {
                 self.parent = .object(content.type)
             } else {
                 self.parent = nil
@@ -141,44 +141,44 @@ final public class Item: Struct, JSHashable {
         return nil
     }
 
-    public override func integrate(transaction: Transaction, offset: Int) throws {
+    override func integrate(transaction: Transaction, offset: Int) throws {
         if offset > 0 {
             self.id.clock += offset
             self.left = try transaction.doc.store.getItemCleanEnd(
                 transaction,
                 id: ID(client: self.id.client, clock: self.id.clock - 1)
             )
-            self.origin = (self.left as? Item)?.lastID
+            self.origin = (self.left as? YItem)?.lastID
             self.content = self.content.splice(offset)
             self.length -= offset
         }
 
         guard let parent = self.parent?.object else {
-            try GC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
+            try YGC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
             return
         }
         
-        let hasLeft = self.left == nil && (self.right == nil || (self.right as? Item)?.left != nil)
-        let hasRight = (self.left != nil && (self.left as? Item)?.right !== self.right)
+        let hasLeft = self.left == nil && (self.right == nil || (self.right as? YItem)?.left != nil)
+        let hasRight = (self.left != nil && (self.left as? YItem)?.right !== self.right)
 
         if hasLeft || hasRight {
-            var left = self.left as? Item
+            var left = self.left as? YItem
 
-            var item: Item?
+            var item: YItem?
 
-            if let rightItem = left?.right as? Item {
+            if let rightItem = left?.right as? YItem {
                 item = rightItem
             } else {
                 if let parentKey = self.parentKey {
                     item = parent.storage[parentKey]
-                    while let left = item?.left as? Item { item = left }
+                    while let left = item?.left as? YItem { item = left }
                 } else {
                     item = parent._start
                 }
             }
             
-            var conflictingItems = Set<Item>()
-            var itemsBeforeOrigin = Set<Item>()
+            var conflictingItems = Set<YItem>()
+            var itemsBeforeOrigin = Set<YItem>()
             
             while let uitem = item, uitem !== self.right {
                 itemsBeforeOrigin.insert(uitem)
@@ -200,21 +200,21 @@ final public class Item: Struct, JSHashable {
                 } else {
                     break
                 }
-                item = uitem.right as? Item
+                item = uitem.right as? YItem
             }
             self.left = left
         }
         
-        if let left = self.left as? Item {
+        if let left = self.left as? YItem {
             let right = left.right
             self.right = right
             left.right = self
         } else {
-            var right: Item?
+            var right: YItem?
             
             if let parentKey = self.parentKey {
                 right = parent.storage[parentKey]
-                while let left = right?.left as? Item { right = left }
+                while let left = right?.left as? YItem { right = left }
             } else {
                 right = parent._start
                 parent._start = self
@@ -223,14 +223,14 @@ final public class Item: Struct, JSHashable {
             self.right = right
         }
         
-        if let right = self.right as? Item {
+        if let right = self.right as? YItem {
             right.left = self
         } else if let parentKey = self.parentKey {
         
             // set as current parent value if right == nil and this is parentSub
             parent.storage[parentKey] = self
             
-            if let left = self.left as? Item {
+            if let left = self.left as? YItem {
                 // this is the current attribute value of parent. delete right
                 left.delete(transaction)
             }
@@ -252,8 +252,8 @@ final public class Item: Struct, JSHashable {
         if self.parentKey != nil, self.right != nil { self.delete(transaction) }
     }
     
-    public override func merge(with right: Struct) -> Bool {
-        guard let right = right as? Item else { return false }
+    override func merge(with right: YStruct) -> Bool {
+        guard let right = right as? YItem else { return false }
         guard right.origin == self.lastID,
               self.right === right,
               self.rightOrigin == right.rightOrigin,
@@ -277,13 +277,13 @@ final public class Item: Struct, JSHashable {
         if right.keep { self.keep = true }
         self.right = right.right
         
-        if let right = self.right as? Item { right.left = self }
+        if let right = self.right as? YItem { right.left = self }
         self.length += right.length
         
         return true
     }
 
-    public override func encode(into encoder: YUpdateEncoder, offset: Int) throws {
+    override func encode(into encoder: YUpdateEncoder, offset: Int) throws {
         let origin = offset > 0 ? ID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
         let rightOrigin = self.rightOrigin
         let parentSub = self.parentKey
@@ -331,9 +331,9 @@ final public class Item: Struct, JSHashable {
 // =========================================================================== //
 // MARK: - Item Methods -
 
-extension Item {
+extension YItem {
     /** Mark this Item as deleted. */
-    public func delete(_ transaction: Transaction) {
+    func delete(_ transaction: Transaction) {
         guard !self.deleted, let parent = self.parent?.object else { return }
         
         // adjust the length of parent
@@ -347,20 +347,20 @@ extension Item {
         self.content.delete(transaction)
     }
 
-    public func gc(_ store: StructStore, parentGC: Bool) throws {
+    func gc(_ store: StructStore, parentGC: Bool) throws {
         if !self.deleted { throw YSwiftError.unexpectedCase }
         
         try self.content.gc(store)
         
         if parentGC {
-            try store.replaceStruct(self, newStruct: GC(id: self.id, length: self.length))
+            try store.replaceStruct(self, newStruct: YGC(id: self.id, length: self.length))
         } else {
             self.content = DeletedContent(self.length)
         }
     }
     
     func keepRecursive(keep: Bool) {
-        var item: Item? = self
+        var item: YItem? = self
         while let uitem = item, uitem.keep != keep {
             item!.keep = keep
             item = uitem.parent?.object?.item
@@ -378,10 +378,10 @@ extension Item {
     }
 
     /// Split leftItem into two items; this -> leftItem
-    public func split(_ transaction: Transaction, diff: Int) -> Item {
+    func split(_ transaction: Transaction, diff: Int) -> YItem {
         let client = self.id.client, clock = self.id.clock
         
-        let rightItem = Item(
+        let rightItem = YItem(
             id: ID(client: client, clock: clock + diff),
             left: self,
             origin: ID(client: client, clock: clock + diff - 1),
@@ -397,7 +397,7 @@ extension Item {
         if let redone = self.redone { rightItem.redone = ID(client: redone.client, clock: redone.clock + diff) }
         
         self.right = rightItem
-        if let rightRightItem = rightItem.right as? Item { rightRightItem.left = rightItem }
+        if let rightRightItem = rightItem.right as? YItem { rightRightItem.left = rightItem }
         
         transaction._mergeStructs.value.append(rightItem)
         
@@ -408,7 +408,7 @@ extension Item {
         return rightItem
     }
 
-    public func redo(_ transaction: Transaction, redoitems: Set<Item>, itemsToDelete: DeleteSet, ignoreRemoteMapChanges: Bool) throws -> Item? {
+    func redo(_ transaction: Transaction, redoitems: Set<YItem>, itemsToDelete: DeleteSet, ignoreRemoteMapChanges: Bool) throws -> YItem? {
         if let redone = self.redone { return try StructStore.getItemCleanStart(transaction, id: redone) }
         
         let doc = transaction.doc
@@ -416,8 +416,8 @@ extension Item {
         let ownClientID = doc.clientID
         
         var parentItem = self.parent!.object!.item
-        var left: Struct? = nil
-        var right: Struct? = nil
+        var left: YStruct? = nil
+        var right: YStruct? = nil
 
         if let uparentItem = parentItem, uparentItem.deleted {
             
@@ -448,8 +448,8 @@ extension Item {
             left = self.left
             right = self
             
-            while let uleft = left as? Item {
-                var leftTrace: Item? = uleft
+            while let uleft = left as? YItem {
+                var leftTrace: YItem? = uleft
                 
                 while let uleftTrace = leftTrace, uleftTrace.parent?.object?.item !== parentItem {
                     guard let redone = uleftTrace.redone else { leftTrace = nil; break }
@@ -462,8 +462,8 @@ extension Item {
                 left = uleft.left
             }
             
-            while let uright = right as? Item {
-                var rightTrace: Item? = uright
+            while let uright = right as? YItem {
+                var rightTrace: YItem? = uright
                 
                 while let urightTrace = rightTrace, urightTrace.parent?.object?.item !== parentItem {
                     if let redone = urightTrace.redone {
@@ -485,13 +485,13 @@ extension Item {
             if self.right != nil && !ignoreRemoteMapChanges {
                 left = self
                 
-                while let uleft = left as? Item, let leftRight = uleft.right, itemsToDelete.isDeleted(leftRight.id) {
+                while let uleft = left as? YItem, let leftRight = uleft.right, itemsToDelete.isDeleted(leftRight.id) {
                     left = uleft.right
                 }
-                while let redone = (left as? Item)?.redone {
+                while let redone = (left as? YItem)?.redone {
                     left = try StructStore.getItemCleanStart(transaction, id: redone)
                 }
-                if let uleft = left as? Item, uleft.right != nil {
+                if let uleft = left as? YItem, uleft.right != nil {
                     return nil
                 }
             } else if let parentKey = self.parentKey {
@@ -502,10 +502,10 @@ extension Item {
         }
         let nextClock = store.getState(ownClientID)
         let nextId = ID(client: ownClientID, clock: nextClock)
-        let redoneItem = Item(
+        let redoneItem = YItem(
             id: nextId,
             left: left,
-            origin: (left as? Item)?.lastID,
+            origin: (left as? YItem)?.lastID,
             right: right,
             rightOrigin: right?.id,
             parent: .object(parentType),

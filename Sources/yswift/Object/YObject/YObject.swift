@@ -11,25 +11,25 @@ public class YObject: JSHashable {
         
     // =========================================================================== //
     // MARK: - Property -
-    public var doc: Doc? = nil
+    var doc: Doc? = nil
 
     public var parent: YObject? { self.item?.parent?.object }
     
-    public var item: Item? = nil
+    var item: YItem? = nil
     
-    var storage: [String: Item] = [:]
+    var storage: [String: YItem] = [:]
     
     var serchMarkers: RefArray<YArraySearchMarker>? = nil
 
-    var _start: Item? = nil
+    var _start: YItem? = nil
     var _length: Int = 0
     
     let _eventHandler: EventHandler<YEvent, Transaction> = EventHandler()
     let _deepEventHandler: EventHandler<[YEvent], Transaction> = EventHandler()
 
-    var _first: Item? {
+    var _first: YItem? {
         var item = self._start
-        while let uitem = item, uitem.deleted { item = uitem.right as? Item }
+        while let uitem = item, uitem.deleted { item = uitem.right as? YItem }
         return item
     }
 
@@ -45,17 +45,17 @@ public class YObject: JSHashable {
 
     public init() {}
 
-    func getChildren() -> [Item] {
+    func getChildren() -> [YItem] {
         var item = self._start
-        var arr: [Item] = []
+        var arr: [YItem] = []
         while (item != nil) {
             arr.append(item!)
-            item = item!.right as? Item
+            item = item!.right as? YItem
         }
         return arr
     }
 
-    func isParentOf(child: Item?) -> Bool {
+    func isParentOf(child: YItem?) -> Bool {
         var child = child
         while (child != nil) {
             if child!.parent?.object === self { return true }
@@ -81,7 +81,7 @@ public class YObject: JSHashable {
     // =========================================================================== //
     // MARK: - Private Methods (Temporally public) -
     
-    func _integrate(_ y: Doc, item: Item?) throws {
+    func _integrate(_ y: Doc, item: YItem?) throws {
         self.doc = y
         self.item = item
     }

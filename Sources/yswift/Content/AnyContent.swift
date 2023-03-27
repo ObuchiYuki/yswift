@@ -35,7 +35,7 @@ extension AnyContent {
         return true
     }
 
-    func integrate(with item: Item, _ transaction: Transaction) {}
+    func integrate(with item: YItem, _ transaction: Transaction) {}
     
     func delete(_ transaction: Transaction) {}
     

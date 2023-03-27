@@ -28,7 +28,7 @@ final class YArrayTests: XCTestCase {
         let doc1 = Doc()
         let db1 = try doc1.getMap("root")
         let nestedArray1 = Array([0, 1, 2])
-        try db1.set("array", value: nestedArray1)
+        try db1.setThrowingError("array", value: nestedArray1)
         // ?
         XCTAssertEqual(nestedArray1, [0, 1, 2])
     }
@@ -312,7 +312,7 @@ final class YArrayTests: XCTestCase {
         try array0.insert(YMap(), at: 0)
         
         try docs[0].transact{ _ in
-            try XCTUnwrap(array0[0] as? YMap).set("a", value: "a")
+            try XCTUnwrap(array0[0] as? YMap).setThrowingError("a", value: "a")
             try array0.insert(0, at: 0)
         }
         
@@ -388,7 +388,7 @@ final class YArrayTests: XCTestCase {
             let newMap = YMap()
             newMap.observe{ _, _ in fired = true }
             try array0.insert(newMap, at: 0)
-            try newMap.set("tst", value: 42)
+            try newMap.setThrowingError("tst", value: 42)
         }
         
         XCTAssertFalse(fired, "Event does not trigger")
@@ -450,13 +450,13 @@ final class YArrayTests: XCTestCase {
         let numItems = 10
         for i in 0..<numItems {
             let map = YMap()
-            try map.set("value", value: i)
+            try map.setThrowingError("value", value: i)
             try arr.append(contentsOf: [map])
         }
         var cnt = 0
         for item in arr.toArray() {
             let map = try XCTUnwrap(item as? YMap)
-            let value = try XCTUnwrap(map.get("value") as? Int)
+            let value = try XCTUnwrap(map["value"] as? Int)
             XCTAssertEqual(value, cnt, "value is correct")
             cnt += 1
         }
@@ -504,9 +504,9 @@ final class YArrayTests: XCTestCase {
             
             try yarray.insert(YMap(), at: pos)
             let map = try XCTUnwrap(yarray[pos] as? YMap)
-            try map.set("someprop", value: 42)
-            try map.set("someprop", value: 43)
-            try map.set("someprop", value: 44)
+            try map.setThrowingError("someprop", value: 42)
+            try map.setThrowingError("someprop", value: 43)
+            try map.setThrowingError("someprop", value: 44)
         },
         { doc, test, _ in // insertTypeNull
             let yarray = try doc.getArray("array")

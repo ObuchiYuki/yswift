@@ -196,7 +196,7 @@ final class UpdatesTests: XCTestCase {
                 XCTAssert(clock == 0)
             }
             meta.to.forEach{ client, clock in
-                let structs = merged.store.clients[client]?.value as! [Item]
+                let structs = merged.store.clients[client]?.value as! [YItem]
                 let lastStruct = structs[structs.count - 1]
                 XCTAssert(lastStruct.id.clock + lastStruct.length == clock)
             }

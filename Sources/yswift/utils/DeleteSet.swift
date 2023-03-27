@@ -44,7 +44,7 @@ public class DeleteItem: CustomStringConvertible {
 public class DeleteSet {
     public var clients: [Int: Ref<[DeleteItem]>] = [:]
 
-    public func iterate(_ transaction: Transaction, body: (Struct) throws -> Void) throws {
+    func iterate(_ transaction: Transaction, body: (YStruct) throws -> Void) throws {
         
         return try self.clients.forEach{ clientid, deletes in
             for i in 0..<deletes.count {
@@ -110,7 +110,7 @@ public class DeleteSet {
             })
     }
 
-    public func tryGCDeleteSet(_ store: StructStore, gcFilter: (Item) -> Bool) throws {
+    func tryGCDeleteSet(_ store: StructStore, gcFilter: (YItem) -> Bool) throws {
         for (client, deleteItems) in self.clients {
             let structs = store.clients[client]!
             
@@ -126,8 +126,8 @@ public class DeleteSet {
                     if deleteItem.clock + deleteItem.len <= struct__.id.clock {
                         break
                     }
-                    if type(of: struct__) == Item.self && struct__.deleted && !(struct__ as! Item).keep && gcFilter(struct__ as! Item) {
-                        try (struct__ as! Item).gc(store, parentGC: false)
+                    if type(of: struct__) == YItem.self && struct__.deleted && !(struct__ as! YItem).keep && gcFilter(struct__ as! YItem) {
+                        try (struct__ as! YItem).gc(store, parentGC: false)
                     }
                     
                     struct_ = structs.value[si]
@@ -151,7 +151,7 @@ public class DeleteSet {
                 var si = mostRightIndexToCheck, struct_ = structs[si];
                 
                 while si > 0 && struct_.id.clock >= deleteItem.clock {
-                    Struct.tryMerge(withLeft: structs, pos: si)
+                    YStruct.tryMerge(withLeft: structs, pos: si)
                     si -= 1
                     struct_ = structs[si]
                 }
@@ -159,12 +159,12 @@ public class DeleteSet {
         })
     }
 
-    public func tryGC(_ store: StructStore, gcFilter: (Item) -> Bool) throws {
+    func tryGC(_ store: StructStore, gcFilter: (YItem) -> Bool) throws {
         try self.tryGCDeleteSet(store, gcFilter: gcFilter)
         try self.tryMerge(store)
     }
     
-    public static func mergeAll(_ dss: [DeleteSet]) -> DeleteSet {
+    static func mergeAll(_ dss: [DeleteSet]) -> DeleteSet {
         let merged = DeleteSet()
         
         for dssI in 0..<dss.count {
@@ -181,7 +181,7 @@ public class DeleteSet {
         return merged
     }
 
-    public static func decode(decoder: YDeleteSetDecoder) throws -> DeleteSet {
+    static func decode(decoder: YDeleteSetDecoder) throws -> DeleteSet {
         let ds = DeleteSet()
         let numClients = try decoder.restDecoder.readUInt()
         
@@ -203,7 +203,7 @@ public class DeleteSet {
         return ds
     }
     
-    static public func createFromStructStore(_ ss: StructStore) -> DeleteSet {
+    static func createFromStructStore(_ ss: StructStore) -> DeleteSet {
         let ds = DeleteSet()
         
         for (client, structs) in ss.clients {
@@ -216,7 +216,7 @@ public class DeleteSet {
                     var len = struct_.length
                     
                     if i + 1 < structs.count {
-                        var next: Struct? = structs[i + 1]
+                        var next: YStruct? = structs[i + 1]
                         
                         while next != nil && i + 1 < structs.count && next!.deleted {
                             len += next!.length
@@ -237,7 +237,7 @@ public class DeleteSet {
         return ds
     }
 
-    static public func decodeAndApply(_ decoder: YDeleteSetDecoder, transaction: Transaction, store: StructStore) throws -> YUpdate? {
+    static func decodeAndApply(_ decoder: YDeleteSetDecoder, transaction: Transaction, store: StructStore) throws -> YUpdate? {
         let unappliedDS = DeleteSet()
         let numClients = try decoder.restDecoder.readUInt()
         
@@ -263,7 +263,7 @@ public class DeleteSet {
                     // split the first item if necessary
                     if !struct_.deleted && struct_.id.clock < clock {
                         structs.value
-                            .insert((struct_ as! Item).split(transaction, diff: clock - struct_.id.clock), at: index + 1)
+                            .insert((struct_ as! YItem).split(transaction, diff: clock - struct_.id.clock), at: index + 1)
                         index += 1 // increase we now want to use the next struct
                     }
                     while (index < structs.count) {
@@ -274,9 +274,9 @@ public class DeleteSet {
                             if !struct_.deleted {
                                 if clockEnd < struct_.id.clock + struct_.length {
                                     structs.value
-                                        .insert((struct_ as! Item).split(transaction, diff: clockEnd - struct_.id.clock), at: index)
+                                        .insert((struct_ as! YItem).split(transaction, diff: clockEnd - struct_.id.clock), at: index)
                                 }
-                                (struct_ as! Item).delete(transaction)
+                                (struct_ as! YItem).delete(transaction)
                             }
                         } else {
                             break

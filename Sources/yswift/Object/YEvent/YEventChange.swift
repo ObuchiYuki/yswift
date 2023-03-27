@@ -24,12 +24,12 @@ public struct YEventKey {
 }
 
 public struct YEventChange {
-    public internal(set) var added: Set<Item>
-    public internal(set) var deleted: Set<Item>
-    public internal(set) var keys: [String: YEventKey]
-    public internal(set) var delta: [YEventDelta]
+    var added: Set<YItem>
+    var deleted: Set<YItem>
+    var keys: [String: YEventKey]
+    var delta: [YEventDelta]
     
-    init(added: Set<Item>, deleted: Set<Item>, keys: [String : YEventKey], delta: [YEventDelta]) {
+    init(added: Set<YItem>, deleted: Set<YItem>, keys: [String : YEventKey], delta: [YEventDelta]) {
         self.added = added
         self.deleted = deleted
         self.keys = keys

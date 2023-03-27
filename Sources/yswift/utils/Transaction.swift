@@ -19,7 +19,11 @@ func anyMap<K, V>(_ m: [K: V], _ f: (K, V) -> Bool) -> Bool {
 
 public class Transaction {
 
-    public var doc: Doc
+    public let doc: Doc
+    
+    public var local: Bool
+    
+    public let origin: Any?
     
     public var deleteSet: DeleteSet = DeleteSet()
     
@@ -33,15 +37,13 @@ public class Transaction {
 
     public var meta: [AnyHashable: Any] = [:]
 
-    public var local: Bool
+
 
     public var subdocsAdded: Set<Doc> = Set()
     public var subdocsRemoved: Set<Doc> = Set()
     public var subdocsLoaded: Set<Doc> = Set()
-
-    public var _mergeStructs: Ref<[Struct]> = Ref(value: [])
-
-    public var origin: Any?
+    
+    var _mergeStructs: Ref<[YStruct]> = Ref(value: [])
 
     public init(_ doc: Doc, origin: Any?, local: Bool) {
         self.doc = doc
@@ -107,7 +109,7 @@ public class Transaction {
                     let firstChangePos = try max(StructStore.findIndexSS(structs: structs, clock: beforeClock), 1)
 
                     for i in (firstChangePos..<structs.count).reversed() {
-                        Struct.tryMerge(withLeft: structs, pos: i)
+                        YStruct.tryMerge(withLeft: structs, pos: i)
                     }
                 }
             })
@@ -118,11 +120,11 @@ public class Transaction {
                 let structs = store.clients[client]!
                 let replacedStructPos = try StructStore.findIndexSS(structs: structs, clock: clock)
                 if replacedStructPos + 1 < structs.count {
-                    Struct.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
+                    YStruct.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
                 }
                 
                 if replacedStructPos > 0 {
-                    Struct.tryMerge(withLeft: structs, pos: replacedStructPos)
+                    YStruct.tryMerge(withLeft: structs, pos: replacedStructPos)
                 }
             }
             if !transaction.local && transaction.afterState[doc.clientID] != transaction.beforeState[doc.clientID] {

@@ -31,7 +31,7 @@ extension YObject {
                     start = 0
                 }
             }
-            item = uitem.right as? Item
+            item = uitem.right as? YItem
         }
         
         return result
@@ -62,7 +62,7 @@ extension YObject {
                     cs.append(c[i])
                 }
             }
-            n = n!.right as? Item
+            n = n!.right as? YItem
         }
         return cs
     }
@@ -91,11 +91,11 @@ extension YObject {
         return AnyIterator<Any?>{ () -> Any?? in
             // find some content
             if currentContent == nil {
-                while (item != nil && item!.deleted) { item = item!.right as? Item }
+                while (item != nil && item!.deleted) { item = item!.right as? YItem }
                 if item == nil { return nil }
                 currentContent = item!.content.values
                 currentContentIndex = 0
-                item = item!.right as? Item
+                item = item!.right as? YItem
             }
             let value = currentContent![currentContentIndex] // ! ok
             currentContentIndex += 1
@@ -113,7 +113,7 @@ extension YObject {
                     body(c[i])
                 }
             }
-            item = item!.right as? Item
+            item = item!.right as? YItem
         }
     }
 
@@ -130,13 +130,13 @@ extension YObject {
                 if index < uitem.length { return uitem.content.values[index] }
                 index -= uitem.length
             }
-            item = uitem.right as? Item
+            item = uitem.right as? YItem
         }
         
         return nil
     }
 
-    func listInsert(_ contents: [Any?], after referenceItem: Item?, _ transaction: Transaction) throws {
+    func listInsert(_ contents: [Any?], after referenceItem: YItem?, _ transaction: Transaction) throws {
         var left = referenceItem
         let doc = transaction.doc
         let ownClientId = doc.clientID
@@ -149,7 +149,7 @@ extension YObject {
             if (jsonContent.count <= 0) { return }
             let id = ID(client: ownClientId, clock: store.getState(ownClientId))
             let content = AnyContent(jsonContent)
-            left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: content)
+            left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: content)
             try left!.integrate(transaction: transaction, offset: 0)
             jsonContent = []
         }
@@ -167,19 +167,19 @@ extension YObject {
                 if (content is Data) {
                     let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = BinaryContent(content as! Data)
-                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
+                    left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else if content is Doc {
                     let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = DocumentContent(content as! Doc)
-                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
+                    left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     
                     try left!.integrate(transaction: transaction, offset: 0)
                     
                 } else if content is YObject {
                     let id = ID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = TypeContent(content as! YObject)
-                    left = Item(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
+                    left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else {
                     throw YSwiftError.unexpectedContentType
@@ -228,7 +228,7 @@ extension YObject {
                 }
                 index -= n!.length
             }
-            n = n!.right as? Item
+            n = n!.right as? YItem
         }
         if (self.serchMarkers != nil) {
             YArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: contents.count)
@@ -244,7 +244,7 @@ extension YObject {
             }
     
         var item = marker.item
-        while (item?.right != nil) { item = item!.right as? Item }
+        while (item?.right != nil) { item = item!.right as? YItem }
         return try self.listInsert(contents, after: item, transaction)
     }
 
@@ -271,7 +271,7 @@ extension YObject {
                 index -= item!.length
             }
             
-            item = item!.right as? Item
+            item = item!.right as? YItem
         }
         
         while (length > 0 && item != nil) {
@@ -283,7 +283,7 @@ extension YObject {
                 item!.delete(transaction)
                 length -= item!.length
             }
-            item = item!.right as? Item
+            item = item!.right as? YItem
         }
         if length > 0 {
             throw YSwiftError.lengthExceeded

@@ -47,20 +47,20 @@ public enum YTextAction: String {
     case retain = "retain"
 }
 
-public class ItemTextListPosition {
-    public var left: Item?
-    public var right: Item?
-    public var index: Int
-    public var currentAttributes: YTextAttributes
+final class ItemTextListPosition {
+    var left: YItem?
+    var right: YItem?
+    var index: Int
+    var currentAttributes: YTextAttributes
     
-    public init(left: Item?, right: Item?, index: Int, currentAttributes: YTextAttributes) {
+    init(left: YItem?, right: YItem?, index: Int, currentAttributes: YTextAttributes) {
         self.left = left
         self.right = right
         self.index = index
         self.currentAttributes = currentAttributes
     }
 
-    public func forward() throws {
+    func forward() throws {
         if self.right == nil { throw YSwiftError.unexpectedCase }
         
         if self.right!.content is FormatContent {
@@ -73,10 +73,10 @@ public class ItemTextListPosition {
             }
         }
         self.left = self.right
-        self.right = self.right!.right as? Item
+        self.right = self.right!.right as? YItem
     }
 
-    public func findNext(_ transaction: Transaction, count: Int) throws -> ItemTextListPosition {
+    func findNext(_ transaction: Transaction, count: Int) throws -> ItemTextListPosition {
         var count = count
         
         while (self.right != nil && count > 0) {
@@ -95,18 +95,18 @@ public class ItemTextListPosition {
                 }
             }
             self.left = self.right!
-            self.right = self.right!.right as? Item
+            self.right = self.right!.right as? YItem
         }
         return self
     }
 
-    static public func find(_ transaction: Transaction, parent: YObject, index: Int) throws -> ItemTextListPosition {
+    static func find(_ transaction: Transaction, parent: YObject, index: Int) throws -> ItemTextListPosition {
         let currentAttributes: YTextAttributes = [:]
         let marker = YArraySearchMarker.find(parent, index: index)
         
         if marker != nil && marker!.item != nil {
             let pos = ItemTextListPosition(
-                left: marker!.item!.left as? Item,
+                left: marker!.item!.left as? YItem,
                 right: marker!.item!,
                 index: marker!.index,
                 currentAttributes: currentAttributes
@@ -120,7 +120,7 @@ public class ItemTextListPosition {
 
 }
 
-public func insertNegatedAttributes(
+func insertNegatedAttributes(
     transaction: Transaction,
     parent: YObject,
     currPos: ItemTextListPosition,
@@ -151,7 +151,7 @@ public func insertNegatedAttributes(
     try negatedAttributes.forEach({ key, val in
         let left = currPos.left
         let right = currPos.right
-        let nextFormat = Item(
+        let nextFormat = YItem(
             id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
             left: left,
             origin: left?.lastID,
@@ -194,7 +194,7 @@ func minimizeAttributeChanges(currPos: ItemTextListPosition, attributes: YTextAt
     }
 }
 
-public func insertAttributes(
+func insertAttributes(
     transaction: Transaction,
     parent: YObject,
     currPos: ItemTextListPosition,
@@ -216,7 +216,7 @@ public func insertAttributes(
             negatedAttributes.value[key] = currentVal == nil ? NSNull() : currentVal
                         
             let left = currPos.left, right = currPos.right
-            currPos.right = Item(
+            currPos.right = YItem(
                 id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
                 left: left,
                 origin: left?.lastID,
@@ -235,7 +235,7 @@ public func insertAttributes(
 }
 
 
-public func insertText(
+func insertText(
     transaction: Transaction,
     parent: YObject,
     currPos: ItemTextListPosition,
@@ -265,7 +265,7 @@ public func insertText(
     if parent.serchMarkers != nil {
         YArraySearchMarker.updateChanges(parent.serchMarkers!, index: currPos.index, len: content.count)
     }
-    right = Item(
+    right = YItem(
         id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
         left: left,
         origin: left?.lastID,
@@ -283,7 +283,7 @@ public func insertText(
     try insertNegatedAttributes(transaction: transaction, parent: parent, currPos: currPos, negatedAttributes: negatedAttributes)
 }
  
-public func formatText(
+func formatText(
     transaction: Transaction,
     parent: YObject,
     currPos: ItemTextListPosition,
@@ -350,7 +350,7 @@ public func formatText(
             newlines += "\n"
         }
         
-        currPos.right = Item(
+        currPos.right = YItem(
             id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
             left: currPos.left,
             origin: currPos.left?.lastID,
@@ -368,22 +368,22 @@ public func formatText(
     try insertNegatedAttributes(transaction: transaction, parent: parent, currPos: currPos, negatedAttributes: negatedAttributes)
 }
 
-public func cleanupFormattingGap(
+func cleanupFormattingGap(
     transaction: Transaction,
-    start: Item,
-    curr: Item?,
+    start: YItem,
+    curr: YItem?,
     startAttributes: YTextAttributes,
     currAttributes: YTextAttributes
 ) -> Int {
-    var start: Item? = start // swift add
-    var end: Item? = start
+    var start: YItem? = start // swift add
+    var end: YItem? = start
     var endFormats = [String: FormatContent]()
     while (end != nil && (!end!.countable || end!.deleted)) {
         if !end!.deleted && end!.content is FormatContent {
             let cf = end!.content as! FormatContent
             endFormats[cf.key] = cf
         }
-        end = end!.right as? Item
+        end = end!.right as? YItem
     }
     var cleanups = 0
     var reachedCurr = false
@@ -418,16 +418,16 @@ public func cleanupFormattingGap(
             default: break // nop
             }
         }
-        start = start!.right as? Item
+        start = start!.right as? YItem
     }
     return cleanups
 }
 
-func cleanupContextlessFormattingGap(transaction: Transaction, item: Item?) {
+func cleanupContextlessFormattingGap(transaction: Transaction, item: YItem?) {
     var item = item // swift add
     // iterate until item.right is nil or content
-    while (item != nil && item!.right != nil && (item!.right!.deleted || !(item!.right as! Item).countable)) {
-        item = item!.right as? Item
+    while (item != nil && item!.right != nil && (item!.right!.deleted || !(item!.right as! YItem).countable)) {
+        item = item!.right as? YItem
     }
     var attrs = Set<String>()
     // iterate back until a content item is found
@@ -440,7 +440,7 @@ func cleanupContextlessFormattingGap(transaction: Transaction, item: Item?) {
                 attrs.insert(key)
             }
         }
-        item = item!.left as? Item
+        item = item!.left as? YItem
     }
 }
 
@@ -463,13 +463,13 @@ func cleanupYTextFormatting(type: YText) throws -> Int {
                     start = end!
                 }
             }
-            end = end!.right as? Item
+            end = end!.right as? YItem
         }
     })
     return res
 }
 
-public func deleteText(
+func deleteText(
     transaction: Transaction,
     currPos: ItemTextListPosition,
     length: Int
@@ -515,7 +515,7 @@ public func deleteText(
 }
 
 
-public class YTextEvent: YEvent {
+final public class YTextEvent: YEvent {
 
     public var childListChanged: Bool
 
@@ -674,7 +674,7 @@ public class YTextEvent: YEvent {
                         )
                     }
                 }
-                item = item!.right as? Item
+                item = item!.right as? YItem
             }
             
             addDelta()
@@ -711,7 +711,7 @@ final public class YText: YObject {
 
     public var count: Int { return self._length }
 
-    public override func _integrate(_ y: Doc, item: Item?) throws {
+    override func _integrate(_ y: Doc, item: YItem?) throws {
         try super._integrate(y, item: item)
 
         do {
@@ -755,7 +755,7 @@ final public class YText: YObject {
                     clockStart: clock,
                     len: afterClock,
                     f: { item in
-                        if !item.deleted && (item as! Item).content is FormatContent {
+                        if !item.deleted && (item as! YItem).content is FormatContent {
                             foundFormattingItem = true
                         }
                     }
@@ -768,10 +768,10 @@ final public class YText: YObject {
             
             if !foundFormattingItem {
                 try transaction.deleteSet.iterate(transaction, body: { item in
-                    if item is GC || foundFormattingItem {
+                    if item is YGC || foundFormattingItem {
                         return
                     }
-                    if ((item as! Item).parent?.object as? YText) === self && (item as! Item).content is FormatContent {
+                    if ((item as! YItem).parent?.object as? YText) === self && (item as! YItem).content is FormatContent {
                         foundFormattingItem = true
                     }
                 })
@@ -787,11 +787,11 @@ final public class YText: YObject {
                     // formatting cleanups.
                     // Contextless: it is not necessary to compute currentAttributes for the affected position.
                     try t.deleteSet.iterate(t, body: { item in
-                        if item is GC {
+                        if item is YGC {
                             return
                         }
-                        if ((item as! Item).parent?.object as? YObject) === self {
-                            cleanupContextlessFormattingGap(transaction: t, item: (item as! Item))
+                        if ((item as! YItem).parent?.object as? YObject) === self {
+                            cleanupContextlessFormattingGap(transaction: t, item: (item as! YItem))
                         }
                     })
                 }
@@ -801,12 +801,12 @@ final public class YText: YObject {
 
     public func toString() -> String {
         var str = ""
-        var n: Item? = self._start
+        var n: YItem? = self._start
         while (n != nil) {
             if !n!.deleted && n!.countable && n!.content is StringContent {
                 str += (n!.content as! StringContent).string as String
             }
-            n = n!.right as? Item
+            n = n!.right as? YItem
         }
         return str
     }
@@ -941,7 +941,7 @@ final public class YText: YObject {
                     default: break // nop
                     }
                 }
-                n = n!.right as? Item
+                n = n!.right as? YItem
             }
             packStr()
         }

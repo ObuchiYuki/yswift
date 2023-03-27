@@ -35,7 +35,7 @@ extension DeletedContent: Content {
         return true
     }
 
-    func integrate(with item: Item, _ transaction: Transaction) {
+    func integrate(with item: YItem, _ transaction: Transaction) {
         transaction.deleteSet.add(client: item.id.client, clock: item.id.clock, length: self.length)
         item.deleted = true
     }

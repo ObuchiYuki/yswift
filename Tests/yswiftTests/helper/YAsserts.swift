@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-import yswift
+@testable import yswift
 
 func XCTAssertEqualJSON(_ a: Any?, _ b : Any?, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) {
     func toJSON(_ a: Any?) -> Any {
@@ -24,7 +24,7 @@ func XCTAssertEqualJSON(_ a: Any?, _ b : Any?, _ message: @autoclosure () -> Str
 }
 
 
-private func compareItemIDs(_ a: Item?, _ b: Item?) -> Bool {
+private func compareItemIDs(_ a: YItem?, _ b: YItem?) -> Bool {
     if a === b { return true }
     return a?.id == b?.id
 }
@@ -64,7 +64,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
     }
     
     var mapRes: [String: Any] = [:]
-    for (k, v) in try docs[0].getMap("map").createMapIterator() {
+    for (k, v) in try docs[0].getMap("map") {
         if v == nil {
             mapRes[k] = NSNull()
         } else {
@@ -123,13 +123,13 @@ func YAssertEqualStructStore(_ ss1: StructStore, _ ss2: StructStore) throws {
             ) {
                 XCTFail("Structs dont match")
             }
-            if let s1 = s1 as? Item {
-                guard let s2 = s2 as? Item else {
+            if let s1 = s1 as? YItem {
+                guard let s2 = s2 as? YItem else {
                     return XCTFail("Items dont match")
                 }
                 if (
-                    !((s1.left == nil && s2.left == nil) || (s1.left != nil && s2.left != nil && (s1.left as! Item).lastID == (s2.left as! Item).lastID))
-                    || !compareItemIDs((s1.right as? Item), (s2.right as? Item))
+                    !((s1.left == nil && s2.left == nil) || (s1.left != nil && s2.left != nil && (s1.left as! YItem).lastID == (s2.left as! YItem).lastID))
+                    || !compareItemIDs((s1.right as? YItem), (s2.right as? YItem))
                     || s1.origin != s2.origin
                     || s1.rightOrigin != s2.rightOrigin
                     || s1.parentKey != s2.parentKey
@@ -137,10 +137,10 @@ func YAssertEqualStructStore(_ ss1: StructStore, _ ss2: StructStore) throws {
                     return XCTFail("Items dont match")
                 }
                 // make sure that items are connected correctly
-                XCTAssert(s1.left == nil || (s1.left as? Item)?.right === s1)
-                XCTAssert(s1.right == nil || (s1.right as? Item)?.left === s1)
-                XCTAssert(s2.left == nil || (s2.left as? Item)?.right === s2)
-                XCTAssert(s2.right == nil || (s2.right as? Item)?.left === s2)
+                XCTAssert(s1.left == nil || (s1.left as? YItem)?.right === s1)
+                XCTAssert(s1.right == nil || (s1.right as? YItem)?.left === s1)
+                XCTAssert(s2.left == nil || (s2.left as? YItem)?.right === s2)
+                XCTAssert(s2.right == nil || (s2.right as? YItem)?.left === s2)
             }
         }
     }

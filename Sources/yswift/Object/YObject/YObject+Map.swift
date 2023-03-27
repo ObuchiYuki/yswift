@@ -35,7 +35,7 @@ extension YObject {
             }
         }
         let id = ID(client: ownClientId, clock: doc.store.getState(ownClientId))
-        try Item(id: id, left: left, origin: left?.lastID, right: nil, rightOrigin: nil, parent: .object(self), parentSub: key, content: content)
+        try YItem(id: id, left: left, origin: left?.lastID, right: nil, rightOrigin: nil, parent: .object(self), parentSub: key, content: content)
             .integrate(transaction: transaction, offset: 0)
     }
 
@@ -62,7 +62,7 @@ extension YObject {
     func mapGet(_ key: String, snapshot: YSnapshot) -> Any? {
         var v = self.storage[key]
         while (v != nil && (snapshot.stateVectors[v!.id.client] == nil || v!.id.clock >= (snapshot.stateVectors[v!.id.client] ?? 0))) {
-            v = v!.left as? Item
+            v = v!.left as? YItem
         }
         return v != nil && v!.isVisible(snapshot) ? v!.content.values[Int(v!.length) - 1] : nil
     }

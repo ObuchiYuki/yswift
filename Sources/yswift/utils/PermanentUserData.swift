@@ -12,7 +12,7 @@ public class PermanentUserData {
     public var yusers: YMap // YMap<YMap<Any>> ...may be
     public var doc: Doc
     public var clients: [Int: String]
-    public var dss: [String: DeleteSet]
+    var dss: [String: DeleteSet]
 
     public init(doc: Doc, storeType: YMap?) throws {
         self.yusers = try storeType ?? doc.getMap("users")
@@ -21,8 +21,8 @@ public class PermanentUserData {
         self.dss = [String: DeleteSet]()
         
         func initUser(user: YMap, userDescription: String) throws {
-            let ds = user.get("ds") as! YArray // <Data>
-            let ids = user.get("ids") as! YArray // <Int> ...may be
+            let ds = user["ds"] as! YArray // <Data>
+            let ids = user["ids"] as! YArray // <Int> ...may be
             func addClientId(clientid: Int) {
                 self.clients[clientid] = userDescription
             }
@@ -61,12 +61,12 @@ public class PermanentUserData {
         // observe users
         self.yusers.observe({ event, _ in
             try (event as! YMapEvent).keysChanged.forEach({ userDescription in
-                try initUser(user: self.yusers.get(userDescription!) as! YMap, userDescription: userDescription!)
+                try initUser(user: self.yusers[userDescription!] as! YMap, userDescription: userDescription!)
             })
         })
         // add intial data
-        try self.yusers.forEach{ element, key, _ in
-            try initUser(user: element as! YMap, userDescription: key)
+        try self.yusers.forEach{ key, value in
+            try initUser(user: value as! YMap, userDescription: key)
         }
     }
 
@@ -79,34 +79,34 @@ public class PermanentUserData {
      */
     public func setUserMapping(doc: Doc, clientid: Int, userDescription: String, filter: @escaping (Transaction, DeleteSet) -> Bool = {_, _ in true }) throws {
         let users = self.yusers
-        var user = users.get(userDescription) as? YMap
+        var user = users[userDescription] as? YMap
         
         if user == nil {
             user = YMap()
-            try user!.set("ids", value: YArray())
-            try user!.set("ds", value: YArray())
-            try users.set(userDescription, value: user!)
+            user!["ids"] = YArray()
+            user!["ds"] = YArray()
+            users[userDescription] = user!
         }
         
-        try (user!.get("ids") as! YArray).append(contentsOf: [clientid])
+        try (user!["ids"] as! YArray).append(contentsOf: [clientid])
         
         users.observe{ _, _ in
             // may be for Dispatch
             Promise.wait(for: 0).tryPeek{
-                let userOverwrite = users.get(userDescription) as? YMap
+                let userOverwrite = users[userDescription] as? YMap
                 if userOverwrite != user {
                     user = userOverwrite
                     
                     try self.clients.forEach({ clientid, _userDescription in
                         if userDescription == _userDescription {
-                            try (user!.get("ids") as? YArray)?.append(contentsOf: [clientid])
+                            try (user!["ids"] as? YArray)?.append(contentsOf: [clientid])
                         }
                     })
                     let encoder = YDeleteSetEncoderV1() as any YDeleteSetEncoder
                     let ds = self.dss[userDescription]
                     if ds != nil {
                         try ds!.encode(into: encoder)
-                        try (user!.get("ds") as! YArray).append(contentsOf: [encoder.toData()])
+                        try (user!["ds"] as! YArray).append(contentsOf: [encoder.toData()])
                     }
                 }
             }
@@ -115,7 +115,7 @@ public class PermanentUserData {
         
         doc.on(Doc.On.afterTransaction) { transaction in
             Promise.wait(for: 0).tryPeek{
-                let yds = user!.get("ds") as! YArray
+                let yds = user!["ds"] as! YArray
                 let ds = transaction.deleteSet
                 if transaction.local && ds.clients.count > 0 && filter(transaction, ds) {
                     let encoder = YDeleteSetEncoderV1()

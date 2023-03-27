@@ -10,7 +10,7 @@ import Promise
 
 public struct DocOpts {
     public var gc: Bool = true
-    public var gcFilter: (Item) -> Bool
+    var gcFilter: (YItem) -> Bool = {_ in true }
     public var guid: String?
     public var collectionid: String?
     public var meta: Any?
@@ -20,7 +20,7 @@ public struct DocOpts {
     
     public init(
         gc: Bool = true,
-        gcFilter: @escaping (Item) -> Bool = {_ in true },
+//        gcFilter: @escaping (Item) -> Bool = {_ in true },
         guid: String? = nil,
         collectionid: String? = nil,
         meta: Any? = nil,
@@ -29,7 +29,7 @@ public struct DocOpts {
         cliendID: Int? = nil
     ) {
         self.gc = gc
-        self.gcFilter = gcFilter
+//        self.gcFilter = gcFilter
         self.guid = guid
         self.collectionid = collectionid
         self.meta = meta
@@ -40,7 +40,7 @@ public struct DocOpts {
 }
 
 open class Doc: LZObservable, JSHashable {
-    public var gcFilter: (Item) -> Bool
+    var gcFilter: (YItem) -> Bool
     public var gc: Bool
     public var clientID: Int
     public var guid: String
@@ -57,9 +57,9 @@ open class Doc: LZObservable, JSHashable {
     public var whenLoaded: Promise<Void, Never>!
     public var whenSynced: Promise<Void, Never>!
     
-    public var _item: Item?
-    public var _transaction: Transaction?
-    public var _transactionCleanups: Ref<[Transaction]>
+    var _item: YItem?
+    var _transaction: Transaction?
+    var _transactionCleanups: Ref<[Transaction]>
 
     public init(opts: DocOpts = .init()) {
         
@@ -154,17 +154,17 @@ open class Doc: LZObservable, JSHashable {
                 let t = make()
                 t.storage = type_.storage
                 type_.storage.forEach({ _, n in
-                    var n: Item? = n
+                    var n: YItem? = n
                     while n != nil {
                         n!.parent = .object(t)
-                        n = n!.left as? Item
+                        n = n!.left as? YItem
                     }
                     
                 })
                 t._start = type_._start
                 var n = t._start; while n != nil {
                     n!.parent = .object(t)
-                    n = n!.right as? Item
+                    n = n!.right as? YItem
                 }
                 t._length = type_._length
                 self.share[name] = t

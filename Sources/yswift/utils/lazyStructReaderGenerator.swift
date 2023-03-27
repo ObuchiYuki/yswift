@@ -8,7 +8,7 @@
 import Foundation
 
 
-public func lazyStructReaderGenerator(_ decoder: YUpdateDecoder, yield: (Struct) -> ()) throws {
+func lazyStructReaderGenerator(_ decoder: YUpdateDecoder, yield: (YStruct) -> ()) throws {
 
     let numOfStateUpdates = try decoder.restDecoder.readUInt()
     
@@ -22,12 +22,12 @@ public func lazyStructReaderGenerator(_ decoder: YUpdateDecoder, yield: (Struct)
             if info == 10 {
                 let len = try Int(decoder.restDecoder.readUInt())
                 yield(
-                    Skip(id: ID(client: client, clock: clock), length: len)
+                    YSkip(id: ID(client: client, clock: clock), length: len)
                 )
                 clock += len
             } else if (info & 0b0001_1111) != 0 {
                 let cantCopyParentInfo = (info & (0b0100_0000 | 0b1000_0000)) == 0
-                let struct_ = try Item(
+                let struct_ = try YItem(
                     id: ID(client: client, clock: clock),
                     left: nil,
                     origin: (info & 0b1000_0000) == 0b1000_0000 ? decoder.readLeftID() : nil, // origin
@@ -41,7 +41,7 @@ public func lazyStructReaderGenerator(_ decoder: YUpdateDecoder, yield: (Struct)
                 clock += struct_.length
             } else {
                 let len = try decoder.readLen()
-                yield(GC(id: ID(client: client, clock: clock), length: len))
+                yield(YGC(id: ID(client: client, clock: clock), length: len))
                 clock += len
             }
         }

@@ -1,6 +1,6 @@
 import XCTest
 import Promise
-import yswift
+@testable import yswift
 
 final class DocTests: XCTestCase {
     
@@ -78,10 +78,10 @@ final class DocTests: XCTestCase {
         try arr.append(contentsOf: ["test1"])
 
         let map = try doc.getMap("map")
-        try map.set("k1", value: "v1")
+        try map.setThrowingError("k1", value: "v1")
         let map2 = YMap()
-        try map.set("k2", value: map2)
-        try map2.set("m2k1", value: "m2v1")
+        try map.setThrowingError("k2", value: map2)
+        try map2.setThrowingError("m2k1", value: "m2v1")
 
         XCTAssertEqual(doc.toJSON() as NSDictionary, [
             "array": [ "test1" ],
@@ -114,28 +114,28 @@ final class DocTests: XCTestCase {
             let subdocs = try doc.getMap("mysubdocs")
             let docA = Doc(opts: .init(guid: "a"))
             try docA.load()
-            try subdocs.set("a", value: docA)
+            try subdocs.setThrowingError("a", value: docA)
             
             XCTAssertEqual(event, [["a"], [], ["a"]])
 
             event = nil
-            try (subdocs.get("a") as! Doc).load()
+            try (subdocs["a"] as! Doc).load()
             XCTAssertNil(event)
 
             event = nil
-            try (subdocs.get("a") as! Doc).destroy()
+            try (subdocs["a"] as! Doc).destroy()
             XCTAssertEqual(event, [["a"], ["a"], []])
-            try (subdocs.get("a") as! Doc).load()
+            try (subdocs["a"] as! Doc).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
-            try subdocs.set("b", value: Doc(opts: .init(guid: "a", shouldLoad: false)))
+            try subdocs.setThrowingError("b", value: Doc(opts: .init(guid: "a", shouldLoad: false)))
             XCTAssertEqual(event, [["a"], [], []])
-            try (subdocs.get("b") as! Doc).load()
+            try (subdocs["b"] as! Doc).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
             let docC = Doc(opts: .init(guid: "c"))
             try docC.load()
-            try subdocs.set("c", value: docC)
+            try subdocs.setThrowingError("c", value: docC)
             XCTAssertEqual(event, [["c"], [], ["c"]])
 
             XCTAssertEqual(doc.getSubdocGuids(), ["a", "c"])
@@ -157,12 +157,12 @@ final class DocTests: XCTestCase {
             try doc2.applyUpdate(doc.encodeStateAsUpdate())
             XCTAssertEqual(event, [["a", "a", "c"], [], []])
 
-            try (doc2.getMap("mysubdocs").get("a") as! Doc).load()
+            try (doc2.getMap("mysubdocs")["a"] as! Doc).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
             XCTAssertEqual(doc2.getSubdocGuids(), ["a", "c"])
 
-            try doc2.getMap("mysubdocs").delete("a")
+            try doc2.getMap("mysubdocs").removeValue(forKey: "a")
             XCTAssertEqual(event, [[], ["a"], []])
             XCTAssertEqual(doc2.getSubdocGuids(), ["a", "c"])
         }

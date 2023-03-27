@@ -101,7 +101,7 @@ extension YUpdate {
             let curr = reader.curr
             let currClient = curr!.id.client
             let svClock = state[Int(currClient)] ?? 0
-            if reader.curr is Skip {
+            if reader.curr is YSkip {
                 _ = try reader.next()
                 continue
             }
@@ -178,7 +178,7 @@ extension YUpdate {
                     currClock = 0
                     stopCounting = curr!.id.clock != 0
                 }
-                if curr! is Skip {
+                if curr! is YSkip {
                     stopCounting = true
                 }
                 if !stopCounting {
@@ -206,7 +206,7 @@ extension YUpdate {
     
     private static func _mergeUpdates(updates: [YUpdate], YDecoder: (LZDecoder) throws -> YUpdateDecoder, YEncoder: () -> YUpdateEncoder) throws -> YUpdate {
         struct StructWrite {
-            let struct_: Struct
+            let struct_: YStruct
             let offset: Int
         }
         
@@ -232,7 +232,7 @@ extension YUpdate {
                         // @todo remove references to skip since the structDecoders must filter Skips.
                         return type(of: dec1.curr) == type(of: dec2.curr)
                             ? false
-                            : dec1.curr is Skip ? false : true // we are filtering skips anyway.
+                            : dec1.curr is YSkip ? false : true // we are filtering skips anyway.
                     } else {
                         return clockDiff < 0
                     }
@@ -278,19 +278,19 @@ extension YUpdate {
                     _ = try currDecoder.next()
                 } else {
                     if currWrite!.struct_.id.clock + currWrite!.struct_.length < curr!.id.clock {
-                        if currWrite!.struct_ is Skip {
+                        if currWrite!.struct_ is YSkip {
                             currWrite!.struct_.length = curr!.id.clock + curr!.length - currWrite!.struct_.id.clock
                         } else {
                             try lazyStructEncoder.write(currWrite!.struct_, offset: currWrite!.offset)
                             
                             let diff = curr!.id.clock - currWrite!.struct_.id.clock - currWrite!.struct_.length
-                            let struct_ = Skip(id: ID(client: firstClient, clock: currWrite!.struct_.id.clock + currWrite!.struct_.length), length: diff)
+                            let struct_ = YSkip(id: ID(client: firstClient, clock: currWrite!.struct_.id.clock + currWrite!.struct_.length), length: diff)
                             currWrite = StructWrite(struct_: struct_, offset: 0)
                         }
                     } else { // if currWrite.struct.id.clock + currWrite.struct.length >= curr.id.clock {
                         let diff = currWrite!.struct_.id.clock + currWrite!.struct_.length - curr!.id.clock
                         if diff > 0 {
-                            if currWrite!.struct_ is Skip {
+                            if currWrite!.struct_ is YSkip {
                                 // prefer to slice Skip because the other struct might contain more information
                                 currWrite!.struct_.length -= diff
                             } else {
@@ -314,7 +314,7 @@ extension YUpdate {
                 next != nil
                 && next!.id.client == firstClient
                 && next!.id.clock == currWrite!.struct_.id.clock + currWrite!.struct_.length
-                && !(next is Skip)
+                && !(next is YSkip)
             ) {
                 try lazyStructEncoder.write(currWrite!.struct_, offset: currWrite!.offset)
                 currWrite = StructWrite(struct_: next!, offset: 0)

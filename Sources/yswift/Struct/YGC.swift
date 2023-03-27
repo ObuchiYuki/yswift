@@ -7,18 +7,18 @@
 
 import Foundation
 
-final public class GC: Struct {
+final class YGC: YStruct {
     static let refID: UInt8 = 0
     
-    public override var deleted: Bool { true }
+    override var deleted: Bool { true }
 
-    public override func merge(with right: Struct) -> Bool {
-        guard let gc = right as? GC else { return false }
+    override func merge(with right: YStruct) -> Bool {
+        guard let gc = right as? YGC else { return false }
         self.length += gc.length
         return true
     }
 
-    public override func integrate(transaction: Transaction, offset: Int) throws {
+    override func integrate(transaction: Transaction, offset: Int) throws {
         if offset > 0 {
             self.id.clock += offset
             self.length -= offset
@@ -26,8 +26,8 @@ final public class GC: Struct {
         try transaction.doc.store.addStruct(self)
     }
 
-    public override func encode(into encoder: YUpdateEncoder, offset: Int) {
-        encoder.writeInfo(GC.refID)
+    override func encode(into encoder: YUpdateEncoder, offset: Int) {
+        encoder.writeInfo(YGC.refID)
         encoder.writeLen(self.length - offset)
     }
 }

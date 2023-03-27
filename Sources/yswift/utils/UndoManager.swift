@@ -33,30 +33,30 @@ extension Object_or_ObjectArray {
     }
 }
 
-final public class StructRedone {
-    public let item: Item
-    public let diff: Int
+final class StructRedone {
+    let item: YItem
+    let diff: Int
     
-    init(item: Item, diff: Int) {
+    init(item: YItem, diff: Int) {
         self.item = item
         self.diff = diff
     }
 }
 
-public func followRedone(store: StructStore, id: ID) throws -> StructRedone {
+func followRedone(store: StructStore, id: ID) throws -> StructRedone {
     var nextID: ID? = id
     var diff = 0
-    var item: Struct? = nil
+    var item: YStruct? = nil
     repeat {
         if diff > 0 {
             nextID = ID(client: nextID!.client, clock: nextID!.clock + diff)
         }
         item = try store.find(nextID!)
         diff = Int(nextID!.clock - item!.id.clock)
-        nextID = (item as? Item)?.redone
-    } while (nextID != nil && item is Item)
+        nextID = (item as? YItem)?.redone
+    } while (nextID != nil && item is YItem)
     
-    return StructRedone(item: item as! Item, diff: diff)
+    return StructRedone(item: item as! YItem, diff: diff)
 }
 
 public class StackItem {
@@ -102,28 +102,28 @@ extension UndoManager {
     }
     
     public struct Options {
-        public init(
+        init(
             captureTimeout: TimeInterval = 500,
             captureTransaction: @escaping ((Transaction) -> Bool) = {_ in true },
-            deleteFilter: @escaping ((Item) -> Bool) = {_ in true},
+//            deleteFilter: @escaping ((Item) -> Bool) = {_ in true},
             trackedOrigins: Ref<Set<AnyHashable?>> = Ref(value: [nil as UInt8?]),
             ignoreRemoteMapChanges: Bool = false,
             doc: Doc? = nil
         ) {
             self.captureTimeout = captureTimeout
             self.captureTransaction = captureTransaction
-            self.deleteFilter = deleteFilter
+//            self.deleteFilter = deleteFilter
             self.trackedOrigins = trackedOrigins
             self.ignoreRemoteMapChanges = ignoreRemoteMapChanges
             self.doc = doc
         }
         
-        public var captureTimeout: TimeInterval
-        public var captureTransaction: ((Transaction) -> Bool)
-        public var deleteFilter: ((Item) -> Bool)
-        public var trackedOrigins: Ref<Set<AnyHashable?>>
-        public var ignoreRemoteMapChanges: Bool
-        public var doc: Doc?
+        var captureTimeout: TimeInterval
+        var captureTransaction: ((Transaction) -> Bool)
+        var deleteFilter: ((YItem) -> Bool) = {_ in true }
+        var trackedOrigins: Ref<Set<AnyHashable?>>
+        var ignoreRemoteMapChanges: Bool
+        var doc: Doc?
     }
 
     public enum Event {
@@ -137,21 +137,22 @@ extension UndoManager {
 
 
 final public class UndoManager: LZObservable, JSHashable {
+    
+    public private(set) var undoing: Bool
+    public private(set) var redoing: Bool
+    public private(set) var doc: Doc
+    public private(set) var lastChange: Date
+    public private(set) var ignoreRemoteMapChanges: Bool
 
-    public var scope: Ref<[YObject]> = .init(value: [])
-    public var deleteFilter: (Item) -> Bool
-    public var trackedOrigins: Ref<Set<AnyHashable?>>
-    public var captureTransaction: (Transaction) -> Bool
-    public var undoStack: Ref<[StackItem]>
-    public var redoStack: Ref<[StackItem]>
-
-    public var undoing: Bool
-    public var redoing: Bool
-    public var doc: Doc
-    public var lastChange: Date
-    public var ignoreRemoteMapChanges: Bool
-    public var captureTimeout: TimeInterval
-    public var afterTransactionDisposer: LZObservable.Disposer!
+    private var scope: Ref<[YObject]> = .init(value: [])
+    private var deleteFilter: (YItem) -> Bool
+    private var trackedOrigins: Ref<Set<AnyHashable?>>
+    private var captureTransaction: (Transaction) -> Bool
+    private var undoStack: Ref<[StackItem]>
+    private var redoStack: Ref<[StackItem]>
+    
+    private let captureTimeout: TimeInterval
+    private var afterTransactionDisposer: LZObservable.Disposer!
 
     public init(typeScope: Object_or_ObjectArray, options: Options) {
         self.scope = .init(value: [])
@@ -223,8 +224,8 @@ final public class UndoManager: LZObservable, JSHashable {
             }
             // make sure that deleted structs are not gc'd
             try transaction.deleteSet.iterate(transaction, body: { item in
-                if item is Item && self.scope.contains(where: { type in type.isParentOf(child: (item as! Item)) }) {
-                    (item as? Item)?.keepRecursive(keep: true)
+                if item is YItem && self.scope.contains(where: { type in type.isParentOf(child: (item as! YItem)) }) {
+                    (item as? YItem)?.keepRecursive(keep: true)
                 }
             })
 
@@ -250,8 +251,8 @@ final public class UndoManager: LZObservable, JSHashable {
 
     public func clearStackItem(_ tr: Transaction, stackItem: StackItem) throws {
         try stackItem.deletions.iterate(tr) { item in
-            if item is Item && self.scope.contains(where: { type in type.isParentOf(child: (item as! Item)) }) {
-                (item as? Item)?.keepRecursive(keep: false)
+            if item is YItem && self.scope.contains(where: { type in type.isParentOf(child: (item as! YItem)) }) {
+                (item as? YItem)?.keepRecursive(keep: false)
             }
         }
     }
@@ -269,14 +270,14 @@ final public class UndoManager: LZObservable, JSHashable {
             while (stack.count > 0 && result == nil) {
                 let store = doc.store
                 let stackItem = stack.value.popLast()!
-                var itemsToRedo = Set<Item>()
-                var itemsToDelete: [Item] = []
+                var itemsToRedo = Set<YItem>()
+                var itemsToDelete: [YItem] = []
 
                 var performedChange = false
                 try stackItem.insertions.iterate(transaction) { struct_ in
                     var struct_ = struct_
-                    if struct_ is Item {
-                        if (struct_ as! Item).redone != nil {
+                    if struct_ is YItem {
+                        if (struct_ as! YItem).redone != nil {
                             let redone = try followRedone(store: store, id: struct_.id)
                             var item = redone.item, diff = redone.diff
                             if diff > 0 {
@@ -284,19 +285,19 @@ final public class UndoManager: LZObservable, JSHashable {
                             }
                             struct_ = item
                         }
-                        if !struct_.deleted && scope.contains(where: { type in type.isParentOf(child: (struct_ as! Item)) }) {
-                            itemsToDelete.append(struct_ as! Item)
+                        if !struct_.deleted && scope.contains(where: { type in type.isParentOf(child: (struct_ as! YItem)) }) {
+                            itemsToDelete.append(struct_ as! YItem)
                         }
                     }
                 }
                 try stackItem.deletions.iterate(transaction) { struct_ in
                     if (
-                        struct_ is Item &&
-                        scope.contains(where: { type in type.isParentOf(child: (struct_ as! Item)) }) &&
+                        struct_ is YItem &&
+                        scope.contains(where: { type in type.isParentOf(child: (struct_ as! YItem)) }) &&
                         // Never redo structs in stackItem.insertions because they were created and deleted in the same capture interval.
                         !stackItem.insertions.isDeleted(struct_.id)
                     ) {
-                        itemsToRedo.insert(struct_ as! Item)
+                        itemsToRedo.insert(struct_ as! YItem)
                     }
                 }
                 try itemsToRedo.forEach({ struct_ in

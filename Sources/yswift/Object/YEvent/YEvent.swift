@@ -27,10 +27,6 @@ public class YEvent {
         return getPathTo(parent: self.currentTarget, child: self.target)
     }
 
-    public func deletes(_ struct_: Struct) -> Bool {
-        return self.transaction.deleteSet.isDeleted(struct_.id)
-    }
-
     public var keys: [String: YEventKey] {
         if (self._keys != nil) { return self._keys! }
 
@@ -47,17 +43,17 @@ public class YEvent {
 
             if self.adds(item) {
                 var prev = item.left
-                while (prev != nil && self.adds(prev!)) { prev = (prev as! Item).left }
+                while (prev != nil && self.adds(prev!)) { prev = (prev as! YItem).left }
                 
                 if self.deletes(item) {
                     if prev != nil && self.deletes(prev!) {
                         action = .delete
-                        oldValue = (prev as! Item).content.values.last ?? nil
+                        oldValue = (prev as! YItem).content.values.last ?? nil
                     } else { return }
                 } else {
                     if prev != nil && self.deletes(prev!) {
                         action = .update
-                        oldValue = (prev as! Item).content.values.last ?? nil
+                        oldValue = (prev as! YItem).content.values.last ?? nil
                     } else {
                         action = .add
                         oldValue = nil
@@ -82,14 +78,13 @@ public class YEvent {
         return try self.changes().delta
     }
 
-    /**
-     * Check if a struct is added by this event.
-     *
-     * In contrast to change.deleted, this method also returns true if the struct was added and then deleted.
-     */
-    public func adds(_ struct_: Struct) -> Bool {
+    func adds(_ struct_: YStruct) -> Bool {
         return struct_.id.clock >= (self.transaction.beforeState[struct_.id.client] ?? 0)
     }
+    func deletes(_ struct_: YStruct) -> Bool {
+        return self.transaction.deleteSet.isDeleted(struct_.id)
+    }
+
 
     public func changes() throws -> YEventChange {
         if (self._changes != nil) { return self._changes! }
@@ -132,7 +127,7 @@ public class YEvent {
                     }
                 }
                 
-                item = item!.right as? Item
+                item = item!.right as? YItem
             }
             if lastDelta != nil && lastDelta!.retain == nil {
                 packDelta()
@@ -160,7 +155,7 @@ func getPathTo(parent: YObject, child: YObject) -> [PathElement] {
             var item = childItem.parent?.object?._start
             while let uitem = item, item != childItem {
                 if !uitem.deleted { i += 1 }
-                item = uitem.right as? Item
+                item = uitem.right as? YItem
             }
             path.insert(i, at: 0)
         }

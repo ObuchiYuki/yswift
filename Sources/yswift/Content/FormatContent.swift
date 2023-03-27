@@ -32,7 +32,7 @@ extension FormatContent {
 
     func merge(with right: Content) -> Bool { false }
 
-    func integrate(with item: Item, _ transaction: Transaction) {
+    func integrate(with item: YItem, _ transaction: Transaction) {
         item.parent?.object?.serchMarkers = nil
     }
 
