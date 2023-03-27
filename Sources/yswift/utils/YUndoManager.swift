@@ -72,71 +72,7 @@ public class StackItem {
     }
 }
 
-extension UndoManager {
-    public enum EvnetType { case undo, redo }
-
-    public class ChangeEvent {
-        public var origin: Any?
-        public var stackItem: StackItem
-        public var type: EvnetType
-        public var undoStackCleared: Bool?
-        public var changedParentTypes: [YObject: [YEvent]]
-        
-        init(origin: Any? = nil, stackItem: StackItem, type: EvnetType, undoStackCleared: Bool? = nil , changedParentTypes: [YObject : [YEvent]]) {
-            self.origin = origin
-            self.stackItem = stackItem
-            self.type = type
-            self.undoStackCleared = undoStackCleared
-            self.changedParentTypes = changedParentTypes
-        }
-    }
-    
-    public class CleanEvent {
-        public var undoStackCleared: Bool
-        public var redoStackCleared: Bool
-        
-        init(undoStackCleared: Bool, redoStackCleared: Bool) {
-            self.undoStackCleared = undoStackCleared
-            self.redoStackCleared = redoStackCleared
-        }
-    }
-    
-    public struct Options {
-        init(
-            captureTimeout: TimeInterval = 500,
-            captureTransaction: @escaping ((YTransaction) -> Bool) = {_ in true },
-//            deleteFilter: @escaping ((Item) -> Bool) = {_ in true},
-            trackedOrigins: Ref<Set<AnyHashable?>> = Ref(value: [nil as UInt8?]),
-            ignoreRemoteMapChanges: Bool = false,
-            doc: Doc? = nil
-        ) {
-            self.captureTimeout = captureTimeout
-            self.captureTransaction = captureTransaction
-//            self.deleteFilter = deleteFilter
-            self.trackedOrigins = trackedOrigins
-            self.ignoreRemoteMapChanges = ignoreRemoteMapChanges
-            self.doc = doc
-        }
-        
-        var captureTimeout: TimeInterval
-        var captureTransaction: ((YTransaction) -> Bool)
-        var deleteFilter: ((YItem) -> Bool) = {_ in true }
-        var trackedOrigins: Ref<Set<AnyHashable?>>
-        var ignoreRemoteMapChanges: Bool
-        var doc: Doc?
-    }
-
-    public enum Event {
-        public static let stackCleanred = LZObservable.EventName<CleanEvent>("stack-cleared")
-        public static let stackItemAdded = LZObservable.EventName<UndoManager.ChangeEvent>("stack-item-added")
-        public static let stackItemPopped = LZObservable.EventName<UndoManager.ChangeEvent>("stack-item-popped")
-        public static let stackItemUpdated = LZObservable.EventName<UndoManager.ChangeEvent>("stack-item-updated")
-    }
-}
-
-
-
-final public class UndoManager: LZObservable, JSHashable {
+final public class YUndoManager: LZObservable, JSHashable {
     
     public private(set) var undoing: Bool
     public private(set) var redoing: Bool
@@ -414,3 +350,67 @@ final public class UndoManager: LZObservable, JSHashable {
         try super.destroy()
     }
 }
+
+
+extension YUndoManager {
+    public enum EvnetType { case undo, redo }
+
+    public class ChangeEvent {
+        public var origin: Any?
+        public var stackItem: StackItem
+        public var type: EvnetType
+        public var undoStackCleared: Bool?
+        public var changedParentTypes: [YObject: [YEvent]]
+        
+        init(origin: Any? = nil, stackItem: StackItem, type: EvnetType, undoStackCleared: Bool? = nil , changedParentTypes: [YObject : [YEvent]]) {
+            self.origin = origin
+            self.stackItem = stackItem
+            self.type = type
+            self.undoStackCleared = undoStackCleared
+            self.changedParentTypes = changedParentTypes
+        }
+    }
+    
+    public class CleanEvent {
+        public var undoStackCleared: Bool
+        public var redoStackCleared: Bool
+        
+        init(undoStackCleared: Bool, redoStackCleared: Bool) {
+            self.undoStackCleared = undoStackCleared
+            self.redoStackCleared = redoStackCleared
+        }
+    }
+    
+    public struct Options {
+        init(
+            captureTimeout: TimeInterval = 500,
+            captureTransaction: @escaping ((YTransaction) -> Bool) = {_ in true },
+//            deleteFilter: @escaping ((Item) -> Bool) = {_ in true},
+            trackedOrigins: Ref<Set<AnyHashable?>> = Ref(value: [nil as UInt8?]),
+            ignoreRemoteMapChanges: Bool = false,
+            doc: Doc? = nil
+        ) {
+            self.captureTimeout = captureTimeout
+            self.captureTransaction = captureTransaction
+//            self.deleteFilter = deleteFilter
+            self.trackedOrigins = trackedOrigins
+            self.ignoreRemoteMapChanges = ignoreRemoteMapChanges
+            self.doc = doc
+        }
+        
+        var captureTimeout: TimeInterval
+        var captureTransaction: ((YTransaction) -> Bool)
+        var deleteFilter: ((YItem) -> Bool) = {_ in true }
+        var trackedOrigins: Ref<Set<AnyHashable?>>
+        var ignoreRemoteMapChanges: Bool
+        var doc: Doc?
+    }
+
+    public enum Event {
+        public static let stackCleanred = LZObservable.EventName<CleanEvent>("stack-cleared")
+        public static let stackItemAdded = LZObservable.EventName<YUndoManager.ChangeEvent>("stack-item-added")
+        public static let stackItemPopped = LZObservable.EventName<YUndoManager.ChangeEvent>("stack-item-popped")
+        public static let stackItemUpdated = LZObservable.EventName<YUndoManager.ChangeEvent>("stack-item-updated")
+    }
+}
+

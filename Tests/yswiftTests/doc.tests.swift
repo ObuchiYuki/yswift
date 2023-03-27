@@ -258,7 +258,7 @@ final class DocTests: XCTestCase {
     func testSubdocsUndo() throws {
         let ydoc = Doc()
         let elems = try ydoc.getArray()
-        let undoManager = UndoManager(typeScope: elems, options: .init())
+        let undoManager = YUndoManager(typeScope: elems, options: .init())
         let subdoc = Doc()
         try elems.insert(subdoc, at: 0)
         try undoManager.undo()

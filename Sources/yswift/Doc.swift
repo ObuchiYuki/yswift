@@ -65,8 +65,8 @@ public class Doc: LZObservable, JSHashable {
         
         self.gc = opts.gc
         self.gcFilter = opts.gcFilter
-        self.clientID = opts.cliendID ?? generateNewClientID()
-        self.guid = opts.guid ?? generateDocGuid()
+        self.clientID = opts.cliendID ?? Doc.generateNewClientID()
+        self.guid = opts.guid ?? Doc.generateDocGuid()
         self.collectionid = opts.collectionid
         self.share = [:]
         self.store = YStructStore()
@@ -264,5 +264,32 @@ extension Doc {
             public let added: Set<Doc>
             public let removed: Set<Doc>
         }
+    }
+}
+
+extension Doc {
+    static func generateDocGuid() -> String {
+        #if DEBUG // to remove randomness
+        enum __ { static var cliendID: UInt = 0 }
+        if NSClassFromString("XCTest") != nil {
+            __.cliendID += 1
+            return String(__.cliendID)
+        }
+        print("THIS RUN HAS RANDOMNESS")
+        #endif
+        return UUID().uuidString
+    }
+    
+    static func generateNewClientID() -> Int {
+        #if DEBUG // to remove randomness
+        enum __ { static var cliendID: Int = 0 }
+        if NSClassFromString("XCTest") != nil {
+            __.cliendID += 1
+            return __.cliendID
+        }
+        print("THIS RUN HAS RANDOMNESS")
+        #endif
+        
+        return Int(UInt32.random(in: UInt32.min...UInt32.max))
     }
 }

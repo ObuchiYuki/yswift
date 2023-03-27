@@ -89,30 +89,6 @@ extension Array {
     }
 }
 
-func generateDocGuid() -> String {
-    #if DEBUG // to remove randomness
-    enum __ { static var cliendID: UInt = 0 }
-    if NSClassFromString("XCTest") != nil {
-        __.cliendID += 1
-        return String(__.cliendID)
-    }
-    print("THIS RUN HAS RANDOMNESS")
-    #endif
-    return UUID().uuidString
-}
-
-func generateNewClientID() -> Int {
-    #if DEBUG // to remove randomness
-    enum __ { static var cliendID: Int = 0 }
-    if NSClassFromString("XCTest") != nil {
-        __.cliendID += 1
-        return __.cliendID
-    }
-    print("THIS RUN HAS RANDOMNESS")
-    #endif
-    
-    return Int(UInt32.random(in: UInt32.min...UInt32.max))
-}
 
 func equalJSON(_ a: Any?, _ b: Any?) -> Bool {
     if a == nil && b == nil { return true }

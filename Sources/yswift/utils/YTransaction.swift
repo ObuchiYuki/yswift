@@ -139,7 +139,7 @@ final public class YTransaction {
                 }
             }
             if !transaction.local && transaction.afterState[doc.clientID] != transaction.beforeState[doc.clientID] {
-                doc.clientID = generateNewClientID()
+                doc.clientID = Doc.generateNewClientID()
             }
             
             try doc.emit(Doc.On.afterTransactionCleanup, transaction)
