@@ -60,13 +60,25 @@ final public class YArray<Element: YElement> {
     }
 }
 
+extension YArray: Equatable where Element: Equatable {
+    public static func == (lhs: YArray<Element>, rhs: YArray<Element>) -> Bool {
+        lhs.toArray() == rhs.toArray()
+    }
+}
+
+extension YArray: Hashable where Element: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(self.toArray())
+    }
+}
+
 extension YArray: YElement {
     public func encodeToOpaque() -> Any? { self.opaque }
     public static func decode(from opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueArray) }
 }
 
 extension YArray: CustomStringConvertible {
-    public var description: String { opaque.description }
+    public var description: String { self.toArray().description }
 }
 
 extension YArray: Sequence {

@@ -14,6 +14,8 @@ final public class YMap<Value: YElement> {
     public init(opaque: YOpaqueMap) { self.opaque = opaque }
     
     public convenience init() { self.init(opaque: YOpaqueMap()) }
+    
+    public convenience init(_ dictionary: [String: Value]) { self.init(opaque: YOpaqueMap(dictionary)) }
 }
 
 extension YMap {
@@ -60,6 +62,10 @@ extension YMap {
     public func toJSON() -> Any {
         self.opaque.toJSON()
     }
+    
+    public func toDictionary() -> [String: Value] {
+        Dictionary(uniqueKeysWithValues: self)
+    }
 }
 
 extension YMap: YElement {
@@ -67,12 +73,30 @@ extension YMap: YElement {
     public static func decode(from opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueMap) }
 }
 
+extension YMap: ExpressibleByDictionaryLiteral {
+    public convenience init(dictionaryLiteral elements: (String, Value)...) {
+        self.init(Dictionary(uniqueKeysWithValues: elements))
+    }
+}
+
 extension YMap: CustomStringConvertible {
-    public var description: String { opaque.description }
+    public var description: String { self.toDictionary().description }
+}
+
+extension YMap: Equatable where Value: Equatable {
+    public static func == (lhs: YMap<Value>, rhs: YMap<Value>) -> Bool {
+        lhs.toDictionary() == rhs.toDictionary()
+    }
+}
+
+extension YMap: Hashable where Value: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(toDictionary())
+    }
 }
 
 extension YMap: Sequence {
-    public typealias Element = (key: String, value: Value)
+    public typealias Element = (String, Value)
     
     public func makeIterator() -> some IteratorProtocol<Element> {
         self.opaque.lazy.map{ (key: $0, value: Value.decode(from: $1)) }.makeIterator()
