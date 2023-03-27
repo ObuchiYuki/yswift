@@ -283,7 +283,7 @@ final public class Item: Struct, JSHashable {
         return true
     }
 
-    public override func encode(into encoder: UpdateEncoder, offset: Int) throws {
+    public override func encode(into encoder: YUpdateEncoder, offset: Int) throws {
         let origin = offset > 0 ? ID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
         let rightOrigin = self.rightOrigin
         let parentSub = self.parentKey

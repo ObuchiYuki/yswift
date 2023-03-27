@@ -61,7 +61,7 @@ extension StringContent {
     
     func gc(_ store: StructStore) {}
     
-    func encode(into encoder: UpdateEncoder, offset: Int) {
+    func encode(into encoder: YUpdateEncoder, offset: Int) {
         if offset == 0 {
             encoder.writeString(self.string as String)
         } else {

@@ -296,7 +296,7 @@ extension StructStore {
         }
         
         if restStructs.clients.count > 0 {
-            let encoder = UpdateEncoderV2()
+            let encoder = YUpdateEncoderV2()
             try encoder.writeClientsStructs(store: restStructs, stateVector: [:])
             // write empty deleteset
             // writeDeleteSet(encoder, DeleteSet())

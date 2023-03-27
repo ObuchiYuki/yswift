@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol DSEncoder {
+public protocol YDeleteSetEncoder {
     var restEncoder: LZEncoder { get set }
     var updateVersion: YUpdate.Version { get }
     
@@ -17,11 +17,11 @@ public protocol DSEncoder {
     func toData() -> Data
 }
 
-extension DSEncoder {
+extension YDeleteSetEncoder {
     func toUpdate() -> YUpdate { YUpdate(toData(), version: self.updateVersion) }
 }
 
-public class DSEncoderV1: DSEncoder {
+public class YDeleteSetEncoderV1: YDeleteSetEncoder {
     public var restEncoder = LZEncoder()
     
     public var updateVersion: YUpdate.Version { .v1 }
@@ -43,7 +43,7 @@ public class DSEncoderV1: DSEncoder {
     }
 }
 
-public class DSEncoderV2: DSEncoder {
+public class YDeleteSetEncoderV2: YDeleteSetEncoder {
     public var restEncoder = LZEncoder()
     
     public var updateVersion: YUpdate.Version { .v2 }

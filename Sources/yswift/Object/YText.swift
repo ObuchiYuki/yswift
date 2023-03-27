@@ -1060,7 +1060,7 @@ final public class YText: YObject {
         return self.mapGetAll() as? [String : (any YTextAttributeValue)?] ?? [:]
     }
 
-    public override func _write(_ encoder: UpdateEncoder) {
+    public override func _write(_ encoder: YUpdateEncoder) {
         encoder.writeTypeRef(YTextRefID)
     }
 }

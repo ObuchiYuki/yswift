@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol UpdateEncoder: DSEncoder {
+public protocol YUpdateEncoder: YDeleteSetEncoder {
     func writeLeftID(_ id: ID)
     func writeRightID(_ id: ID)
     func writeClient(_ client: Int)
@@ -22,7 +22,7 @@ public protocol UpdateEncoder: DSEncoder {
     func writeKey(_ key: String)
 }
 
-public class UpdateEncoderV1: DSEncoderV1, UpdateEncoder {
+public class YUpdateEncoderV1: YDeleteSetEncoderV1, YUpdateEncoder {
     
     public func writeLeftID(_ id: ID) {
         self.restEncoder.writeUInt(UInt(id.client))
@@ -82,25 +82,21 @@ public class UpdateEncoderV1: DSEncoderV1, UpdateEncoder {
 }
 
 
-public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
-    var keyMap: [String: Int] = [:]
-    
+public class YUpdateEncoderV2: YDeleteSetEncoderV2, YUpdateEncoder {
     /// Refers to the next uniqe key-identifier to me used. See writeKey method for more information.
     private var keyClock: Int = 0
 
-    let keyClockEncoder = LZIntDiffOptRleEncoder()
-    let clientEncoder = LZUintOptRleEncoder()
-    let leftClockEncoder = LZIntDiffOptRleEncoder()
-    let rightClockEncoder = LZIntDiffOptRleEncoder()
-    let infoEncoder = LZRleEncoder()
-    let stringEncoder = LZStringEncoder()
-    let parentInfoEncoder = LZRleEncoder()
-    let typeRefEncoder = LZUintOptRleEncoder()
-    let lenEncoder = LZUintOptRleEncoder()
-
-    public override init() {
-        super.init()
-    }
+    private var keyMap: [String: Int] = [:]
+    
+    private let keyClockEncoder = LZIntDiffOptRleEncoder()
+    private let clientEncoder = LZUintOptRleEncoder()
+    private let leftClockEncoder = LZIntDiffOptRleEncoder()
+    private let rightClockEncoder = LZIntDiffOptRleEncoder()
+    private let infoEncoder = LZRleEncoder()
+    private let stringEncoder = LZStringEncoder()
+    private let parentInfoEncoder = LZRleEncoder()
+    private let typeRefEncoder = LZUintOptRleEncoder()
+    private let lenEncoder = LZUintOptRleEncoder()
 
     public override func toData() -> Data {
         let encoder = LZEncoder()
@@ -161,21 +157,10 @@ public class UpdateEncoderV2: DSEncoderV2, UpdateEncoder {
         self.restEncoder.writeData(buf)
     }
 
-    /**
-     * This is mainly here for legacy purposes.
-     *
-     * Initial we incoded objects using JSON. Now we use the much faster lib0/any-encoder. This method mainly exists for legacy purposes for the v1 encoder.
-     */
     public func writeJSON(_ embed: Any?) {
         self.restEncoder.writeAny(embed)
     }
 
-    /**
-     * Property keys are often reused. For example, in y-prosemirror the key `bold` might
-     * occur very often. For a 3d application, the key `position` might occur very often.
-     *
-     * We cache these keys in a Map and refer to them via a unique Int.
-     */
     public func writeKey(_ key: String) {
         let clock = self.keyMap[key]
         

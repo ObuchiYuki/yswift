@@ -175,10 +175,10 @@ final class UpdatesTests: XCTestCase {
                     XCTAssertEqual(partMeta, diffedMeta)
                     do {
                         let decoder = LZDecoder(diffed.data)
-                        let updateDecoder = try UpdateDecoderV2(decoder)
+                        let updateDecoder = try YUpdateDecoderV2(decoder)
                         _ = try updateDecoder.readClientsStructRefs(doc: Doc())
                         let ds = try DeleteSet.decode(decoder: updateDecoder)
-                        let updateEncoder = UpdateEncoderV2()
+                        let updateEncoder = YUpdateEncoderV2()
                         updateEncoder.restEncoder.writeUInt(0) // 0 structs
                         try ds.encode(into: updateEncoder)
                         let deletesUpdate = updateEncoder.toUpdate()

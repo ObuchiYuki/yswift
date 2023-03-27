@@ -16,7 +16,7 @@ final public class YDecodedUpdate {
         self.ds = ds
     }
     
-    public init(_ update: Data, YDecoder: (LZDecoder) throws -> YUpdateDecoder = UpdateDecoderV1.init) throws {
+    public init(_ update: Data, YDecoder: (LZDecoder) throws -> YUpdateDecoder = YUpdateDecoderV1.init) throws {
         var structs: [Struct] = []
         let updateDecoder = try YDecoder(LZDecoder(update))
         let lazyDecoder = try LazyStructReader(updateDecoder, filterSkips: false)

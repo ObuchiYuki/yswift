@@ -50,7 +50,7 @@ public class Transaction {
         self.local = local
     }
 
-    public func encodeUpdateMessage(_ encoder: UpdateEncoder) throws -> Bool {
+    public func encodeUpdateMessage(_ encoder: YUpdateEncoder) throws -> Bool {
         let hasContent = anyMap(self.afterState, { client, clock in
             self.beforeState[client] != clock
         })
@@ -132,7 +132,7 @@ public class Transaction {
             try doc.emit(Doc.On.afterTransactionCleanup, transaction)
             
             if doc.isObserving(Doc.On.update) {
-                let encoder = UpdateEncoderV1()
+                let encoder = YUpdateEncoderV1()
                 
                 let hasContent = try transaction.encodeUpdateMessage(encoder)
                 
@@ -141,7 +141,7 @@ public class Transaction {
                 }
             }
             if doc.isObserving(Doc.On.updateV2) {
-                let encoder = UpdateEncoderV2()
+                let encoder = YUpdateEncoderV2()
                 let hasContent = try transaction.encodeUpdateMessage(encoder)
                 if hasContent {
                     try doc.emit(Doc.On.updateV2, (

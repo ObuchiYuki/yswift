@@ -22,7 +22,7 @@ public protocol YUpdateDecoder: YDeleteSetDecoder {
     func readJSON() throws -> Any?
 }
 
-public class UpdateDecoderV1: YDeleteSetDecoderV1, YUpdateDecoder {
+final public class YUpdateDecoderV1: YDeleteSetDecoderV1, YUpdateDecoder {
     public func readLeftID() throws -> ID {
         return try ID(
             client: Int(self.restDecoder.readUInt()),
@@ -79,7 +79,7 @@ public class UpdateDecoderV1: YDeleteSetDecoderV1, YUpdateDecoder {
     }
 }
 
-public class UpdateDecoderV2: YDeleteSetDecoderV2, YUpdateDecoder {
+public class YUpdateDecoderV2: YDeleteSetDecoderV2, YUpdateDecoder {
     var keys: [String] = []
     
     let keyClockDecoder: LZIntDiffOptRleDecoder

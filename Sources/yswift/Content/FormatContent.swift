@@ -40,7 +40,7 @@ extension FormatContent {
     
     func gc(_ store: StructStore) {}
     
-    func encode(into encoder: UpdateEncoder, offset: Int) throws {
+    func encode(into encoder: YUpdateEncoder, offset: Int) throws {
         encoder.writeKey(self.key)
         try encoder.writeJSON(self.value)
     }

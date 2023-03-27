@@ -41,7 +41,7 @@ extension AnyContent {
     
     func gc(_ store: StructStore) {}
     
-    func encode(into encoder: UpdateEncoder, offset: Int) {
+    func encode(into encoder: YUpdateEncoder, offset: Int) {
         let count = self.array.count
         encoder.writeLen(count - offset)
         for i in offset..<count {

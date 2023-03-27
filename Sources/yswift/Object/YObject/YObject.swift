@@ -86,7 +86,7 @@ public class YObject: JSHashable {
         self.item = item
     }
 
-    func _write(_ _encoder: UpdateEncoder) {}
+    func _write(_ _encoder: YUpdateEncoder) {}
 
     func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
         if !transaction.local && self.serchMarkers != nil {

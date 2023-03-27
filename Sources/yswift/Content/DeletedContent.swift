@@ -44,7 +44,7 @@ extension DeletedContent: Content {
     
     func gc(_ store: StructStore) {}
     
-    func encode(into encoder: UpdateEncoder, offset: Int) { encoder.writeLen(self.length - offset) }
+    func encode(into encoder: YUpdateEncoder, offset: Int) { encoder.writeLen(self.length - offset) }
 
     
     static func decode(from decoder: YUpdateDecoder) throws -> DeletedContent {

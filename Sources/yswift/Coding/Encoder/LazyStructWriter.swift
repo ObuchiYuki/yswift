@@ -16,10 +16,10 @@ final class LazyStructWriter {
     private var currClient: Int
     private var startClock: Int
     private var written: Int
-    private var encoder: UpdateEncoder
+    private var encoder: YUpdateEncoder
     private var clientStructs: [ClientStruct]
     
-    init(_ encoder: UpdateEncoder) {
+    init(_ encoder: YUpdateEncoder) {
         self.currClient = 0
         self.startClock = 0
         self.written = 0

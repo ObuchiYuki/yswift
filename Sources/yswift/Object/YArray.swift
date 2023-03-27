@@ -95,7 +95,7 @@ final public class YArray: YObject {
         try self.callObservers(transaction: transaction, event: YArrayEvent(self, transaction: transaction))
     }
 
-    public override func _write(_ encoder: UpdateEncoder) {
+    public override func _write(_ encoder: YUpdateEncoder) {
         encoder.writeTypeRef(YArrayRefID)
     }
 }

@@ -41,7 +41,7 @@ extension JSONContent {
     
     func gc(_ store: StructStore) {}
     
-    func encode(into encoder: UpdateEncoder, offset: Int) throws {
+    func encode(into encoder: YUpdateEncoder, offset: Int) throws {
         let len = self.array.count
         encoder.writeLen(len - offset)
         for i in offset..<len {

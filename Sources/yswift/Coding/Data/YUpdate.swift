@@ -32,49 +32,49 @@ extension YUpdate: CustomDebugStringConvertible {
 
 extension YUpdate {
     public static func merged(_ updates: [YUpdate]) throws -> YUpdate {
-        return try self._mergeUpdates(updates: updates, YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV1.init)
+        return try self._mergeUpdates(updates: updates, YDecoder: YUpdateDecoderV1.init, YEncoder: YUpdateEncoderV1.init)
     }
     public static func mergedV2(_ updates: [YUpdate]) throws -> YUpdate {
-        return try self._mergeUpdates(updates: updates, YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV2.init)
+        return try self._mergeUpdates(updates: updates, YDecoder: YUpdateDecoderV2.init, YEncoder: YUpdateEncoderV2.init)
     }
     
     public func encodeStateVectorFromUpdate() throws -> Data {
-        try self._encodeStateVectorFromUpdate(YEncoder: DSEncoderV1.init, YDecoder: UpdateDecoderV1.init)
+        try self._encodeStateVectorFromUpdate(YEncoder: YDeleteSetEncoderV1.init, YDecoder: YUpdateDecoderV1.init)
     }
     public func encodeStateVectorFromUpdateV2() throws -> Data {
-        try self._encodeStateVectorFromUpdate(YEncoder: DSEncoderV2.init, YDecoder: UpdateDecoderV2.init)
+        try self._encodeStateVectorFromUpdate(YEncoder: YDeleteSetEncoderV2.init, YDecoder: YUpdateDecoderV2.init)
     }
     
     public func updateMeta() throws -> YUpdateMeta {
-        return try self._parseUpdateMeta(YDecoder: UpdateDecoderV1.init)
+        return try self._parseUpdateMeta(YDecoder: YUpdateDecoderV1.init)
     }
     public func updateMetaV2() throws -> YUpdateMeta {
-        return try self._parseUpdateMeta(YDecoder: UpdateDecoderV2.init)
+        return try self._parseUpdateMeta(YDecoder: YUpdateDecoderV2.init)
     }
 
     public func diff(to sv: Data) throws -> YUpdate {
-        return try self._diff(to: sv, YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV1.init)
+        return try self._diff(to: sv, YDecoder: YUpdateDecoderV1.init, YEncoder: YUpdateEncoderV1.init)
     }
     public func diffV2(to sv: Data) throws -> YUpdate {
-        return try self._diff(to: sv, YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV2.init)
+        return try self._diff(to: sv, YDecoder: YUpdateDecoderV2.init, YEncoder: YUpdateEncoderV2.init)
     }
     
     public func toV2() throws -> YUpdate {
         assert(self.version == .v1)
-        return try self._convertUpdateFormat(YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV2.init)
+        return try self._convertUpdateFormat(YDecoder: YUpdateDecoderV1.init, YEncoder: YUpdateEncoderV2.init)
     }
 
     public func toV1() throws -> YUpdate {
         assert(self.version == .v2)
-        return try self._convertUpdateFormat(YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV1.init)
+        return try self._convertUpdateFormat(YDecoder: YUpdateDecoderV2.init, YEncoder: YUpdateEncoderV1.init)
     }
     
     // ======================================================================================================== //
     // MARK: - Implementations -
     
     private func _convertUpdateFormat(
-        YDecoder: (LZDecoder) throws -> YUpdateDecoder = UpdateDecoderV2.init,
-        YEncoder: () -> UpdateEncoder = UpdateEncoderV2.init
+        YDecoder: (LZDecoder) throws -> YUpdateDecoder = YUpdateDecoderV2.init,
+        YEncoder: () -> YUpdateEncoder = YUpdateEncoderV2.init
     ) throws -> YUpdate {
         let updateDecoder = try YDecoder(LZDecoder(self.data))
         let lazyDecoder = try LazyStructReader(updateDecoder, filterSkips: false)
@@ -94,8 +94,8 @@ extension YUpdate {
     
     private func _diff(
         to sv: Data,
-        YDecoder: (LZDecoder) throws -> YUpdateDecoder = UpdateDecoderV2.init,
-        YEncoder: () -> UpdateEncoder = UpdateEncoderV2.init
+        YDecoder: (LZDecoder) throws -> YUpdateDecoder = YUpdateDecoderV2.init,
+        YEncoder: () -> YUpdateEncoder = YUpdateEncoderV2.init
     ) throws -> YUpdate {
         let state = try YDeleteSetDecoderV1(sv).readStateVector()
         let encoder = YEncoder()
@@ -133,7 +133,7 @@ extension YUpdate {
         return encoder.toUpdate()
     }
 
-    private func _parseUpdateMeta(YDecoder: (LZDecoder) throws -> YUpdateDecoder = UpdateDecoderV2.init) throws -> YUpdateMeta {
+    private func _parseUpdateMeta(YDecoder: (LZDecoder) throws -> YUpdateDecoder = YUpdateDecoderV2.init) throws -> YUpdateMeta {
         var from: [Int: Int] = [:]
         var to: [Int: Int] = [:]
         
@@ -163,7 +163,7 @@ extension YUpdate {
     
     
     
-    private func _encodeStateVectorFromUpdate(YEncoder: () -> DSEncoder, YDecoder: (LZDecoder) throws -> YUpdateDecoder) throws -> Data {
+    private func _encodeStateVectorFromUpdate(YEncoder: () -> YDeleteSetEncoder, YDecoder: (LZDecoder) throws -> YUpdateDecoder) throws -> Data {
         var encoder = YEncoder()
         let updateDecoder = try LazyStructReader(YDecoder(LZDecoder(self.data)), filterSkips: false)
         var curr = updateDecoder.curr
@@ -209,7 +209,7 @@ extension YUpdate {
         }
     }
     
-    private static func _mergeUpdates(updates: [YUpdate], YDecoder: (LZDecoder) throws -> YUpdateDecoder, YEncoder: () -> UpdateEncoder) throws -> YUpdate {
+    private static func _mergeUpdates(updates: [YUpdate], YDecoder: (LZDecoder) throws -> YUpdateDecoder, YEncoder: () -> YUpdateEncoder) throws -> YUpdate {
         if updates.count == 1 {
             return updates[0]
         }

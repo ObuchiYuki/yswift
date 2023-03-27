@@ -160,7 +160,7 @@ final public class YMap: YObject {
         }
     }
 
-    public override func _write(_ encoder: UpdateEncoder) {
+    public override func _write(_ encoder: YUpdateEncoder) {
         encoder.writeTypeRef(YMapRefID)
     }
 }

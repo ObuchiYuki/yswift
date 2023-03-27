@@ -56,7 +56,7 @@ final public class YUpdateEnvironment {
         parseUpdateMeta: { try $0.updateMeta() },
         encodeStateVectorFromUpdate: { try $0.encodeStateVectorFromUpdate() },
         encodeStateVector_Doc: { try $0.encodeStateVector() },
-        encodeStateVector_SV: { try DSEncoderV1().encodeStateVector(from: $0) },
+        encodeStateVector_SV: { try YDeleteSetEncoderV1().encodeStateVector(from: $0) },
         updateEventName: Doc.On.update,
         description: "V1",
         diffUpdate: { try $0.diff(to: $1) }
@@ -64,13 +64,13 @@ final public class YUpdateEnvironment {
 
     static let v2 = YUpdateEnvironment(
         mergeUpdates: { try YUpdate.mergedV2($0) },
-        encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: UpdateEncoderV2()) },
+        encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: YUpdateEncoderV2()) },
         applyUpdate: { try $0.applyUpdateV2($1, transactionOrigin: $2) },
         logUpdate: { $0.log() },
         parseUpdateMeta: { try $0.updateMetaV2() },
         encodeStateVectorFromUpdate: { try $0.encodeStateVectorFromUpdateV2() },
         encodeStateVector_Doc: { try $0.encodeStateVector() },
-        encodeStateVector_SV: { try DSEncoderV1().encodeStateVector(from: $0) },
+        encodeStateVector_SV: { try YDeleteSetEncoderV1().encodeStateVector(from: $0) },
         updateEventName: Doc.On.updateV2,
         description: "V2",
         diffUpdate: { try $0.diffV2(to: $1) }
@@ -80,21 +80,21 @@ final public class YUpdateEnvironment {
         mergeUpdates: { updates in
             let ydoc = Doc(opts: DocOpts(gc: false))
             try updates.forEach{ try ydoc.applyUpdateV2($0) }
-            return try ydoc.encodeStateAsUpdate(encoder: UpdateEncoderV2())
+            return try ydoc.encodeStateAsUpdate(encoder: YUpdateEncoderV2())
         },
-        encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: UpdateEncoderV2()) },
+        encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: YUpdateEncoderV2()) },
         applyUpdate: { try $0.applyUpdateV2($1, transactionOrigin: $2) },
         logUpdate: { $0.log() },
         parseUpdateMeta: { try $0.updateMetaV2() },
         encodeStateVectorFromUpdate: { try $0.encodeStateVectorFromUpdateV2() },
         encodeStateVector_Doc: { try $0.encodeStateVector() },
-        encodeStateVector_SV: { try DSEncoderV1().encodeStateVector(from: $0) },
+        encodeStateVector_SV: { try YDeleteSetEncoderV1().encodeStateVector(from: $0) },
         updateEventName: Doc.On.updateV2,
         description: "Merge via Doc",
         diffUpdate: { update, sv in
             let ydoc = Doc(opts: DocOpts(gc: false))
             try ydoc.applyUpdateV2(update)
-            return try ydoc.encodeStateAsUpdate(encodedStateVector: sv, encoder: UpdateEncoderV2())
+            return try ydoc.encodeStateAsUpdate(encodedStateVector: sv, encoder: YUpdateEncoderV2())
         }
     )
 

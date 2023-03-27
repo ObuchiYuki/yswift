@@ -102,7 +102,7 @@ public class PermanentUserData {
                             try (user!.get("ids") as? YArray)?.append(contentsOf: [clientid])
                         }
                     })
-                    let encoder = DSEncoderV1() as any DSEncoder
+                    let encoder = YDeleteSetEncoderV1() as any YDeleteSetEncoder
                     let ds = self.dss[userDescription]
                     if ds != nil {
                         try ds!.encode(into: encoder)
@@ -118,7 +118,7 @@ public class PermanentUserData {
                 let yds = user!.get("ds") as! YArray
                 let ds = transaction.deleteSet
                 if transaction.local && ds.clients.count > 0 && filter(transaction, ds) {
-                    let encoder = DSEncoderV1()
+                    let encoder = YDeleteSetEncoderV1()
                     try ds.encode(into: encoder)
                     try yds.append(contentsOf: [encoder.toData()])
                 }

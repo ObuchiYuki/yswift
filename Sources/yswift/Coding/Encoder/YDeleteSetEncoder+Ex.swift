@@ -9,14 +9,14 @@ import Foundation
 
 extension Doc {
     public func encodeStateVector() throws -> Data {
-        try DSEncoderV1().encodeStateVector(from: self)
+        try YDeleteSetEncoderV1().encodeStateVector(from: self)
     }
     public func encodeStateVectorV2() throws -> Data {
-        try DSEncoderV2().encodeStateVector(from: self)
+        try YDeleteSetEncoderV2().encodeStateVector(from: self)
     }
 }
 
-extension DSEncoder {
+extension YDeleteSetEncoder {
     
     public func writeStateVector(from stateVector: [Int: Int]) throws {
         self.restEncoder.writeUInt(UInt(stateVector.count))

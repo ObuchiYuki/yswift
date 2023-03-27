@@ -18,7 +18,7 @@ public class Struct {
 
     public func merge(with right: Struct) -> Bool { return false }
 
-    public func encode(into encoder: any UpdateEncoder, offset: Int) throws { fatalError() }
+    public func encode(into encoder: any YUpdateEncoder, offset: Int) throws { fatalError() }
 
     public func integrate(transaction: Transaction, offset: Int) throws -> Void { fatalError() }
     

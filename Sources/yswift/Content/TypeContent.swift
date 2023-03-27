@@ -70,7 +70,7 @@ extension TypeContent {
         self.type.storage = [:]
     }
 
-    func encode(into encoder: UpdateEncoder, offset: Int) {
+    func encode(into encoder: YUpdateEncoder, offset: Int) {
         self.type._write(encoder)
     }
     

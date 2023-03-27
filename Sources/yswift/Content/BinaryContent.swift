@@ -34,7 +34,7 @@ extension BinaryContent {
     
     func gc(_ store: StructStore) {}
     
-    func encode(into encoder: UpdateEncoder, offset: Int) { encoder.writeBuf(self.data) }
+    func encode(into encoder: YUpdateEncoder, offset: Int) { encoder.writeBuf(self.data) }
     
     static func decode(from decoder: YUpdateDecoder) throws -> BinaryContent {
         try BinaryContent(decoder.readBuf())

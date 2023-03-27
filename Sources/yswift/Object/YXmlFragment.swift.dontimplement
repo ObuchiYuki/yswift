@@ -207,7 +207,7 @@ public class YXmlFragment: Object {
 }
 
 /**
- * @param {UpdateDecoderV1 | UpdateDecoderV2} _decoder
+ * @param {YUpdateDecoderV1 | YUpdateDecoderV2} _decoder
  * @return {YXmlFragment}
  *
  * @private

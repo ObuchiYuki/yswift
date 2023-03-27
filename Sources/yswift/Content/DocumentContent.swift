@@ -55,7 +55,7 @@ extension DocumentContent {
 
     func gc(_ store: StructStore) {}
 
-    func encode(into encoder: UpdateEncoder, offset: Int) {
+    func encode(into encoder: YUpdateEncoder, offset: Int) {
         encoder.writeString(self.document.guid)
         encoder.writeAny(self.options.encode())
     }

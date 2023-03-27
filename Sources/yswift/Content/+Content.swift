@@ -28,7 +28,7 @@ protocol Content: AnyObject {
 
     func gc(_ store: StructStore) throws -> Void
 
-    func encode(into encoder: UpdateEncoder, offset: Int) throws -> Void
+    func encode(into encoder: YUpdateEncoder, offset: Int) throws -> Void
     
     static func decode(from decoder: YUpdateDecoder) throws -> Self
 }

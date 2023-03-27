@@ -50,7 +50,7 @@ final public class Snapshot: JSHashable {
         let newDoc = Doc()
         if originDoc.gc { throw YSwiftError.originDocGC }
         
-        let encoder = UpdateEncoderV2()
+        let encoder = YUpdateEncoderV2()
         
         try originDoc.transact{ transaction in
             let size = self.stateVectors.lazy.filter{ $0.key > 0 }.count
@@ -84,14 +84,14 @@ final public class Snapshot: JSHashable {
 
 // Coding
 extension Snapshot {
-    public func encodeV2(_ encoder: DSEncoder = DSEncoderV2()) throws -> Data {
+    public func encodeV2(_ encoder: YDeleteSetEncoder = YDeleteSetEncoderV2()) throws -> Data {
         try self.deleteSet.encode(into: encoder)
         try encoder.writeStateVector(from: self.stateVectors)
         return encoder.toData()
     }
     
     public func encode() throws -> Data {
-        return try self.encodeV2(DSEncoderV1())
+        return try self.encodeV2(YDeleteSetEncoderV1())
     }
     
     static public func decodeV2(_ buf: Data, decoder: YDeleteSetDecoder? = nil) throws -> Snapshot {

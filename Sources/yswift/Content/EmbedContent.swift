@@ -34,7 +34,7 @@ extension EmbedContent {
     
     func gc(_ store: StructStore) {}
 
-    func encode(into encoder: UpdateEncoder, offset: Int) throws { try encoder.writeJSON(self.embed) }
+    func encode(into encoder: YUpdateEncoder, offset: Int) throws { try encoder.writeJSON(self.embed) }
     
     static func decode(from decoder: YUpdateDecoder) throws -> EmbedContent {
         try EmbedContent(decoder.readJSON())

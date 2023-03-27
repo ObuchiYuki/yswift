@@ -10,8 +10,8 @@ import Foundation
 extension YUpdate {
     public func log() {
         switch self.version {
-        case .v1: self._logUpdate(YDecoder: UpdateDecoderV1.init)
-        case .v2: self._logUpdate(YDecoder: UpdateDecoderV2.init)
+        case .v1: self._logUpdate(YDecoder: YUpdateDecoderV1.init)
+        case .v2: self._logUpdate(YDecoder: YUpdateDecoderV2.init)
         }
     }
 
