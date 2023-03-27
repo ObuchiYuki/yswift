@@ -79,7 +79,7 @@ final class DocTests: XCTestCase {
 
         let map = try doc.getMap("map")
         try map.setThrowingError("k1", value: "v1")
-        let map2 = YMap()
+        let map2 = YOpaqueMap()
         try map.setThrowingError("k2", value: map2)
         try map2.setThrowingError("m2k1", value: "m2v1")
 

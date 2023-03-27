@@ -80,8 +80,8 @@ final public class YUndoManager: LZObservable, JSHashable {
     public private(set) var lastChange: Date
     public private(set) var ignoreRemoteMapChanges: Bool
 
-    private var scope: Ref<[YObject]> = .init(value: [])
-    private var deleteFilter: (YItem) -> Bool
+    private let scope: RefArray<YObject> = []
+    private let deleteFilter: (YItem) -> Bool
     private var trackedOrigins: Ref<Set<AnyHashable?>>
     private var captureTransaction: (YTransaction) -> Bool
     private var undoStack: Ref<[StackItem]>
@@ -91,7 +91,6 @@ final public class YUndoManager: LZObservable, JSHashable {
     private var afterTransactionDisposer: LZObservable.Disposer!
 
     public init(typeScope: Object_or_ObjectArray, options: Options) {
-        self.scope = .init(value: [])
         self.deleteFilter = options.deleteFilter
         self.trackedOrigins = options.trackedOrigins
         self.captureTransaction = options.captureTransaction

@@ -9,20 +9,20 @@ import Foundation
 import Promise
 
 final public class YPermanentUserData {
-    public var yusers: YMap // YMap<YMap<Any>> ...may be
+    public var yusers: YOpaqueMap // YMap<YMap<Any>> ...may be
     public var doc: YDocument
     public var clients: [Int: String]
     var dss: [String: YDeleteSet]
 
-    public init(doc: YDocument, storeType: YMap?) throws {
+    public init(doc: YDocument, storeType: YOpaqueMap?) throws {
         self.yusers = try storeType ?? doc.getMap("users")
         self.doc = doc
         self.clients = [:]
         self.dss = [String: YDeleteSet]()
         
-        func initUser(user: YMap, userDescription: String) throws {
-            let ds = user["ds"] as! YArray // <Data>
-            let ids = user["ids"] as! YArray // <Int> ...may be
+        func initUser(user: YOpaqueMap, userDescription: String) throws {
+            let ds = user["ds"] as! YOpaqueArray // <Data>
+            let ids = user["ids"] as! YOpaqueArray // <Int> ...may be
             func addClientId(clientid: Int) {
                 self.clients[clientid] = userDescription
             }
@@ -61,12 +61,12 @@ final public class YPermanentUserData {
         // observe users
         self.yusers.observe({ event, _ in
             try (event as! YMapEvent).keysChanged.forEach({ userDescription in
-                try initUser(user: self.yusers[userDescription!] as! YMap, userDescription: userDescription!)
+                try initUser(user: self.yusers[userDescription!] as! YOpaqueMap, userDescription: userDescription!)
             })
         })
         // add intial data
         try self.yusers.forEach{ key, value in
-            try initUser(user: value as! YMap, userDescription: key)
+            try initUser(user: value as! YOpaqueMap, userDescription: key)
         }
     }
 
@@ -79,34 +79,34 @@ final public class YPermanentUserData {
      */
     public func setUserMapping(doc: YDocument, clientid: Int, userDescription: String, filter: @escaping (YTransaction, YDeleteSet) -> Bool = {_, _ in true }) throws {
         let users = self.yusers
-        var user = users[userDescription] as? YMap
+        var user = users[userDescription] as? YOpaqueMap
         
         if user == nil {
-            user = YMap()
-            user!["ids"] = YArray()
-            user!["ds"] = YArray()
+            user = YOpaqueMap()
+            user!["ids"] = YOpaqueArray()
+            user!["ds"] = YOpaqueArray()
             users[userDescription] = user!
         }
         
-        try (user!["ids"] as! YArray).append(contentsOf: [clientid])
+        try (user!["ids"] as! YOpaqueArray).append(contentsOf: [clientid])
         
         users.observe{ _, _ in
             // may be for Dispatch
             Promise.wait(for: 0).tryPeek{
-                let userOverwrite = users[userDescription] as? YMap
+                let userOverwrite = users[userDescription] as? YOpaqueMap
                 if userOverwrite != user {
                     user = userOverwrite
                     
                     try self.clients.forEach({ clientid, _userDescription in
                         if userDescription == _userDescription {
-                            try (user!["ids"] as? YArray)?.append(contentsOf: [clientid])
+                            try (user!["ids"] as? YOpaqueArray)?.append(contentsOf: [clientid])
                         }
                     })
                     let encoder = YDeleteSetEncoderV1() as any YDeleteSetEncoder
                     let ds = self.dss[userDescription]
                     if ds != nil {
                         try ds!.encode(into: encoder)
-                        try (user!["ds"] as! YArray).append(contentsOf: [encoder.toData()])
+                        try (user!["ds"] as! YOpaqueArray).append(contentsOf: [encoder.toData()])
                     }
                 }
             }
@@ -115,7 +115,7 @@ final public class YPermanentUserData {
         
         doc.on(YDocument.On.afterTransaction) { transaction in
             Promise.wait(for: 0).tryPeek{
-                let yds = user!["ds"] as! YArray
+                let yds = user!["ds"] as! YOpaqueArray
                 let ds = transaction.deleteSet
                 if transaction.local && ds.clients.count > 0 && filter(transaction, ds) {
                     let encoder = YDeleteSetEncoderV1()

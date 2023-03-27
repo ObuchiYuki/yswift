@@ -309,10 +309,10 @@ final class YArrayTests: XCTestCase {
         var events: [YEvent] = []
         array0.observeDeep{ e, _ in events = e }
         
-        try array0.insert(YMap(), at: 0)
+        try array0.insert(YOpaqueMap(), at: 0)
         
         try docs[0].transact{ _ in
-            try XCTUnwrap(array0[0] as? YMap).setThrowingError("a", value: "a")
+            try XCTUnwrap(array0[0] as? YOpaqueMap).setThrowingError("a", value: "a")
             try array0.insert(0, at: 0)
         }
         
@@ -331,7 +331,7 @@ final class YArrayTests: XCTestCase {
         var changes: YEventChange? = nil
         array0.observe{ e, _ in changes = try e.changes() }
         
-        let newArr = YArray()
+        let newArr = YOpaqueArray()
         try array0.insert(contentsOf: [newArr, 4, "dtrn"], at: 0)
         
         var wchanges = try XCTUnwrap(changes)
@@ -367,7 +367,7 @@ final class YArrayTests: XCTestCase {
         var events: [YEvent] = []
         array0.observe{ e, _ in events.append(e) }
         
-        try array0.insert(contentsOf: ["hi", YMap()], at: 0)
+        try array0.insert(contentsOf: ["hi", YOpaqueMap()], at: 0)
         XCTAssert(events.count == 1, "Event is triggered exactly once for insertion of two elements")
         
         try array0.remove(1)
@@ -385,7 +385,7 @@ final class YArrayTests: XCTestCase {
         let array0 = test.array[0], docs = test.docs
         var fired = false
         try docs[0].transact{ _ in
-            let newMap = YMap()
+            let newMap = YOpaqueMap()
             newMap.observe{ _, _ in fired = true }
             try array0.insert(newMap, at: 0)
             try newMap.setThrowingError("tst", value: 42)
@@ -449,13 +449,13 @@ final class YArrayTests: XCTestCase {
         let arr = try y.getArray("arr") // YArray<YMap<Int>>
         let numItems = 10
         for i in 0..<numItems {
-            let map = YMap()
+            let map = YOpaqueMap()
             try map.setThrowingError("value", value: i)
             try arr.append(contentsOf: [map])
         }
         var cnt = 0
         for item in arr.toArray() {
-            let map = try XCTUnwrap(item as? YMap)
+            let map = try XCTUnwrap(item as? YOpaqueMap)
             let value = try XCTUnwrap(map["value"] as? Int)
             XCTAssertEqual(value, cnt, "value is correct")
             cnt += 1
@@ -489,11 +489,11 @@ final class YArrayTests: XCTestCase {
         { doc, test, _ in // insertTypeArray
             let yarray = try doc.getArray("array")
             let pos = test.gen.int(in: 0...yarray.count)
-            try yarray.insert(YArray(), at: pos)
+            try yarray.insert(YOpaqueArray(), at: pos)
             
             test.log("insert YArray at '\(pos)'")
             
-            let array2 = try XCTUnwrap(yarray[pos] as? YArray)
+            let array2 = try XCTUnwrap(yarray[pos] as? YOpaqueArray)
             try array2.insert(contentsOf: [1, 2, 3, 4], at: 0)
         },
         { doc, test, _ in // insertTypeMap
@@ -502,8 +502,8 @@ final class YArrayTests: XCTestCase {
             
             test.log("insert YMap at '\(pos)'")
             
-            try yarray.insert(YMap(), at: pos)
-            let map = try XCTUnwrap(yarray[pos] as? YMap)
+            try yarray.insert(YOpaqueMap(), at: pos)
+            let map = try XCTUnwrap(yarray[pos] as? YOpaqueMap)
             try map.setThrowingError("someprop", value: 42)
             try map.setThrowingError("someprop", value: 43)
             try map.setThrowingError("someprop", value: 44)
@@ -527,7 +527,7 @@ final class YArrayTests: XCTestCase {
             
             if test.gen.bool() {
                 let type = yarray[somePos]
-                if let type = type as? YArray, type.count > 0 {
+                if let type = type as? YOpaqueArray, type.count > 0 {
                     somePos = test.gen.int(in: 0...type.count-1)
                     delLength = test.gen.int(in: 0...min(2, type.count - somePos))
                     

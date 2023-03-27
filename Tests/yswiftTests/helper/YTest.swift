@@ -11,14 +11,21 @@ import yswift
 struct YTest<T> {
     let connector: TestConnector
     let docs: [TestDoc]
-    let array: [YArray]
-    let map: [YMap]
+    let array: [YOpaqueArray]
+    let map: [YOpaqueMap]
     let text: [YText]
     let testObjects: [T?]
     let gen: RandomGenerator
     let debugLog: Bool
     
-    private init(connector: TestConnector, docs: [TestDoc], array: [YArray], map: [YMap], text: [YText], testObjects: [T?], gen: RandomGenerator, debugLog: Bool) {
+    func swiftyArray<Element: YElement>(_: Element.Type, _ index: Int) -> YArray<Element> {
+        YArray<Element>(opaque: self.array[index])
+    }
+    func swiftyMap<Value: YElement>(_: Value.Type, _ index: Int) -> YMap<Value> {
+        YMap<Value>(opaque: self.map[index])
+    }
+    
+    private init(connector: TestConnector, docs: [TestDoc], array: [YOpaqueArray], map: [YOpaqueMap], text: [YText], testObjects: [T?], gen: RandomGenerator, debugLog: Bool) {
         self.connector = connector
         self.docs = docs
         self.array = array
@@ -39,8 +46,8 @@ struct YTest<T> {
         let connector = TestConnector(randomGenerator)
         
         var docs = [TestDoc]()
-        var array = [YArray]()
-        var map = [YMap]()
+        var array = [YOpaqueArray]()
+        var map = [YOpaqueMap]()
         var text = [YText]()
         
         for i in 0..<doccount {

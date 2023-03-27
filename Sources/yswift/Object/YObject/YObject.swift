@@ -116,7 +116,7 @@ public class YObject: JSHashable {
         self._deepEventHandler.removeListener(disposer)
     }
 
-    public func toJSON() -> Any? {
+    public func toJSON() -> Any {
         fatalError()
     }
 }

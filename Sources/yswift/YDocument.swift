@@ -9,6 +9,7 @@ import Foundation
 import Promise
 
 public class YDocument: LZObservable, JSHashable {
+    public var gc: Bool
     public var clientID: Int
     public var guid: String
     public var collectionid: String?
@@ -146,12 +147,12 @@ public class YDocument: LZObservable, JSHashable {
         return type_ as! T
     }
 
-    public func getMap(_ name: String = "") throws -> YMap {
-        return try self.get(YMap.self, name: name, make: { YMap.init(nil) })
+    public func getMap(_ name: String = "") throws -> YOpaqueMap {
+        return try self.get(YOpaqueMap.self, name: name, make: { YOpaqueMap.init(nil) })
     }
 
-    public func getArray(_ name: String = "") throws -> YArray {
-        return try self.get(YArray.self, name: name, make: { YArray.init() })
+    public func getArray(_ name: String = "") throws -> YOpaqueArray {
+        return try self.get(YOpaqueArray.self, name: name, make: { YOpaqueArray.init() })
     }
     
     public func getText(_ name: String = "") throws -> YText {

@@ -547,7 +547,7 @@ final public class YTextEvent: YEvent {
     public override func delta() throws -> [YEventDelta] {
         if (self._delta != nil) { return self._delta! }
         
-        let deltas: Ref<[YEventDelta]> = Ref(value: [])
+        let deltas: RefArray<YEventDelta> = []
 
         try self.target.doc?.transact({ transaction in
             let currentAttributes = YTextAttributes([:]) // saves all current attributes for insert

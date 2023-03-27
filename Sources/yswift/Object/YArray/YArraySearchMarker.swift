@@ -11,7 +11,7 @@ protocol YText_or_YArray {
     var count: Int { get }
 }
 extension YText: YText_or_YArray {}
-extension YArray: YText_or_YArray {}
+extension YOpaqueArray: YText_or_YArray {}
 
 final class YArraySearchMarker {
     var timestamp: Int
