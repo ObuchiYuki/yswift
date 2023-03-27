@@ -38,7 +38,7 @@ final class EncodingTests: XCTestCase {
         var sv: Data? = nil
         try ydoc.getText().insert(0, text: "a")
         ydoc.on(Doc.On.update) { update, _, _ in
-            sv = try encodeStateVectorFromUpdate(update: update)
+            sv = try update.encodeStateVectorFromUpdate()
         }
         
         try ydoc.getText().insert(0, text: "a")
@@ -47,7 +47,7 @@ final class EncodingTests: XCTestCase {
 
     func testDiffStateVectorOfUpdateIgnoresSkips() throws {
         let ydoc = Doc()
-        var updates: [Data] = []
+        var updates: [YUpdate] = []
         ydoc.on(Doc.On.update) { update, _, _ in
             updates.append(update)
         }
@@ -55,9 +55,9 @@ final class EncodingTests: XCTestCase {
         try ydoc.getText().insert(0, text: "b")
         try ydoc.getText().insert(0, text: "c")
                 
-        let update13 = try mergeUpdates(updates: [updates[0], updates[2]])
+        let update13 = try YUpdate.merged([updates[0], updates[2]])
                 
-        let sv = try encodeStateVectorFromUpdate(update: update13)
+        let sv = try update13.encodeStateVectorFromUpdate()
         let state = try DSDecoderV1(sv).readStateVector()
         XCTAssertEqual(state[ydoc.clientID], 1)
         XCTAssertEqual(state.count, 1)

@@ -243,8 +243,8 @@ extension Doc {
         public static let destroy = Doc.EventName<Void>("destroy")
         public static let destroyed = Doc.EventName<Bool>("destroyed")
         
-        public static let update = Doc.EventName<(update: Data, origin: Any?, Transaction)>("update")
-        public static let updateV2 = Doc.EventName<(update: Data, origin: Any?, Transaction)>("updateV2")
+        public static let update = Doc.EventName<(update: YUpdate, origin: Any?, Transaction)>("update")
+        public static let updateV2 = Doc.EventName<(update: YUpdate, origin: Any?, Transaction)>("updateV2")
         
         public static let subdocs = Doc.EventName<(SubDocEvent, Transaction)>("subdocs")
         

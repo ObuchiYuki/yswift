@@ -92,7 +92,7 @@ public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
     let typeRefDecoder: LZUIntOptRleDecoder
     let lenDecoder: LZUIntOptRleDecoder
 
-    public override init(_ decoder: LZDecoder) throws {
+    public required init(_ decoder: LZDecoder) throws {
         _ = try decoder.readUInt() // read feature flag - currently unused
         self.keyClockDecoder = LZIntDiffOptRleDecoder(try decoder.readData())
         self.clientDecoder = LZUIntOptRleDecoder(try decoder.readData())

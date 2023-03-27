@@ -76,7 +76,7 @@ final public class Snapshot: JSHashable {
             
         }
     
-        try newDoc.applyUpdateV2(encoder.toData(), transactionOrigin: "snapshot")
+        try newDoc.applyUpdateV2(encoder.toUpdate(), transactionOrigin: "snapshot")
         
         return newDoc
     }

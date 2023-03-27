@@ -10,20 +10,20 @@ import Foundation
 
 public class PendingStrcut: CustomStringConvertible {
     public var missing: [Int: Int]
-    public var update: Data
+    public var update: YUpdate
     
-    init(missing: [Int: Int], update: Data) {
+    init(missing: [Int: Int], update: YUpdate) {
         self.missing = missing
         self.update = update
     }
     
-    public var description: String { "PendingStrcut(missing: \(missing), update: \(update.map{ $0 }))" }
+    public var description: String { "PendingStrcut(missing: \(missing), update: \(update))" }
 }
 
 public class StructStore {
     public var clients: [Int: Ref<[Struct]>] = [:]
     public var pendingStructs: PendingStrcut? = nil 
-    public var pendingDs: Data? = nil
+    public var pendingDs: YUpdate? = nil
 
     public init() {}
 
@@ -175,4 +175,136 @@ public class StructStore {
         }
         return index
     }
+}
+
+extension StructStore {
+    func integrateStructs(transaction: Transaction, clientsStructRefs: Ref<[Int: StructRef]>) throws -> PendingStrcut? {
+        let store = self
+        
+        var stack: [Struct] = []
+        var clientsStructRefsIds = clientsStructRefs.value.keys.sorted(by: <)
+        if clientsStructRefsIds.count == 0 {
+            return nil
+        }
+        
+        func getNextStructTarget() -> StructRef? {
+            if clientsStructRefsIds.count == 0 {
+                return nil
+            }
+            var nextStructsTarget = clientsStructRefs.value[clientsStructRefsIds.last!]!
+                
+            while nextStructsTarget.refs.count == nextStructsTarget.i {
+                clientsStructRefsIds.removeLast()
+                if clientsStructRefsIds.count > 0 {
+                    nextStructsTarget = clientsStructRefs.value[clientsStructRefsIds.last!]!
+                } else {
+                    return nil
+                }
+            }
+            return nextStructsTarget
+        }
+        var curStructsTarget = getNextStructTarget()
+        if curStructsTarget == nil && stack.count == 0 {
+            return nil
+        }
+
+        let restStructs: StructStore = StructStore()
+        var missingSV = [Int: Int]()
+        func updateMissingSv(client: Int, clock: Int) {
+            let mclock = missingSV[client]
+            if mclock == nil || mclock! > clock {
+                missingSV[client] = clock
+            }
+        }
+
+        var stackHead: Struct = curStructsTarget!.refs.value[curStructsTarget!.i]!
+        curStructsTarget!.i += 1
+        var state = [Int: Int]()
+
+        func addStackToRestSS() {
+            for item in stack {
+                let client = item.id.client
+                let unapplicableItems = clientsStructRefs.value[client]
+                if unapplicableItems != nil {
+                    // decrement because we weren't able to apply previous operation
+                    unapplicableItems!.i -= 1
+                    restStructs.clients[client] = Ref(
+                        value: unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! }
+                    )
+                    clientsStructRefs.value.removeValue(forKey: client)
+                    unapplicableItems!.i = 0
+                    unapplicableItems!.refs = []
+                } else {
+                    // item was the last item on clientsStructRefs and the field was already cleared. Add item to restStructs and continue
+                    restStructs.clients[client] = .init(value: [item])
+                }
+                // remove client from clientsStructRefsIds to prevent users from applying the same update again
+                clientsStructRefsIds = clientsStructRefsIds.filter{ $0 != client }
+            }
+            stack.removeAll()
+        }
+
+        // iterate over all struct readers until we are done
+        while (true) {
+            if type(of: stackHead) != Skip.self {
+                let localClock = state.setIfUndefined(stackHead.id.client, store.getState(stackHead.id.client))
+                let offset = localClock - stackHead.id.clock
+                if offset < 0 {
+                    stack.append(stackHead)
+                    updateMissingSv(client: stackHead.id.client, clock: stackHead.id.clock - 1)
+                    // hid a dead wall, add all items from stack to restSS
+                    addStackToRestSS()
+                } else {
+                    let missing = try stackHead.getMissing(transaction, store: store)
+                    if missing != nil {
+                        stack.append(stackHead)
+                        
+                        let structRefs: StructRef = clientsStructRefs.value[missing!] ?? StructRef(i: 0, refs: [])
+                        
+                        if structRefs.refs.count == structRefs.i {
+                            updateMissingSv(client: missing!, clock: store.getState(missing!))
+                            addStackToRestSS()
+                        } else {
+                            stackHead = structRefs.refs.value[structRefs.i]!
+                            structRefs.i += 1
+                            continue
+                        }
+                    } else if offset == 0 || offset < stackHead.length {
+                        // all fine, apply the stackhead
+                        try stackHead.integrate(transaction: transaction, offset: offset)
+                        state[stackHead.id.client] = stackHead.id.clock + stackHead.length
+                    }
+                }
+            }
+            // iterate to next stackHead
+            if stack.count > 0 {
+                stackHead = stack.removeLast()
+            } else if curStructsTarget != nil && curStructsTarget!.i < curStructsTarget!.refs.count {
+                stackHead = curStructsTarget!.refs.value[curStructsTarget!.i]!
+                curStructsTarget!.i += 1
+            } else {
+                curStructsTarget = getNextStructTarget()
+                            
+                if curStructsTarget == nil {
+                    // we are done!
+                    break
+                } else {
+                    stackHead = curStructsTarget!.refs.value[curStructsTarget!.i]!
+                    curStructsTarget!.i += 1
+                }
+            }
+        }
+        
+        if restStructs.clients.count > 0 {
+            let encoder = UpdateEncoderV2()
+            try encoder.writeClientsStructs(store: restStructs, stateVector: [:])
+            // write empty deleteset
+            // writeDeleteSet(encoder, DeleteSet())
+            encoder.restEncoder.writeUInt(0) // -> no need for an extra function call, just write 0 deletes
+            return PendingStrcut(missing: missingSV, update: encoder.toUpdate())
+        }
+        return nil
+    }
+
+
 }

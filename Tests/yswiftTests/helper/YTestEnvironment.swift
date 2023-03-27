@@ -9,29 +9,29 @@ import Foundation
 import yswift
 
 struct YTestEnvironment {
-    let encodeStateAsUpdate: (Doc, Data) throws -> Data
-    let mergeUpdates: ([Data]) throws -> Data
-    let applyUpdate: (Doc, Data, Any?) throws -> Void
-    let logUpdate: (Data) -> Void
-    let updateEventName: Doc.EventName<(update: Data, origin: Any?, Transaction)>
-    let diffUpdate: (Data, Data) throws -> Data
+    let encodeStateAsUpdate: (Doc, Data) throws -> YUpdate
+    let mergeUpdates: ([YUpdate]) throws -> YUpdate
+    let applyUpdate: (Doc, YUpdate, Any?) throws -> Void
+    let logUpdate: (YUpdate) -> Void
+    let updateEventName: Doc.EventName<(update: YUpdate, origin: Any?, Transaction)>
+    let diffUpdate: (YUpdate, Data) throws -> YUpdate
         
     private static let v1 = YTestEnvironment(
         encodeStateAsUpdate: { try UpdateEncoderV1().encodeStateAsUpdate(doc: $0, encodedStateVector: $1) },
-        mergeUpdates: yswift.mergeUpdates,
+        mergeUpdates: { try YUpdate.merged($0) },
         applyUpdate: { try $0.applyUpdate($1, transactionOrigin: $2) },
         logUpdate: yswift.logUpdate,
         updateEventName: Doc.On.update,
-        diffUpdate: yswift.diffUpdate
+        diffUpdate: { try $0.diff(to: $1) }
     )
     
     private static let v2 = YTestEnvironment(
         encodeStateAsUpdate: { try UpdateEncoderV2().encodeStateAsUpdate(doc: $0, encodedStateVector: $1) },
-        mergeUpdates: { try mergeUpdatesV2(updates: $0) },
+        mergeUpdates: { try YUpdate.mergedV2($0) },
         applyUpdate: { try $0.applyUpdateV2($1, transactionOrigin: $2) },
         logUpdate: { logUpdateV2($0) },
         updateEventName: Doc.On.updateV2,
-        diffUpdate: { try diffUpdateV2(update: $0, sv: $1) }
+        diffUpdate: { try $0.diffV2(to: $1) }
     )
     
     static var usingV2 = false

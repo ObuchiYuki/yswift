@@ -16,6 +16,10 @@ public protocol DSEncoder {
     func toData() -> Data
 }
 
+extension DSEncoder {
+    func toUpdate() -> YUpdate { YUpdate(toData()) }
+}
+
 public class DSEncoderV1: DSEncoder {
     public var restEncoder = LZEncoder()
 

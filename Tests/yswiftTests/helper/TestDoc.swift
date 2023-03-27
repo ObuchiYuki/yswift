@@ -13,7 +13,7 @@ class TestDoc: Doc {
     var connector: TestConnector
     var userID: Int
     var receiving: [TestDoc: Ref<[Data]>] = [:]
-    var updates: Ref<[Data]> = Ref(value: [])
+    var updates: Ref<[YUpdate]> = Ref(value: [])
     
     init(userID: Int, connector: TestConnector) throws {
         self.userID = userID

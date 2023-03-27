@@ -237,7 +237,7 @@ public class DeleteSet {
         return ds
     }
 
-    static public func decodeAndApply(_ decoder: DSDecoder, transaction: Transaction, store: StructStore) throws -> Data? {
+    static public func decodeAndApply(_ decoder: DSDecoder, transaction: Transaction, store: StructStore) throws -> YUpdate? {
         let unappliedDS = DeleteSet()
         let numClients = try decoder.restDecoder.readUInt()
         
@@ -292,7 +292,7 @@ public class DeleteSet {
             let ds = UpdateEncoderV2()
             ds.restEncoder.writeUInt(0) // encode 0 structs
             try unappliedDS.encode(into: ds)
-            return ds.toData()
+            return ds.toUpdate()
         }
         
         return nil

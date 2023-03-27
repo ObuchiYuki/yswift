@@ -137,7 +137,7 @@ public class Transaction {
                 let hasContent = try transaction.encodeUpdateMessage(encoder)
                 
                 if hasContent {
-                    try doc.emit(Doc.On.update, (encoder.toData(), transaction.origin, transaction))
+                    try doc.emit(Doc.On.update, (encoder.toUpdate(), transaction.origin, transaction))
                 }
             }
             if doc.isObserving(Doc.On.updateV2) {
@@ -145,7 +145,7 @@ public class Transaction {
                 let hasContent = try transaction.encodeUpdateMessage(encoder)
                 if hasContent {
                     try doc.emit(Doc.On.updateV2, (
-                        encoder.toData(), transaction.origin, transaction
+                        encoder.toUpdate(), transaction.origin, transaction
                     ))
                 }
             }
