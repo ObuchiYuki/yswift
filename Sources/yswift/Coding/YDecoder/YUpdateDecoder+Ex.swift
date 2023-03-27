@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension Doc {
+extension YDocument {
     public func applyUpdate(_ update: YUpdate, transactionOrigin: Any? = nil) throws {
         try _applyUpdate(to: self, update: update, transactionOrigin: transactionOrigin, YDecoder: YUpdateDecoderV1.init)
     }
@@ -26,7 +26,7 @@ final class StructRef: CustomStringConvertible {
 }
 
 extension YUpdateDecoder {
-    func readClientsStructRefs(doc: Doc) throws -> RefDictionary<Int, StructRef> {
+    func readClientsStructRefs(doc: YDocument) throws -> RefDictionary<Int, StructRef> {
         
         let clientRefs = RefDictionary<Int, StructRef>()
         let numOfStateUpdates = try Int(self.restDecoder.readUInt())
@@ -81,7 +81,7 @@ extension YUpdateDecoder {
         return clientRefs
     }
     
-    public func readUpdate(ydoc: Doc, transactionOrigin: Any?) throws {
+    public func readUpdate(ydoc: YDocument, transactionOrigin: Any?) throws {
         try ydoc.transact(origin: transactionOrigin, local: false) { transaction in
             transaction.local = false
             var retry = false
@@ -140,7 +140,7 @@ extension YUpdateDecoder {
     }
 }
 
-fileprivate func _applyUpdate(to doc: Doc, update: YUpdate, transactionOrigin: Any? = nil, YDecoder: (LZDecoder) throws -> YUpdateDecoder) throws {
+fileprivate func _applyUpdate(to doc: YDocument, update: YUpdate, transactionOrigin: Any? = nil, YDecoder: (LZDecoder) throws -> YUpdateDecoder) throws {
     let decoder = LZDecoder(update.data)
     try YDecoder(decoder).readUpdate(ydoc: doc, transactionOrigin: transactionOrigin)
 }

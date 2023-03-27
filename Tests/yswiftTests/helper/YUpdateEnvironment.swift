@@ -10,25 +10,25 @@ import yswift
 
 final public class YUpdateEnvironment {
     let mergeUpdates: (_ updates: [YUpdate]) throws -> YUpdate
-    let encodeStateAsUpdate: (_ doc: Doc, _ encodedTargetStateVector: Data?) throws -> YUpdate
-    let applyUpdate: (_ ydoc: Doc, _ update: YUpdate, _ transactionOrigin: Any?) throws -> Void
+    let encodeStateAsUpdate: (_ doc: YDocument, _ encodedTargetStateVector: Data?) throws -> YUpdate
+    let applyUpdate: (_ ydoc: YDocument, _ update: YUpdate, _ transactionOrigin: Any?) throws -> Void
     let logUpdate: (_ update: YUpdate) -> Void
     let parseUpdateMeta: (_ update: YUpdate) throws -> YUpdateMeta
     let encodeStateVectorFromUpdate: (_ update: YUpdate) throws -> Data
-    let encodeStateVector_Doc: (_ doc: Doc) throws -> Data
+    let encodeStateVector_Doc: (_ doc: YDocument) throws -> Data
     let encodeStateVector_SV: (_ doc: [Int: Int]) throws -> Data
-    let updateEventName: Doc.EventName<(update: YUpdate, origin: Any?, YTransaction)>
+    let updateEventName: YDocument.EventName<(update: YUpdate, origin: Any?, YTransaction)>
     let description: String
     let diffUpdate: (_ update: YUpdate, _ sv: Data) throws -> YUpdate
     
     init(
         mergeUpdates: @escaping ([YUpdate]) throws -> YUpdate,
-        encodeStateAsUpdate: @escaping (Doc, Data?) throws -> YUpdate,
-        applyUpdate: @escaping (Doc, YUpdate, Any?) throws -> Void,
+        encodeStateAsUpdate: @escaping (YDocument, Data?) throws -> YUpdate,
+        applyUpdate: @escaping (YDocument, YUpdate, Any?) throws -> Void,
         logUpdate: @escaping (YUpdate) -> Void,
         parseUpdateMeta: @escaping (YUpdate) throws -> YUpdateMeta,
         encodeStateVectorFromUpdate: @escaping (YUpdate) throws -> Data,
-        encodeStateVector_Doc: @escaping (Doc) throws -> Data,
+        encodeStateVector_Doc: @escaping (YDocument) throws -> Data,
         encodeStateVector_SV: @escaping ([Int : Int]) throws -> Data,
         updateEventName: LZObservable.EventName<(update: YUpdate, origin: Any?, YTransaction)>,
         description: String,
@@ -57,7 +57,7 @@ final public class YUpdateEnvironment {
         encodeStateVectorFromUpdate: { try $0.encodeStateVectorFromUpdate() },
         encodeStateVector_Doc: { try $0.encodeStateVector() },
         encodeStateVector_SV: { try YDeleteSetEncoderV1().encodeStateVector(from: $0) },
-        updateEventName: Doc.On.update,
+        updateEventName: YDocument.On.update,
         description: "V1",
         diffUpdate: { try $0.diff(to: $1) }
     )
@@ -71,14 +71,14 @@ final public class YUpdateEnvironment {
         encodeStateVectorFromUpdate: { try $0.encodeStateVectorFromUpdateV2() },
         encodeStateVector_Doc: { try $0.encodeStateVector() },
         encodeStateVector_SV: { try YDeleteSetEncoderV1().encodeStateVector(from: $0) },
-        updateEventName: Doc.On.updateV2,
+        updateEventName: YDocument.On.updateV2,
         description: "V2",
         diffUpdate: { try $0.diffV2(to: $1) }
     )
 
     static let doc = YUpdateEnvironment(
         mergeUpdates: { updates in
-            let ydoc = Doc(opts: DocOpts(gc: false))
+            let ydoc = YDocument(opts: DocOpts(gc: false))
             try updates.forEach{ try ydoc.applyUpdateV2($0) }
             return try ydoc.encodeStateAsUpdate(encoder: YUpdateEncoderV2())
         },
@@ -89,10 +89,10 @@ final public class YUpdateEnvironment {
         encodeStateVectorFromUpdate: { try $0.encodeStateVectorFromUpdateV2() },
         encodeStateVector_Doc: { try $0.encodeStateVector() },
         encodeStateVector_SV: { try YDeleteSetEncoderV1().encodeStateVector(from: $0) },
-        updateEventName: Doc.On.updateV2,
+        updateEventName: YDocument.On.updateV2,
         description: "Merge via Doc",
         diffUpdate: { update, sv in
-            let ydoc = Doc(opts: DocOpts(gc: false))
+            let ydoc = YDocument(opts: DocOpts(gc: false))
             try ydoc.applyUpdateV2(update)
             return try ydoc.encodeStateAsUpdate(encodedStateVector: sv, encoder: YUpdateEncoderV2())
         }
@@ -100,12 +100,12 @@ final public class YUpdateEnvironment {
 
     static let encoders = [YUpdateEnvironment.v1, .v2, .doc]
     
-    func docFromUpdates(_ docs: [Doc]) throws -> Doc {
+    func docFromUpdates(_ docs: [YDocument]) throws -> YDocument {
         let updates = try docs.map{
             try self.encodeStateAsUpdate($0, nil)
         }
                 
-        let ydoc = Doc()
+        let ydoc = YDocument()
         try self.applyUpdate(ydoc, self.mergeUpdates(updates), nil)
         return ydoc
     }

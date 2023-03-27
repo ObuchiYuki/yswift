@@ -41,7 +41,7 @@ final class YItem: YStruct, JSHashable {
     
     var redone: YID?
     
-    var content: any Content
+    var content: any YContent
 
     var info: UInt8
 
@@ -80,7 +80,7 @@ final class YItem: YStruct, JSHashable {
         return YID(client: self.id.client, clock: self.id.clock + self.length - 1)
     }
 
-    init(id: YID, left: YStruct?, origin: YID?, right: YStruct?, rightOrigin: YID?, parent: Parent?, parentSub: String?, content: any Content) {
+    init(id: YID, left: YStruct?, origin: YID?, right: YStruct?, rightOrigin: YID?, parent: Parent?, parentSub: String?, content: any YContent) {
         self.origin = origin
         self.left = left
         self.right = right
@@ -132,7 +132,7 @@ final class YItem: YStruct, JSHashable {
             }
         } else if let parent = self.parent?.id {
             let parentItem = try store.find(parent)
-            if let content = (parentItem as? YItem)?.content as? TypeContent {
+            if let content = (parentItem as? YItem)?.content as? YObjectContent {
                 self.parent = .object(content.type)
             } else {
                 self.parent = nil
@@ -355,7 +355,7 @@ extension YItem {
         if parentGC {
             try store.replaceStruct(self, newStruct: YGC(id: self.id, length: self.length))
         } else {
-            self.content = DeletedContent(self.length)
+            self.content = YDeletedContent(self.length)
         }
     }
     
@@ -436,7 +436,7 @@ extension YItem {
         
         let parentType: YObject
         
-        if let parentContent = parentItem?.content as? TypeContent {
+        if let parentContent = parentItem?.content as? YObjectContent {
             parentType = parentContent.type
         } else if let parentObject = self.parent?.object {
             parentType = parentObject

@@ -12,7 +12,7 @@ extension YObject: Object_or_ObjectArray {}
 extension [YObject]: Object_or_ObjectArray {}
 
 extension Object_or_ObjectArray {
-    var doc: Doc? {
+    var doc: YDocument? {
         if let type = self as? YObject {
             return type.doc
         }
@@ -76,7 +76,7 @@ final public class YUndoManager: LZObservable, JSHashable {
     
     public private(set) var undoing: Bool
     public private(set) var redoing: Bool
-    public private(set) var doc: Doc
+    public private(set) var doc: YDocument
     public private(set) var lastChange: Date
     public private(set) var ignoreRemoteMapChanges: Bool
 
@@ -109,7 +109,7 @@ final public class YUndoManager: LZObservable, JSHashable {
         self.addToScope(typeScope)
         self.trackedOrigins.value.insert(self)
         
-        self.afterTransactionDisposer = self.doc.on(Doc.On.afterTransaction) { transaction in
+        self.afterTransactionDisposer = self.doc.on(YDocument.On.afterTransaction) { transaction in
             // Only track certain transactions
             if (
                 !self.captureTransaction(transaction)
@@ -179,7 +179,7 @@ final public class YUndoManager: LZObservable, JSHashable {
                 try self.emit(Event.stackItemUpdated, changeEvent)
             }
         }
-        self.doc.on(Doc.On.destroy) {
+        self.doc.on(YDocument.On.destroy) {
             try self.destroy()
         }
     }
@@ -346,7 +346,7 @@ final public class YUndoManager: LZObservable, JSHashable {
 
     public override func destroy() throws {
         self.trackedOrigins.value.remove(self)
-        self.doc.off(Doc.On.afterTransaction, self.afterTransactionDisposer)
+        self.doc.off(YDocument.On.afterTransaction, self.afterTransactionDisposer)
         try super.destroy()
     }
 }
@@ -388,7 +388,7 @@ extension YUndoManager {
 //            deleteFilter: @escaping ((Item) -> Bool) = {_ in true},
             trackedOrigins: Ref<Set<AnyHashable?>> = Ref(value: [nil as UInt8?]),
             ignoreRemoteMapChanges: Bool = false,
-            doc: Doc? = nil
+            doc: YDocument? = nil
         ) {
             self.captureTimeout = captureTimeout
             self.captureTransaction = captureTransaction
@@ -403,7 +403,7 @@ extension YUndoManager {
         var deleteFilter: ((YItem) -> Bool) = {_ in true }
         var trackedOrigins: Ref<Set<AnyHashable?>>
         var ignoreRemoteMapChanges: Bool
-        var doc: Doc?
+        var doc: YDocument?
     }
 
     public enum Event {

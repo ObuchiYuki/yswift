@@ -82,7 +82,7 @@ final public class YArray: YObject {
         }
     }
 
-    override func _integrate(_ y: Doc, item: YItem?) throws {
+    override func _integrate(_ y: YDocument, item: YItem?) throws {
         try super._integrate(y, item: item)
         try self.insert(contentsOf: self._prelimContent ?? [], at: 0)
         self._prelimContent = nil

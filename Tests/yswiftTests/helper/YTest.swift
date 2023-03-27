@@ -67,7 +67,7 @@ struct YTest<T> {
         }
     }
     
-    func randomTests(_ mods: [(Doc, YTest<T>, T?) throws -> Void], iterations: Int, initTestObject: ((TestDoc) -> T)? = nil) throws {
+    func randomTests(_ mods: [(YDocument, YTest<T>, T?) throws -> Void], iterations: Int, initTestObject: ((TestDoc) -> T)? = nil) throws {
         for _ in 0..<iterations {
             if gen.int(in: 0...100) <= 2 {
                 if gen.bool() {

@@ -9,8 +9,8 @@ final class EncodingTests: XCTestCase {
     }
 
     func testPermanentUserData() async throws {
-        let ydoc1 = Doc()
-        let ydoc2 = Doc()
+        let ydoc1 = YDocument()
+        let ydoc2 = YDocument()
         let pd1 = try YPermanentUserData(doc: ydoc1, storeType: nil)
         let pd2 = try YPermanentUserData(doc: ydoc2, storeType: nil)
         try pd1.setUserMapping(doc: ydoc1, clientid: Int(ydoc1.clientID), userDescription: "user a")
@@ -26,7 +26,7 @@ final class EncodingTests: XCTestCase {
         try ydoc1.applyUpdate(ydoc2.encodeStateAsUpdate())
 
         // now sync a third doc with same name as doc1 and then create PermanentUserData
-        let ydoc3 = Doc()
+        let ydoc3 = YDocument()
         try ydoc3.applyUpdate(ydoc1.encodeStateAsUpdate())
         let pd3 = try YPermanentUserData(doc: ydoc3, storeType: nil)
         try pd3.setUserMapping(doc: ydoc3, clientid: Int(ydoc3.clientID), userDescription: "user a")
@@ -34,10 +34,10 @@ final class EncodingTests: XCTestCase {
     
     
     func testDiffStateVectorOfUpdateIsEmpty() throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         var sv: Data? = nil
         try ydoc.getText().insert(0, text: "a")
-        ydoc.on(Doc.On.update) { update, _, _ in
+        ydoc.on(YDocument.On.update) { update, _, _ in
             sv = try update.encodeStateVectorFromUpdate()
         }
         
@@ -46,9 +46,9 @@ final class EncodingTests: XCTestCase {
     }
 
     func testDiffStateVectorOfUpdateIgnoresSkips() throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         var updates: [YUpdate] = []
-        ydoc.on(Doc.On.update) { update, _, _ in
+        ydoc.on(YDocument.On.update) { update, _, _ in
             updates.append(update)
         }
         try ydoc.getText().insert(0, text: "a")

@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension Doc {
+extension YDocument {
     public func encodeStateVector() throws -> Data {
         try YDeleteSetEncoderV1().encodeStateVector(from: self)
     }
@@ -26,7 +26,7 @@ extension YDeleteSetEncoder {
             self.restEncoder.writeUInt(UInt(clock))
         }
     }
-    public func writeStateVector(from doc: Doc) throws {
+    public func writeStateVector(from doc: YDocument) throws {
         try self.writeStateVector(from: doc.store.getStateVector())
     }
 
@@ -35,7 +35,7 @@ extension YDeleteSetEncoder {
         return self.toData()
     }
 
-    public func encodeStateVector(from doc: Doc) throws -> Data {
+    public func encodeStateVector(from doc: YDocument) throws -> Data {
         try self.writeStateVector(from: doc)
         return self.toData()
     }

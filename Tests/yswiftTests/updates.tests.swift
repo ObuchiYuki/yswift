@@ -47,7 +47,7 @@ final class UpdatesTests: XCTestCase {
     func testMergeUpdates1() throws {
         for env in YUpdateEnvironment.encoders {
             print("== Using encoder: \(env.description) ==")
-            let ydoc = Doc(opts: DocOpts(gc: false))
+            let ydoc = YDocument(opts: DocOpts(gc: false))
             
             var updates = [YUpdate]()
             ydoc.on(env.updateEventName) { update, _, _ in updates.append(update) }
@@ -65,7 +65,7 @@ final class UpdatesTests: XCTestCase {
     func testMergeUpdates2() throws {
         for env in [YUpdateEnvironment.v2] {
             print("== Using encoder: \(env.description) ==")
-            let ydoc = Doc(opts: DocOpts(gc: false))
+            let ydoc = YDocument(opts: DocOpts(gc: false))
             
             var updates: [YUpdate] = []
             ydoc.on(env.updateEventName) {
@@ -83,9 +83,9 @@ final class UpdatesTests: XCTestCase {
     }
 
     func testMergePendingUpdates() throws {
-        let yDoc = Doc()
+        let yDoc = YDocument()
         var serverUpdates: [YUpdate] = []
-        yDoc.on(Doc.On.update) { update, _, _ in
+        yDoc.on(YDocument.On.update) { update, _, _ in
             serverUpdates.insert(update, at: serverUpdates.count)
         }
         let yText = try yDoc.getText("textBlock")
@@ -95,26 +95,26 @@ final class UpdatesTests: XCTestCase {
         try yText.applyDelta([ YEventDelta(insert: "e") ])
         try yText.applyDelta([ YEventDelta(insert: "n") ])
 
-        let yDoc1 = Doc()
+        let yDoc1 = YDocument()
         try yDoc1.applyUpdate(serverUpdates[0])
         let update1 = try yDoc1.encodeStateAsUpdate()
 
-        let yDoc2 = Doc()
+        let yDoc2 = YDocument()
         try yDoc2.applyUpdate(update1)
         try yDoc2.applyUpdate(serverUpdates[1])
         let update2 = try yDoc2.encodeStateAsUpdate()
 
-        let yDoc3 = Doc()
+        let yDoc3 = YDocument()
         try yDoc3.applyUpdate(update2)
         try yDoc3.applyUpdate(serverUpdates[3])
         let update3 = try yDoc3.encodeStateAsUpdate()
 
-        let yDoc4 = Doc()
+        let yDoc4 = YDocument()
         try yDoc4.applyUpdate(update3)
         try yDoc4.applyUpdate(serverUpdates[2])
         let update4 = try yDoc4.encodeStateAsUpdate()
 
-        let yDoc5 = Doc()
+        let yDoc5 = YDocument()
         try yDoc5.applyUpdate(update4)
         try yDoc5.applyUpdate(serverUpdates[4])
         _ = try yDoc5.encodeStateAsUpdate()
@@ -123,7 +123,7 @@ final class UpdatesTests: XCTestCase {
         XCTAssertEqual(yText5.toString(), "nenor")
     }
     
-    private func checkUpdateCases(ydoc: Doc, updates: [YUpdate], enc: YUpdateEnvironment, hasDeletes: Bool) throws {
+    private func checkUpdateCases(ydoc: YDocument, updates: [YUpdate], enc: YUpdateEnvironment, hasDeletes: Bool) throws {
         var cases: [YUpdate] = []
 
         // Case 1: Simple case, simply merge everything
@@ -154,7 +154,7 @@ final class UpdatesTests: XCTestCase {
 
 
         for mergedUpdates in cases {
-            let merged = Doc(opts: DocOpts(gc: false))
+            let merged = YDocument(opts: DocOpts(gc: false))
             try enc.applyUpdate(merged, mergedUpdates, nil)
             try XCTAssertEqualJSON(merged.getArray().map{ $0 }, ydoc.getArray().map{ $0 })
             
@@ -176,7 +176,7 @@ final class UpdatesTests: XCTestCase {
                     do {
                         let decoder = LZDecoder(diffed.data)
                         let updateDecoder = try YUpdateDecoderV2(decoder)
-                        _ = try updateDecoder.readClientsStructRefs(doc: Doc())
+                        _ = try updateDecoder.readClientsStructRefs(doc: YDocument())
                         let ds = try YDeleteSet.decode(decoder: updateDecoder)
                         let updateEncoder = YUpdateEncoderV2()
                         updateEncoder.restEncoder.writeUInt(0) // 0 structs

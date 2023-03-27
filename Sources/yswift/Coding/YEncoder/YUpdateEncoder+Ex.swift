@@ -20,7 +20,7 @@ import Foundation
  * 7: Item with Type
  */
 
-extension Doc {
+extension YDocument {
     public func encodeStateAsUpdate(encodedStateVector: Data? = nil, encoder: YUpdateEncoder = YUpdateEncoderV1()) throws -> YUpdate {
         try encoder.encodeStateAsUpdate(doc: self, encodedStateVector: encodedStateVector)
     }
@@ -72,12 +72,12 @@ extension YUpdateEncoder {
         try self.writeClientsStructs(store: transaction.doc.store, stateVector: transaction.beforeState)
     }
     
-    func writeStateAsUpdate(doc: Doc, targetStateVector: [Int: Int] = [:]) throws {
+    func writeStateAsUpdate(doc: YDocument, targetStateVector: [Int: Int] = [:]) throws {
         try self.writeClientsStructs(store: doc.store, stateVector: targetStateVector)
         try YDeleteSet.createFromStructStore(doc.store).encode(into: self)
     }
 
-    public func encodeStateAsUpdate(doc: Doc, encodedStateVector: Data? = nil) throws -> YUpdate {
+    public func encodeStateAsUpdate(doc: YDocument, encodedStateVector: Data? = nil) throws -> YUpdate {
         let encoder = self
         
         let encodedStateVector = encodedStateVector ?? Data([0])

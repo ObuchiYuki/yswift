@@ -8,46 +8,13 @@
 import Foundation
 import Promise
 
-public struct DocOpts {
-    public var gc: Bool = true
-    var gcFilter: (YItem) -> Bool = {_ in true }
-    public var guid: String?
-    public var collectionid: String?
-    public var meta: Any?
-    public var autoLoad: Bool
-    public var shouldLoad: Bool
-    public var cliendID: Int?
-    
-    public init(
-        gc: Bool = true,
-//        gcFilter: @escaping (Item) -> Bool = {_ in true },
-        guid: String? = nil,
-        collectionid: String? = nil,
-        meta: Any? = nil,
-        autoLoad: Bool = false,
-        shouldLoad: Bool = true,
-        cliendID: Int? = nil
-    ) {
-        self.gc = gc
-//        self.gcFilter = gcFilter
-        self.guid = guid
-        self.collectionid = collectionid
-        self.meta = meta
-        self.autoLoad = autoLoad
-        self.shouldLoad = shouldLoad
-        self.cliendID = cliendID
-    }
-}
-
-public class Doc: LZObservable, JSHashable {
-    var gcFilter: (YItem) -> Bool
-    public var gc: Bool
+public class YDocument: LZObservable, JSHashable {
     public var clientID: Int
     public var guid: String
     public var collectionid: String?
     public var share: [String: YObject] // [String: Object_<YEvent<any>>]
     public var store: YStructStore
-    public var subdocs: Set<Doc>
+    public var subdocs: Set<YDocument>
     public var shouldLoad: Bool
     public var autoLoad: Bool
     public var meta: Any?
@@ -57,6 +24,7 @@ public class Doc: LZObservable, JSHashable {
     public var whenLoaded: Promise<Void, Never>!
     public var whenSynced: Promise<Void, Never>!
     
+    var _gcFilter: (YItem) -> Bool
     var _item: YItem?
     var _transaction: YTransaction?
     var _transactionCleanups: RefArray<YTransaction>
@@ -64,9 +32,9 @@ public class Doc: LZObservable, JSHashable {
     public init(opts: DocOpts = .init()) {
         
         self.gc = opts.gc
-        self.gcFilter = opts.gcFilter
-        self.clientID = opts.cliendID ?? Doc.generateNewClientID()
-        self.guid = opts.guid ?? Doc.generateDocGuid()
+        self._gcFilter = opts.gcFilter
+        self.clientID = opts.cliendID ?? YDocument.generateNewClientID()
+        self.guid = opts.guid ?? YDocument.generateDocGuid()
         self.collectionid = opts.collectionid
         self.share = [:]
         self.store = YStructStore()
@@ -130,7 +98,7 @@ public class Doc: LZObservable, JSHashable {
         self.shouldLoad = true
     }
 
-    public func getSubdocs() -> Set<Doc> { return self.subdocs }
+    public func getSubdocs() -> Set<YDocument> { return self.subdocs }
 
     public func getSubdocGuids() -> Set<String> {
         return Set(self.subdocs.map{ $0.guid })
@@ -219,7 +187,7 @@ public class Doc: LZObservable, JSHashable {
             if let autoLoad = content?.options.autoLoad { __copyOpts.autoLoad = autoLoad }
             __copyOpts.shouldLoad = false
             
-            let subdoc = Doc(opts: __copyOpts)
+            let subdoc = YDocument(opts: __copyOpts)
             content?.document = subdoc
             content?.document._item = item!
             
@@ -235,39 +203,39 @@ public class Doc: LZObservable, JSHashable {
     }
 }
 
-extension Doc {
+extension YDocument {
     public enum On {
-        public static let load = Doc.EventName<Void>("load")
-        public static let sync = Doc.EventName<Bool>("sync")
+        public static let load = YDocument.EventName<Void>("load")
+        public static let sync = YDocument.EventName<Bool>("sync")
         
-        public static let destroy = Doc.EventName<Void>("destroy")
-        public static let destroyed = Doc.EventName<Bool>("destroyed")
+        public static let destroy = YDocument.EventName<Void>("destroy")
+        public static let destroyed = YDocument.EventName<Bool>("destroyed")
         
-        public static let update = Doc.EventName<(update: YUpdate, origin: Any?, YTransaction)>("update")
-        public static let updateV2 = Doc.EventName<(update: YUpdate, origin: Any?, YTransaction)>("updateV2")
+        public static let update = YDocument.EventName<(update: YUpdate, origin: Any?, YTransaction)>("update")
+        public static let updateV2 = YDocument.EventName<(update: YUpdate, origin: Any?, YTransaction)>("updateV2")
         
-        public static let subdocs = Doc.EventName<(SubDocEvent, YTransaction)>("subdocs")
+        public static let subdocs = YDocument.EventName<(SubDocEvent, YTransaction)>("subdocs")
         
-        public static let beforeObserverCalls = Doc.EventName<YTransaction>("beforeObserverCalls")
+        public static let beforeObserverCalls = YDocument.EventName<YTransaction>("beforeObserverCalls")
         
-        public static let beforeTransaction = Doc.EventName<YTransaction>("beforeTransaction")
-        public static let afterTransaction = Doc.EventName<YTransaction>("afterTransaction")
+        public static let beforeTransaction = YDocument.EventName<YTransaction>("beforeTransaction")
+        public static let afterTransaction = YDocument.EventName<YTransaction>("afterTransaction")
                         
-        public static let beforeAllTransactions = Doc.EventName<Void>("beforeAllTransactions")
-        public static let afterAllTransactions = Doc.EventName<[YTransaction]>("afterAllTransactions")
+        public static let beforeAllTransactions = YDocument.EventName<Void>("beforeAllTransactions")
+        public static let afterAllTransactions = YDocument.EventName<[YTransaction]>("afterAllTransactions")
         
-        public static let afterTransactionCleanup = Doc.EventName<YTransaction>("afterTransactionCleanup")
+        public static let afterTransactionCleanup = YDocument.EventName<YTransaction>("afterTransactionCleanup")
     
 
         public struct SubDocEvent {
-            public let loaded: Set<Doc>
-            public let added: Set<Doc>
-            public let removed: Set<Doc>
+            public let loaded: Set<YDocument>
+            public let added: Set<YDocument>
+            public let removed: Set<YDocument>
         }
     }
 }
 
-extension Doc {
+extension YDocument {
     static func generateDocGuid() -> String {
         #if DEBUG // to remove randomness
         enum __ { static var cliendID: UInt = 0 }
@@ -291,5 +259,36 @@ extension Doc {
         #endif
         
         return Int(UInt32.random(in: UInt32.min...UInt32.max))
+    }
+}
+
+public struct DocOpts {
+    public var gc: Bool = true
+    var gcFilter: (YItem) -> Bool = {_ in true }
+    public var guid: String?
+    public var collectionid: String?
+    public var meta: Any?
+    public var autoLoad: Bool
+    public var shouldLoad: Bool
+    public var cliendID: Int?
+    
+    public init(
+        gc: Bool = true,
+//        gcFilter: @escaping (Item) -> Bool = {_ in true },
+        guid: String? = nil,
+        collectionid: String? = nil,
+        meta: Any? = nil,
+        autoLoad: Bool = false,
+        shouldLoad: Bool = true,
+        cliendID: Int? = nil
+    ) {
+        self.gc = gc
+//        self.gcFilter = gcFilter
+        self.guid = guid
+        self.collectionid = collectionid
+        self.meta = meta
+        self.autoLoad = autoLoad
+        self.shouldLoad = shouldLoad
+        self.cliendID = cliendID
     }
 }

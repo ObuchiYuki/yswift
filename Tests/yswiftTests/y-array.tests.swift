@@ -4,8 +4,8 @@ import Promise
 
 final class YArrayTests: XCTestCase {
     func testBasicUpdate() throws {
-        let doc1 = Doc()
-        let doc2 = Doc()
+        let doc1 = YDocument()
+        let doc2 = YDocument()
         try doc1.getArray("array").insert("hi", at: 0)
         let update = try doc1.encodeStateAsUpdate()
         try doc2.applyUpdate(update)
@@ -13,7 +13,7 @@ final class YArrayTests: XCTestCase {
     }
     
     func testSlice() throws {
-        let doc1 = Doc()
+        let doc1 = YDocument()
         let arr = try doc1.getArray("array")
         try arr.insert(contentsOf: [1, 2, 3], at: 0)
         XCTAssertEqualJSON(arr.slice(0), [1, 2, 3])
@@ -25,7 +25,7 @@ final class YArrayTests: XCTestCase {
     }
 
     func testArrayFrom() throws {
-        let doc1 = Doc()
+        let doc1 = YDocument()
         let db1 = try doc1.getMap("root")
         let nestedArray1 = Array([0, 1, 2])
         try db1.setThrowingError("array", value: nestedArray1)
@@ -39,7 +39,7 @@ final class YArrayTests: XCTestCase {
      * @param {t.TestCase} tc
      */
     func testLengthIssue() throws {
-        let doc1 = Doc()
+        let doc1 = YDocument()
         let arr = try doc1.getArray("array")
         try arr.append(contentsOf: [0, 1, 2, 3])
         try arr.remove(0)
@@ -68,7 +68,7 @@ final class YArrayTests: XCTestCase {
      * @param {t.TestCase} tc
      */
     func testLengthIssue2() throws {
-        let doc = Doc()
+        let doc = YDocument()
         let next = try doc.getArray()
         try doc.transact({ _ in
             try next.insert("group2", at: 0)
@@ -445,7 +445,7 @@ final class YArrayTests: XCTestCase {
     }
 
     func testIteratingArrayContainingTypes() throws {
-        let y = Doc()
+        let y = YDocument()
         let arr = try y.getArray("arr") // YArray<YMap<Int>>
         let numItems = 10
         for i in 0..<numItems {
@@ -469,7 +469,7 @@ final class YArrayTests: XCTestCase {
         return __._uniqueNumber
     }
 
-    private lazy var arrayTransactions: [(Doc, YTest<Any>, Any?) throws -> Void] = [
+    private lazy var arrayTransactions: [(YDocument, YTest<Any>, Any?) throws -> Void] = [
         { doc, test, _ in // insert
             let yarray = try doc.getArray("array")
             let uniqueNumber = self.getUniqueNumber()

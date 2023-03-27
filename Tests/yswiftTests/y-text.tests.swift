@@ -139,7 +139,7 @@ final class YTextTests: XCTestCase {
                 "block-id": "block-15630542-ef45-412d-9415-88f0052238ce"
             ])
         ]
-        let ydoc1 = Doc()
+        let ydoc1 = YDocument()
         let ytext = try ydoc1.getText()
         try ytext.applyDelta(initialDelta)
         let addingDash = [
@@ -419,7 +419,7 @@ final class YTextTests: XCTestCase {
     }
     
     func testMultilineFormat() throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         let testText = try ydoc.getText("test")
         try testText.insert(0, text: "Test\nMulti-line\nFormatting")
         try testText.applyDelta([
@@ -440,7 +440,7 @@ final class YTextTests: XCTestCase {
     }
 
     func testNotMergeEmptyLinesFormat() throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         let testText = try ydoc.getText("test")
         try testText.applyDelta([
             YEventDelta(insert: "Text"),
@@ -458,7 +458,7 @@ final class YTextTests: XCTestCase {
     }
 
     func testPreserveAttributesThroughDelete() throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         let testText = try ydoc.getText("test")
         
         try testText.applyDelta([

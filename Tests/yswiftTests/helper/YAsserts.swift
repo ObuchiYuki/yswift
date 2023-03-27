@@ -31,19 +31,19 @@ private func compareItemIDs(_ a: YItem?, _ b: YItem?) -> Bool {
 
 // returns updated docs
 @discardableResult
-func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
+func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [YDocument] {
     try docs.forEach{ try $0.connect() }
     while try docs[0].connector.flushAllMessages() {}
 
     let mergedDocs = try docs.map{ doc in
         // swift add
-        let ydoc = Doc()
+        let ydoc = YDocument()
         let update = try YTestEnvironment.currentEnvironment.mergeUpdates(doc.updates.value)
         try YTestEnvironment.currentEnvironment.applyUpdate(ydoc, update, nil)
         return ydoc
     }
     
-    var docs = docs as [Doc]
+    var docs = docs as [YDocument]
     
     docs.append(contentsOf: mergedDocs)
     let userArrayValues = try XCTUnwrap(docs.map{ try $0.getArray("array").toJSON() } as? [[Any]])

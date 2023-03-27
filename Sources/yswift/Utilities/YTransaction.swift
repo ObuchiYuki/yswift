@@ -34,7 +34,7 @@ func callAll(_ fs: RefArray<() throws -> Void>) throws {
 
 final public class YTransaction {
 
-    public let doc: Doc
+    public let doc: YDocument
     
     public var local: Bool
     
@@ -52,13 +52,13 @@ final public class YTransaction {
 
     public var meta: [AnyHashable: Any] = [:]
 
-    public var subdocsAdded: Set<Doc> = Set()
-    public var subdocsRemoved: Set<Doc> = Set()
-    public var subdocsLoaded: Set<Doc> = Set()
+    public var subdocsAdded: Set<YDocument> = Set()
+    public var subdocsRemoved: Set<YDocument> = Set()
+    public var subdocsLoaded: Set<YDocument> = Set()
     
     var _mergeStructs: RefArray<YStruct> = []
 
-    init(_ doc: Doc, origin: Any?, local: Bool) {
+    init(_ doc: YDocument, origin: Any?, local: Bool) {
         self.doc = doc
         self.beforeState = doc.store.getStateVector()
         self.origin = origin
@@ -106,7 +106,7 @@ final public class YTransaction {
             // Replace deleted items with ItemDeleted / GC.
             // This is where content is actually remove from the Yjs Doc.
             if doc.gc {
-                try ds.tryGCDeleteSet(store, gcFilter: doc.gcFilter)
+                try ds.tryGCDeleteSet(store, gcFilter: doc._gcFilter)
             }
             try ds.tryMerge(store)
             
@@ -139,25 +139,25 @@ final public class YTransaction {
                 }
             }
             if !transaction.local && transaction.afterState[doc.clientID] != transaction.beforeState[doc.clientID] {
-                doc.clientID = Doc.generateNewClientID()
+                doc.clientID = YDocument.generateNewClientID()
             }
             
-            try doc.emit(Doc.On.afterTransactionCleanup, transaction)
+            try doc.emit(YDocument.On.afterTransactionCleanup, transaction)
             
-            if doc.isObserving(Doc.On.update) {
+            if doc.isObserving(YDocument.On.update) {
                 let encoder = YUpdateEncoderV1()
                 
                 let hasContent = try transaction.encodeUpdateMessage(encoder)
                 
                 if hasContent {
-                    try doc.emit(Doc.On.update, (encoder.toUpdate(), transaction.origin, transaction))
+                    try doc.emit(YDocument.On.update, (encoder.toUpdate(), transaction.origin, transaction))
                 }
             }
-            if doc.isObserving(Doc.On.updateV2) {
+            if doc.isObserving(YDocument.On.updateV2) {
                 let encoder = YUpdateEncoderV2()
                 let hasContent = try transaction.encodeUpdateMessage(encoder)
                 if hasContent {
-                    try doc.emit(Doc.On.updateV2, (
+                    try doc.emit(YDocument.On.updateV2, (
                         encoder.toUpdate(), transaction.origin, transaction
                     ))
                 }
@@ -176,16 +176,16 @@ final public class YTransaction {
                     doc.subdocs.insert(subdoc)
                 })
                 subdocsRemoved.forEach{ doc.subdocs.remove($0) }
-                let subdocevent = Doc.On.SubDocEvent(
+                let subdocevent = YDocument.On.SubDocEvent(
                     loaded: subdocsLoaded, added: subdocsAdded, removed: subdocsRemoved
                 )
-                try doc.emit(Doc.On.subdocs, (subdocevent, transaction))
+                try doc.emit(YDocument.On.subdocs, (subdocevent, transaction))
                 try subdocsRemoved.forEach{ try $0.destroy() }
             }
 
             if transactions.count <= i + 1 {
                 doc._transactionCleanups = []
-                try doc.emit(Doc.On.afterAllTransactions, transactions.map{ $0 })
+                try doc.emit(YDocument.On.afterAllTransactions, transactions.map{ $0 })
             } else {
                 try YTransaction.cleanup(transactions, i: i + 1)
             }
@@ -194,7 +194,7 @@ final public class YTransaction {
         do {
             ds.sortAndMerge()
             transaction.afterState = transaction.doc.store.getStateVector()
-            try doc.emit(Doc.On.beforeObserverCalls, transaction)
+            try doc.emit(YDocument.On.beforeObserverCalls, transaction)
             
             let fs: RefArray<() throws -> Void> = []
             
@@ -228,7 +228,7 @@ final public class YTransaction {
                 }
                 
                 fs.append{
-                    try doc.emit(Doc.On.afterTransaction, transaction)
+                    try doc.emit(YDocument.On.afterTransaction, transaction)
                 }
             })
 
@@ -244,7 +244,7 @@ final public class YTransaction {
     
 
     /** Implements the functionality of `y.transact(()->{..})` */
-    static func transact(_ doc: Doc, origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) throws {
+    static func transact(_ doc: YDocument, origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) throws {
         
         var initialCall = false
         
@@ -254,9 +254,9 @@ final public class YTransaction {
             doc._transactionCleanups.value.append(doc._transaction!)
                         
             if doc._transactionCleanups.count == 1 {
-                try doc.emit(Doc.On.beforeAllTransactions, ())
+                try doc.emit(YDocument.On.beforeAllTransactions, ())
             }
-            try doc.emit(Doc.On.beforeTransaction, doc._transaction!)
+            try doc.emit(YDocument.On.beforeTransaction, doc._transaction!)
         }
         
         func defering() throws {

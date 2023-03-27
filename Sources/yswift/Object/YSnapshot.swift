@@ -20,7 +20,7 @@ final public class YSnapshot: JSHashable {
         self.init(deleteSet: YDeleteSet(), stateVectors: [:])
     }
     
-    public convenience init(doc: Doc) {
+    public convenience init(doc: YDocument) {
         self.init(
             deleteSet: YDeleteSet.createFromStructStore(doc.store),
             stateVectors: doc.store.getStateVector()
@@ -46,8 +46,8 @@ final public class YSnapshot: JSHashable {
     }
 
     
-    public func toDoc(_ originDoc: Doc) throws -> Doc {
-        let newDoc = Doc()
+    public func toDoc(_ originDoc: YDocument) throws -> YDocument {
+        let newDoc = YDocument()
         if originDoc.gc { throw YSwiftError.originDocGC }
         
         let encoder = YUpdateEncoderV2()

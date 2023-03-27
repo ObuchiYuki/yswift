@@ -9,7 +9,7 @@ import Foundation
 import XCTest
 @testable import yswift
 
-class TestDoc: Doc {
+class TestDoc: YDocument {
     var connector: TestConnector
     var userID: Int
     var receiving: [TestDoc: Ref<[Data]>] = [:]

@@ -5,9 +5,9 @@ import Promise
 final class DocTests: XCTestCase {
     
     func testAfterTransactionRecursion() throws { // xml -> array
-        let ydoc = Doc()
+        let ydoc = YDocument()
         let ymap = try ydoc.getArray("")
-        ydoc.on(Doc.On.afterTransaction) { tr in
+        ydoc.on(YDocument.On.afterTransaction) { tr in
             if tr.origin as! String == "test" {
                 _ = ymap.toJSON()
             }
@@ -20,11 +20,11 @@ final class DocTests: XCTestCase {
     }
 
     func testOriginInTransaction() throws {
-        let doc = Doc()
+        let doc = YDocument()
         let ytext = try doc.getText("")
         var origins = [String]()
         
-        doc.on(Doc.On.afterTransaction) { tr in
+        doc.on(YDocument.On.afterTransaction) { tr in
             guard let origin = tr.origin as? String else { return XCTFail("No a string.") }
             
             origins.append(origin)
@@ -45,9 +45,9 @@ final class DocTests: XCTestCase {
     }
 
     func testClientIdDuplicateChange() throws {
-        let doc1 = Doc()
+        let doc1 = YDocument()
         doc1.clientID = 0
-        let doc2 = Doc()
+        let doc2 = YDocument()
         doc2.clientID = 0
         XCTAssertEqual(doc2.clientID, doc1.clientID)
         try doc1.getArray("a").insert(contentsOf: [1, 2], at: 0)
@@ -56,11 +56,11 @@ final class DocTests: XCTestCase {
     }
 
     func testGetTypeEmptyId() throws {
-        let doc1 = Doc(opts: .init(cliendID: 100))
+        let doc1 = YDocument(opts: .init(cliendID: 100))
         try doc1.getText("").insert(0, text: "h")
         try doc1.getText("").insert(1, text: "i")
                 
-        let doc2 = Doc(opts: .init(cliendID: 101))
+        let doc2 = YDocument(opts: .init(cliendID: 101))
         
         let update = try doc1.encodeStateAsUpdate()
                 
@@ -71,7 +71,7 @@ final class DocTests: XCTestCase {
     }
 
     func testToJSON() throws {
-        let doc = Doc()
+        let doc = YDocument()
         XCTAssertTrue(doc.toJSON().isEmpty, "doc.toJSON yields empty object")
 
         let arr = try doc.getArray("array")
@@ -97,13 +97,13 @@ final class DocTests: XCTestCase {
 
         
     func testSubdoc() throws {
-        let doc = Doc()
+        let doc = YDocument()
         try doc.load() // doesn"t do Anything
         
         do {
             var event: [Set<String>]? = nil
             
-            doc.on(Doc.On.subdocs) { subdocs, _ in
+            doc.on(YDocument.On.subdocs) { subdocs, _ in
                 event = [
                     Set(subdocs.added.map{ $0.guid }),
                     Set(subdocs.removed.map{ $0.guid }),
@@ -112,28 +112,28 @@ final class DocTests: XCTestCase {
             }
             
             let subdocs = try doc.getMap("mysubdocs")
-            let docA = Doc(opts: .init(guid: "a"))
+            let docA = YDocument(opts: .init(guid: "a"))
             try docA.load()
             try subdocs.setThrowingError("a", value: docA)
             
             XCTAssertEqual(event, [["a"], [], ["a"]])
 
             event = nil
-            try (subdocs["a"] as! Doc).load()
+            try (subdocs["a"] as! YDocument).load()
             XCTAssertNil(event)
 
             event = nil
-            try (subdocs["a"] as! Doc).destroy()
+            try (subdocs["a"] as! YDocument).destroy()
             XCTAssertEqual(event, [["a"], ["a"], []])
-            try (subdocs["a"] as! Doc).load()
+            try (subdocs["a"] as! YDocument).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
-            try subdocs.setThrowingError("b", value: Doc(opts: .init(guid: "a", shouldLoad: false)))
+            try subdocs.setThrowingError("b", value: YDocument(opts: .init(guid: "a", shouldLoad: false)))
             XCTAssertEqual(event, [["a"], [], []])
-            try (subdocs["b"] as! Doc).load()
+            try (subdocs["b"] as! YDocument).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
-            let docC = Doc(opts: .init(guid: "c"))
+            let docC = YDocument(opts: .init(guid: "c"))
             try docC.load()
             try subdocs.setThrowingError("c", value: docC)
             XCTAssertEqual(event, [["c"], [], ["c"]])
@@ -141,12 +141,12 @@ final class DocTests: XCTestCase {
             XCTAssertEqual(doc.getSubdocGuids(), ["a", "c"])
         }
 
-        let doc2 = Doc()
+        let doc2 = YDocument()
         do {
             XCTAssertTrue(doc2.getSubdocs().isEmpty)
             var event: [Set<String>]? = nil
             
-            doc2.on(Doc.On.subdocs) { subdocs, _ in
+            doc2.on(YDocument.On.subdocs) { subdocs, _ in
                 event = [
                     Set(subdocs.added.map{ $0.guid }),
                     Set(subdocs.removed.map{ $0.guid }),
@@ -157,7 +157,7 @@ final class DocTests: XCTestCase {
             try doc2.applyUpdate(doc.encodeStateAsUpdate())
             XCTAssertEqual(event, [["a", "a", "c"], [], []])
 
-            try (doc2.getMap("mysubdocs")["a"] as! Doc).load()
+            try (doc2.getMap("mysubdocs")["a"] as! YDocument).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
             XCTAssertEqual(doc2.getSubdocGuids(), ["a", "c"])
@@ -169,12 +169,12 @@ final class DocTests: XCTestCase {
     }
 
     func testSubdocLoadEdgeCases() throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         let yarray = try ydoc.getArray("") // [Doc]
-        let subdoc1 = Doc()
-        var lastEvent: Doc.On.SubDocEvent? = nil
+        let subdoc1 = YDocument()
+        var lastEvent: YDocument.On.SubDocEvent? = nil
         
-        ydoc.on(Doc.On.subdocs) { event, _ in
+        ydoc.on(YDocument.On.subdocs) { event, _ in
             lastEvent = event
         }
         try yarray.insert(subdoc1, at: 0)
@@ -185,7 +185,7 @@ final class DocTests: XCTestCase {
         
         // destroy and check whether lastEvent adds it again to added (it shouldn"t)
         try subdoc1.destroy()
-        let subdoc2 = try XCTUnwrap(yarray[0] as? Doc)
+        let subdoc2 = try XCTUnwrap(yarray[0] as? YDocument)
         XCTAssert(subdoc1 != subdoc2)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc2))
         try XCTAssert(!XCTUnwrap(lastEvent).loaded.contains(subdoc2))
@@ -194,12 +194,12 @@ final class DocTests: XCTestCase {
         try XCTAssert(!XCTUnwrap(lastEvent).added.contains(subdoc2))
         try XCTAssert(XCTUnwrap(lastEvent).loaded.contains(subdoc2))
         // apply from remote
-        let ydoc2 = Doc()
-        ydoc2.on(Doc.On.subdocs) { event, _ in
+        let ydoc2 = YDocument()
+        ydoc2.on(YDocument.On.subdocs) { event, _ in
             lastEvent = event
         }
         try ydoc2.applyUpdate(ydoc.encodeStateAsUpdate())
-        let subdoc3 = try XCTUnwrap(try ydoc2.getArray("")[0] as? Doc)
+        let subdoc3 = try XCTUnwrap(try ydoc2.getArray("")[0] as? YDocument)
         XCTAssert(subdoc3.shouldLoad == false)
         XCTAssert(subdoc3.autoLoad == false)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc3))
@@ -212,12 +212,12 @@ final class DocTests: XCTestCase {
     }
 
     func testSubdocLoadEdgeCasesAutoload() throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         let yarray = try ydoc.getArray("") // [Doc]
-        let subdoc1 = Doc(opts: .init(autoLoad: true))
+        let subdoc1 = YDocument(opts: .init(autoLoad: true))
         
-        var lastEvent: Doc.On.SubDocEvent? = nil
-        ydoc.on(Doc.On.subdocs) { event, _ in
+        var lastEvent: YDocument.On.SubDocEvent? = nil
+        ydoc.on(YDocument.On.subdocs) { event, _ in
             lastEvent = event
         }
         
@@ -231,7 +231,7 @@ final class DocTests: XCTestCase {
         
         // destroy and check whether lastEvent adds it again to added (it shouldn"t)
         try subdoc1.destroy()
-        let subdoc2 = try XCTUnwrap(yarray[0] as? Doc)
+        let subdoc2 = try XCTUnwrap(yarray[0] as? YDocument)
         XCTAssertNotIdentical(subdoc1, subdoc2)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc2))
         try XCTAssert(!XCTUnwrap(lastEvent).loaded.contains(subdoc2))
@@ -242,13 +242,13 @@ final class DocTests: XCTestCase {
         try XCTAssert(XCTUnwrap(lastEvent).loaded.contains(subdoc2))
         
         // apply from remote
-        let ydoc2 = Doc()
-        ydoc2.on(Doc.On.subdocs) { event, _ in
+        let ydoc2 = YDocument()
+        ydoc2.on(YDocument.On.subdocs) { event, _ in
             lastEvent = event
         }
         let update = try ydoc.encodeStateAsUpdate()
         try ydoc2.applyUpdate(update)
-        let subdoc3 = try XCTUnwrap(ydoc2.getArray("")[0] as? Doc)
+        let subdoc3 = try XCTUnwrap(ydoc2.getArray("")[0] as? YDocument)
         XCTAssert(subdoc1.shouldLoad)
         XCTAssert(subdoc1.autoLoad)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc3))
@@ -256,10 +256,10 @@ final class DocTests: XCTestCase {
     }
 
     func testSubdocsUndo() throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         let elems = try ydoc.getArray()
         let undoManager = YUndoManager(typeScope: elems, options: .init())
-        let subdoc = Doc()
+        let subdoc = YDocument()
         try elems.insert(subdoc, at: 0)
         try undoManager.undo()
         try undoManager.redo()
@@ -267,13 +267,13 @@ final class DocTests: XCTestCase {
     }
 
     func testLoadDocsEvent() async throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         XCTAssert(ydoc.isLoaded == false)
         var loadedEvent = false
-        ydoc.on(Doc.On.load) {
+        ydoc.on(YDocument.On.load) {
             loadedEvent = true
         }
-        try ydoc.emit(Doc.On.load, ())
+        try ydoc.emit(YDocument.On.load, ())
         await ydoc.whenLoaded.value()
         
         XCTAssert(loadedEvent)
@@ -281,19 +281,19 @@ final class DocTests: XCTestCase {
     }
 
     func testSyncDocsEvent() async throws {
-        let ydoc = Doc()
+        let ydoc = YDocument()
         XCTAssertFalse(ydoc.isLoaded)
         XCTAssertFalse(ydoc.isSynced)
         var loadedEvent = false
-        ydoc.once(Doc.On.load) {
+        ydoc.once(YDocument.On.load) {
             loadedEvent = true
         }
         var syncedEvent = false
-        ydoc.once(Doc.On.sync) { isSynced in
+        ydoc.once(YDocument.On.sync) { isSynced in
             syncedEvent = true
             XCTAssertTrue(isSynced)
         }
-        try ydoc.emit(Doc.On.sync, true)
+        try ydoc.emit(YDocument.On.sync, true)
         
         await ydoc.whenLoaded.value()
         
@@ -306,15 +306,15 @@ final class DocTests: XCTestCase {
         XCTAssert(ydoc.isLoaded)
         XCTAssert(ydoc.isSynced)
         var loadedEvent2 = false
-        ydoc.on(Doc.On.load) {
+        ydoc.on(YDocument.On.load) {
             loadedEvent2 = true
         }
         var syncedEvent2 = false
-        ydoc.on(Doc.On.sync) { isSynced in
+        ydoc.on(YDocument.On.sync) { isSynced in
             syncedEvent2 = true
             XCTAssertFalse(isSynced)
         }
-        try ydoc.emit(Doc.On.sync, false)
+        try ydoc.emit(YDocument.On.sync, false)
         XCTAssert(!loadedEvent2)
         XCTAssert(syncedEvent2)
         XCTAssert(ydoc.isLoaded)

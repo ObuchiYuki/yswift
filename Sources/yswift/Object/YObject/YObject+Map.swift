@@ -24,8 +24,8 @@ extension YObject {
                 content = YAnyContent([value])
             } else if value! is Data {
                 content = YBinaryContent(value as! Data)
-            } else if value! is Doc {
-                content = YDocumentContent(value as! Doc)
+            } else if value! is YDocument {
+                content = YDocumentContent(value as! YDocument)
             } else {
                 if value! is YObject {
                     content = YObjectContent(value as! YObject)

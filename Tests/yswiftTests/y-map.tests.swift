@@ -525,13 +525,13 @@ final class YMapTests: XCTestCase {
     }
 
     func testYmapEventExceptionsShouldCompleteTransaction() throws {
-        let doc = Doc()
+        let doc = YDocument()
         let map = try doc.getMap("map")
 
         var updateCalled = false
         var throwingObserverCalled = false
         var throwingDeepObserverCalled = false
-        doc.on(Doc.On.update) { _ in updateCalled = true }
+        doc.on(YDocument.On.update) { _ in updateCalled = true }
 
         func throwingObserver() throws {
             throwingObserverCalled = true
@@ -566,7 +566,7 @@ final class YMapTests: XCTestCase {
     }
     
 
-    private let mapTransactions: [(Doc, YTest<Any>, Any?) throws -> Void] = [
+    private let mapTransactions: [(YDocument, YTest<Any>, Any?) throws -> Void] = [
         { doc, test, _ in // set
             let key = test.gen.oneOf(["one", "two"])
             let value = test.gen.string()

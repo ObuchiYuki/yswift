@@ -169,9 +169,9 @@ extension YObject {
                     let icontent = YBinaryContent(content as! Data)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
-                } else if content is Doc {
+                } else if content is YDocument {
                     let id = YID(client: ownClientId, clock: store.getState(ownClientId))
-                    let icontent = YDocumentContent(content as! Doc)
+                    let icontent = YDocumentContent(content as! YDocument)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     
                     try left!.integrate(transaction: transaction, offset: 0)

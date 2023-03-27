@@ -8,13 +8,13 @@
 import Foundation
 import Promise
 
-public class YPermanentUserData {
+final public class YPermanentUserData {
     public var yusers: YMap // YMap<YMap<Any>> ...may be
-    public var doc: Doc
+    public var doc: YDocument
     public var clients: [Int: String]
     var dss: [String: YDeleteSet]
 
-    public init(doc: Doc, storeType: YMap?) throws {
+    public init(doc: YDocument, storeType: YMap?) throws {
         self.yusers = try storeType ?? doc.getMap("users")
         self.doc = doc
         self.clients = [:]
@@ -77,7 +77,7 @@ public class YPermanentUserData {
      * @param {Object} conf
      * @param {function(Transaction, DeleteSet):Bool} [conf.filter]
      */
-    public func setUserMapping(doc: Doc, clientid: Int, userDescription: String, filter: @escaping (YTransaction, YDeleteSet) -> Bool = {_, _ in true }) throws {
+    public func setUserMapping(doc: YDocument, clientid: Int, userDescription: String, filter: @escaping (YTransaction, YDeleteSet) -> Bool = {_, _ in true }) throws {
         let users = self.yusers
         var user = users[userDescription] as? YMap
         
@@ -113,7 +113,7 @@ public class YPermanentUserData {
             .catch{ print($0) }
         }
         
-        doc.on(Doc.On.afterTransaction) { transaction in
+        doc.on(YDocument.On.afterTransaction) { transaction in
             Promise.wait(for: 0).tryPeek{
                 let yds = user!["ds"] as! YArray
                 let ds = transaction.deleteSet

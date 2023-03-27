@@ -454,7 +454,7 @@ func cleanupYTextFormatting(type: YText) throws -> Int {
         while end != nil {
             if end!.deleted == false {
                 if end!.content is YFormatContent {
-                    updateCurrentAttributes(currentAttributes: currentAttributes, format: end!.content as! FormatContent)
+                    updateCurrentAttributes(currentAttributes: currentAttributes, format: end!.content as! YFormatContent)
                 } else {
                     res += cleanupFormattingGap(
                         transaction: transaction, start: start, curr: end!, startAttributes: startAttributes, currAttributes: currentAttributes
@@ -611,11 +611,11 @@ final public class YTextEvent: YEvent {
                         if action != .retain { addDelta(); action = .retain }
                         retain += 1
                     }
-                } else if item!.content is StringContent {
+                } else if item!.content is YStringContent {
                     if self.adds(item!) {
                         if !self.deletes(item!) {
                             if action != .insert { addDelta(); action = .insert }
-                            insert = (insert as! String) + ((item!.content as! StringContent).string as String)
+                            insert = (insert as! String) + ((item!.content as! YStringContent).string as String)
                         }
                     } else if self.deletes(item!) {
                         if action != .delete { addDelta(); action = .delete }
@@ -624,8 +624,8 @@ final public class YTextEvent: YEvent {
                         if action != .retain { addDelta(); action = .retain }
                         retain += item!.length
                     }
-                } else if item!.content is FormatContent {
-                    let __contentFormat = item!.content as! FormatContent
+                } else if item!.content is YFormatContent {
+                    let __contentFormat = item!.content as! YFormatContent
                     let key = __contentFormat.key, value = __contentFormat.value
                                         
                     if self.adds(item!) {
@@ -670,7 +670,7 @@ final public class YTextEvent: YEvent {
                     if !item!.deleted {
                         if action == .insert { addDelta() }
                         updateCurrentAttributes(
-                            currentAttributes: currentAttributes, format: (item!.content as! FormatContent)
+                            currentAttributes: currentAttributes, format: (item!.content as! YFormatContent)
                         )
                     }
                 }
@@ -711,7 +711,7 @@ final public class YText: YObject {
 
     public var count: Int { return self._length }
 
-    override func _integrate(_ y: Doc, item: YItem?) throws {
+    override func _integrate(_ y: YDocument, item: YItem?) throws {
         try super._integrate(y, item: item)
 
         do {
@@ -894,7 +894,7 @@ final public class YText: YObject {
             while n != nil {
                 if n!.isVisible(snapshot) || (prevSnapshot != nil && n!.isVisible(prevSnapshot)) {
                     switch true {
-                    case n!.content is StringContent:
+                    case n!.content is YStringContent:
                         let cur = removeDualOptional(currentAttributes.value["ychange"])
                         
                         if snapshot != nil && !n!.isVisible(snapshot) {
@@ -923,7 +923,7 @@ final public class YText: YObject {
                             currentAttributes.value.removeValue(forKey: "ychange")
                         }
                         str += (n!.content as! YStringContent).string as String
-                    case n!.content is TypeContent || n!.content is EmbedContent:
+                    case n!.content is YObjectContent || n!.content is YEmbedContent:
                         packStr()
                         let op: YEventDelta = .init(insert: (n!.content.values[0] as! YEventDeltaInsertType))
                         if currentAttributes.count > 0 {
@@ -933,10 +933,10 @@ final public class YText: YObject {
                             })
                         }
                         ops.append(op)
-                    case n!.content is FormatContent:
+                    case n!.content is YFormatContent:
                         if n!.isVisible(snapshot) {
                             packStr()
-                            updateCurrentAttributes(currentAttributes: currentAttributes, format: n!.content as! FormatContent)
+                            updateCurrentAttributes(currentAttributes: currentAttributes, format: n!.content as! YFormatContent)
                         }
                     default: break // nop
                     }

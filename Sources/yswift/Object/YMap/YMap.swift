@@ -92,7 +92,7 @@ final public class YMap: YObject {
         encoder.writeTypeRef(YMapRefID)
     }
     
-    override func _integrate(_ y: Doc, item: YItem?) throws {
+    override func _integrate(_ y: YDocument, item: YItem?) throws {
         try super._integrate(y, item: item)
         
         for (key, value) in self._prelimContent ?? [:] {

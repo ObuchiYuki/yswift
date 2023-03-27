@@ -11,7 +11,7 @@ public class YObject: JSHashable {
         
     // =========================================================================== //
     // MARK: - Property -
-    var doc: Doc? = nil
+    var doc: YDocument? = nil
 
     public var parent: YObject? { self.item?.parent?.object }
     
@@ -81,7 +81,7 @@ public class YObject: JSHashable {
     // =========================================================================== //
     // MARK: - Private Methods (Temporally public) -
     
-    func _integrate(_ y: Doc, item: YItem?) throws {
+    func _integrate(_ y: YDocument, item: YItem?) throws {
         self.doc = y
         self.item = item
     }

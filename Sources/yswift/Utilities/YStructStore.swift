@@ -8,7 +8,7 @@
 import Foundation
 
 
-class PendingStrcut: CustomStringConvertible {
+final class PendingStrcut: CustomStringConvertible {
     var missing: [Int: Int]
     var update: YUpdate
     
