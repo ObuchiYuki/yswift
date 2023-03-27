@@ -8,9 +8,20 @@
 import Foundation
 
 public struct YUpdate {
-    public let data: Data
+    public enum Version { case v1, v2 }
     
-    public init(_ data: Data) { self.data = data }
+    public let data: Data
+    public let version: Version
+    
+    public init(_ data: Data, version: Version) {
+        self.data = data
+        self.version = version
+    }
+}
+
+struct StructWrite {
+    let struct_: Struct
+    let offset: Int
 }
 
 extension YUpdate: Equatable, Hashable {}
@@ -49,10 +60,12 @@ extension YUpdate {
     }
     
     public func toV2() throws -> YUpdate {
+        assert(self.version == .v1)
         return try self._convertUpdateFormat(YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV2.init)
     }
 
     public func toV1() throws -> YUpdate {
+        assert(self.version == .v2)
         return try self._convertUpdateFormat(YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV1.init)
     }
     
@@ -69,11 +82,11 @@ extension YUpdate {
         let lazyWriter = LazyStructWriter(updateEncoder)
 
         var curr = lazyDecoder.curr; while curr != nil {
-            try writeStructToLazyStructWriter(lazyWriter: lazyWriter, struct_: curr!, offset: 0)
+            try lazyWriter.write(curr!, offset: 0)
             curr = try lazyDecoder.next()
         }
         
-        finishLazyStructWriting(lazyWriter: lazyWriter)
+        lazyWriter.finish()
         let ds = try DeleteSet.decode(decoder: updateDecoder)
         try ds.encode(into: updateEncoder)
         return updateEncoder.toUpdate()
@@ -98,10 +111,12 @@ extension YUpdate {
                 continue
             }
             if curr!.id.clock + curr!.length > svClock {
-                try writeStructToLazyStructWriter(lazyWriter: lazyStructWriter, struct_: curr!, offset: max(svClock - Int(curr!.id.clock), 0))
+                
+                try lazyStructWriter.write(curr!, offset: max(svClock - curr!.id.clock, 0))
+                
                 _ = try reader.next()
                 while (reader.curr != nil && reader.curr!.id.client == currClient) {
-                    try writeStructToLazyStructWriter(lazyWriter: lazyStructWriter, struct_: reader.curr!, offset: 0)
+                    try lazyStructWriter.write(reader.curr!, offset: 0)
                     _ = try reader.next()
                 }
             } else {
@@ -111,7 +126,7 @@ extension YUpdate {
                 }
             }
         }
-        finishLazyStructWriting(lazyWriter: lazyStructWriter)
+        lazyStructWriter.finish()
         // write ds
         let ds = try DeleteSet.decode(decoder: decoder)
         try ds.encode(into: encoder)
@@ -258,11 +273,7 @@ extension YUpdate {
                 }
 
                 if firstClient != currWrite!.struct_.id.client {
-                    try writeStructToLazyStructWriter(
-                        lazyWriter: lazyStructEncoder,
-                        struct_: currWrite!.struct_,
-                        offset: Int(currWrite!.offset)
-                    )
+                    try lazyStructEncoder.write(currWrite!.struct_, offset: currWrite!.offset)
                     currWrite = StructWrite(struct_: curr!, offset: 0)
                     _ = try currDecoder.next()
                 } else {
@@ -270,11 +281,8 @@ extension YUpdate {
                         if currWrite!.struct_ is Skip {
                             currWrite!.struct_.length = curr!.id.clock + curr!.length - currWrite!.struct_.id.clock
                         } else {
-                            try writeStructToLazyStructWriter(
-                                lazyWriter: lazyStructEncoder,
-                                struct_: currWrite!.struct_,
-                                offset: currWrite!.offset
-                            )
+                            try lazyStructEncoder.write(currWrite!.struct_, offset: currWrite!.offset)
+                            
                             let diff = curr!.id.clock - currWrite!.struct_.id.clock - currWrite!.struct_.length
                             let struct_ = Skip(id: ID(client: firstClient, clock: currWrite!.struct_.id.clock + currWrite!.struct_.length), length: diff)
                             currWrite = StructWrite(struct_: struct_, offset: 0)
@@ -286,15 +294,11 @@ extension YUpdate {
                                 // prefer to slice Skip because the other struct might contain more information
                                 currWrite!.struct_.length -= diff
                             } else {
-                                curr = sliceStruct(left: curr!, diff: diff)
+                                curr = curr!.slice(diff: diff)
                             }
                         }
                         if !currWrite!.struct_.merge(with: curr!) {
-                            try writeStructToLazyStructWriter(
-                                lazyWriter: lazyStructEncoder,
-                                struct_: currWrite!.struct_,
-                                offset: currWrite!.offset
-                            )
+                            try lazyStructEncoder.write(currWrite!.struct_, offset: currWrite!.offset)
                             currWrite = StructWrite(struct_: curr!, offset: 0)
                             _ = try currDecoder.next()
                         }
@@ -312,7 +316,7 @@ extension YUpdate {
                 && next!.id.clock == currWrite!.struct_.id.clock + currWrite!.struct_.length
                 && !(next is Skip)
             ) {
-                try writeStructToLazyStructWriter(lazyWriter: lazyStructEncoder, struct_: currWrite!.struct_, offset: currWrite!.offset)
+                try lazyStructEncoder.write(currWrite!.struct_, offset: currWrite!.offset)
                 currWrite = StructWrite(struct_: next!, offset: 0)
                 
                 next = try currDecoder.next()
@@ -320,10 +324,10 @@ extension YUpdate {
         }
         
         if currWrite != nil {
-            try writeStructToLazyStructWriter(lazyWriter: lazyStructEncoder, struct_: currWrite!.struct_, offset: currWrite!.offset)
+            try lazyStructEncoder.write(currWrite!.struct_, offset: currWrite!.offset)
             currWrite = nil
         }
-        finishLazyStructWriting(lazyWriter: lazyStructEncoder)
+        lazyStructEncoder.finish()
 
         let dss = try updateDecoders.map{ try DeleteSet.decode(decoder: $0) }
         let ds = DeleteSet.mergeAll(dss)

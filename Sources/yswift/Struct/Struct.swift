@@ -23,8 +23,36 @@ public class Struct {
     public func integrate(transaction: Transaction, offset: Int) throws -> Void { fatalError() }
     
     public func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? { nil }
+}
 
-    static public func tryMerge(withLeft structs: Ref<[Struct]>, pos: Int) {
+extension Struct {
+    func slice(diff: Int) -> Struct { // no Skip return
+        let left = self
+        
+        if left is GC {
+            let client = left.id.client, clock = left.id.clock
+            return GC(id: ID(client: client, clock: clock + diff), length: left.length - diff)
+        } else if left is Skip {
+            let client = left.id.client, clock = left.id.clock
+            return Skip(id: ID(client: client, clock: clock + diff), length: left.length - diff)
+        } else {
+            let leftItem = left as! Item
+            let client = leftItem.id.client, clock = leftItem.id.clock
+            
+            return Item(
+                id: ID(client: client, clock: clock + diff),
+                left: nil,
+                origin: ID(client: client, clock: clock + diff - 1),
+                right: nil,
+                rightOrigin: leftItem.rightOrigin,
+                parent: leftItem.parent,
+                parentSub: leftItem.parentKey,
+                content: leftItem.content.splice(diff)
+            )
+        }
+    }
+
+    static func tryMerge(withLeft structs: Ref<[Struct]>, pos: Int) {
         let left = structs[pos - 1]
         let right = structs[pos]
         
@@ -40,5 +68,4 @@ public class Struct {
             }
         }
     }
-    
 }

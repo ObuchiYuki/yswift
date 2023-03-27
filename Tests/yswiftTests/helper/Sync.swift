@@ -37,7 +37,7 @@ enum Sync {
     static func readSyncStep2(decoder: LZDecoder, doc: Doc, transactionOrigin: Any? = nil) {
         do {
             let data = try decoder.readData()
-            try doc.applyUpdate(YUpdate(data), transactionOrigin: transactionOrigin)
+            try doc.applyUpdate(YUpdate(data, version: .v1), transactionOrigin: transactionOrigin)
         } catch {
             print("Caught error while handling a Yjs update. \(error)")
         }

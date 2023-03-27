@@ -40,19 +40,3 @@ final class LazyStructReader {
         return self.curr
     }
 }
-
-final class LazyStructWriter {
-    var currClient: Int
-    var startClock: Int
-    var written: Int
-    var encoder: UpdateEncoder
-    var clientStructs: [ClientStruct]
-    
-    init(_ encoder: UpdateEncoder) {
-        self.currClient = 0
-        self.startClock = 0
-        self.written = 0
-        self.encoder = encoder
-        self.clientStructs = []
-    }
-}

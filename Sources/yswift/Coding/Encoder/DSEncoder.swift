@@ -9,6 +9,7 @@ import Foundation
 
 public protocol DSEncoder {
     var restEncoder: LZEncoder { get set }
+    var updateVersion: YUpdate.Version { get }
     
     func resetDeleteSetValue()
     func writeDeleteSetClock(_ clock: Int)
@@ -17,11 +18,13 @@ public protocol DSEncoder {
 }
 
 extension DSEncoder {
-    func toUpdate() -> YUpdate { YUpdate(toData()) }
+    func toUpdate() -> YUpdate { YUpdate(toData(), version: self.updateVersion) }
 }
 
 public class DSEncoderV1: DSEncoder {
     public var restEncoder = LZEncoder()
+    
+    public var updateVersion: YUpdate.Version { .v1 }
 
     public init() {}
 
@@ -42,6 +45,8 @@ public class DSEncoderV1: DSEncoder {
 
 public class DSEncoderV2: DSEncoder {
     public var restEncoder = LZEncoder()
+    
+    public var updateVersion: YUpdate.Version { .v2 }
     
     private var dsCurrVal = 0
 
