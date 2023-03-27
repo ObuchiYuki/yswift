@@ -35,12 +35,12 @@ extension DeletedContent: Content {
         return true
     }
 
-    func integrate(with item: YItem, _ transaction: Transaction) {
+    func integrate(with item: YItem, _ transaction: YTransaction) {
         transaction.deleteSet.add(client: item.id.client, clock: item.id.clock, length: self.length)
         item.deleted = true
     }
 
-    func delete(_ transaction: Transaction) {}
+    func delete(_ transaction: YTransaction) {}
     
     func gc(_ store: StructStore) {}
     

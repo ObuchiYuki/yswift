@@ -177,7 +177,7 @@ final class UpdatesTests: XCTestCase {
                         let decoder = LZDecoder(diffed.data)
                         let updateDecoder = try YUpdateDecoderV2(decoder)
                         _ = try updateDecoder.readClientsStructRefs(doc: Doc())
-                        let ds = try DeleteSet.decode(decoder: updateDecoder)
+                        let ds = try YDeleteSet.decode(decoder: updateDecoder)
                         let updateEncoder = YUpdateEncoderV2()
                         updateEncoder.restEncoder.writeUInt(0) // 0 structs
                         try ds.encode(into: updateEncoder)

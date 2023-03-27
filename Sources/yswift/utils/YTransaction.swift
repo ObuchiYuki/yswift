@@ -16,8 +16,23 @@ func anyMap<K, V>(_ m: [K: V], _ f: (K, V) -> Bool) -> Bool {
     return false
 }
 
+func callAll(_ fs: RefArray<() throws -> Void>) throws {
+    var handleError: Error?
+    var i = 0; while i < fs.count {
+        do {
+            try fs[i]()
+        } catch {
+            handleError = error
+        }
+        i += 1
+    }
+    if let handleError = handleError {
+        throw handleError
+    }
+}
 
-public class Transaction {
+
+final public class YTransaction {
 
     public let doc: Doc
     
@@ -25,7 +40,7 @@ public class Transaction {
     
     public let origin: Any?
     
-    public var deleteSet: DeleteSet = DeleteSet()
+    public var deleteSet: YDeleteSet = YDeleteSet()
     
     public var beforeState: [Int: Int] = [:]
 
@@ -37,22 +52,20 @@ public class Transaction {
 
     public var meta: [AnyHashable: Any] = [:]
 
-
-
     public var subdocsAdded: Set<Doc> = Set()
     public var subdocsRemoved: Set<Doc> = Set()
     public var subdocsLoaded: Set<Doc> = Set()
     
-    var _mergeStructs: Ref<[YStruct]> = Ref(value: [])
+    var _mergeStructs: RefArray<YStruct> = []
 
-    public init(_ doc: Doc, origin: Any?, local: Bool) {
+    init(_ doc: Doc, origin: Any?, local: Bool) {
         self.doc = doc
         self.beforeState = doc.store.getStateVector()
         self.origin = origin
         self.local = local
     }
 
-    public func encodeUpdateMessage(_ encoder: YUpdateEncoder) throws -> Bool {
+    func encodeUpdateMessage(_ encoder: YUpdateEncoder) throws -> Bool {
         let hasContent = anyMap(self.afterState, { client, clock in
             self.beforeState[client] != clock
         })
@@ -66,12 +79,12 @@ public class Transaction {
         return true
     }
 
-    public func nextID() -> ID {
+    func nextID() -> ID {
         let y = self.doc
         return ID(client: y.clientID, clock: y.store.getState(y.clientID))
     }
 
-    public func addChangedType(_ type: YObject, parentSub: String?) {
+    func addChangedType(_ type: YObject, parentSub: String?) {
         let item = type.item
         if item == nil || (item!.id.clock < (self.beforeState[item!.id.client] ?? 0) && !item!.deleted) {
             var changed = self.changed[type] ?? Set<String?>() => {
@@ -82,7 +95,7 @@ public class Transaction {
         }
     }
 
-    static public func cleanup(_ transactions: Ref<[Transaction]>, i: Int) throws {
+    static func cleanup(_ transactions: RefArray<YTransaction>, i: Int) throws {
         if i >= transactions.count { return }
     
         let transaction = transactions[i]
@@ -173,10 +186,10 @@ public class Transaction {
             }
 
             if transactions.count <= i + 1 {
-                doc._transactionCleanups = .init(value: [])
+                doc._transactionCleanups = []
                 try doc.emit(Doc.On.afterAllTransactions, transactions.map{ $0 })
             } else {
-                try Transaction.cleanup(transactions, i: i + 1)
+                try YTransaction.cleanup(transactions, i: i + 1)
             }
         }
         
@@ -185,7 +198,7 @@ public class Transaction {
             transaction.afterState = transaction.doc.store.getStateVector()
             try doc.emit(Doc.On.beforeObserverCalls, transaction)
             
-            var fs: [() throws -> Void] = []
+            let fs: RefArray<() throws -> Void> = []
             
             transaction.changed.forEach{ (itemtype: YObject, subs: Set<String?>) in
                 fs.append{
@@ -211,7 +224,7 @@ public class Transaction {
                             events
                                 .sort{ event1, event2 in event1.path.count < event2.path.count }
                             
-                            try type._deepEventHandler.callListeners(events, transaction)
+                            try type._deepEventHandler.callListeners((events: events, transaction))
                         }
                     }
                 }
@@ -222,18 +235,7 @@ public class Transaction {
             })
 
             // callAll
-            var handleError: Error?
-            var i = 0; while i < fs.count {
-                do {
-                    try fs[i]()
-                } catch {
-                    handleError = error
-                }
-                i += 1
-            }
-            if let handleError = handleError {
-                throw handleError
-            }
+            try callAll(fs)
         } catch {
             try defering()
             throw error
@@ -244,13 +246,13 @@ public class Transaction {
     
 
     /** Implements the functionality of `y.transact(()->{..})` */
-    static public func transact(_ doc: Doc, origin: Any? = nil, local: Bool = true, _ body: (Transaction) throws -> Void) throws {
+    static func transact(_ doc: Doc, origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) throws {
         
         var initialCall = false
         
         if doc._transaction == nil {
             initialCall = true
-            doc._transaction = Transaction(doc, origin: origin, local: local)
+            doc._transaction = YTransaction(doc, origin: origin, local: local)
             doc._transactionCleanups.value.append(doc._transaction!)
                         
             if doc._transactionCleanups.count == 1 {
@@ -264,7 +266,7 @@ public class Transaction {
                 let finishCleanup = doc._transaction === doc._transactionCleanups[0]
                 doc._transaction = nil
                 if finishCleanup {
-                    try Transaction.cleanup(doc._transactionCleanups, i: 0)
+                    try YTransaction.cleanup(doc._transactionCleanups, i: 0)
                 }
             }
         }

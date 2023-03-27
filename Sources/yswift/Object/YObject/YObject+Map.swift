@@ -8,11 +8,11 @@
 import Foundation
 
 extension YObject {
-    func mapDelete(_ transaction: Transaction, key: String) {
+    func mapDelete(_ transaction: YTransaction, key: String) {
         self.storage[key]?.delete(transaction)
     }
 
-    func mapSet(_ transaction: Transaction, key: String, value: Any?) throws {
+    func mapSet(_ transaction: YTransaction, key: String, value: Any?) throws {
         let left = self.storage[key]
         let doc = transaction.doc
         let ownClientId = doc.clientID

@@ -9,9 +9,9 @@ import Foundation
 
 final public class YDecodedUpdate {
     var structs: [YStruct]
-    var deleteSets: DeleteSet
+    var deleteSets: YDeleteSet
     
-    init(structs: [YStruct], deleteSets: DeleteSet) {
+    init(structs: [YStruct], deleteSets: YDeleteSet) {
         self.structs = structs
         self.deleteSets = deleteSets
     }
@@ -27,7 +27,7 @@ final public class YDecodedUpdate {
         }
         
         self.structs = structs
-        self.deleteSets = try DeleteSet.decode(decoder: updateDecoder)
+        self.deleteSets = try YDeleteSet.decode(decoder: updateDecoder)
     }
 }
 

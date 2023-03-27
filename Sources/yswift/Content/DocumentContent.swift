@@ -37,7 +37,7 @@ extension DocumentContent {
 
     func merge(with right: Content) -> Bool { return false }
 
-    func integrate(with item: YItem, _ transaction: Transaction) {
+    func integrate(with item: YItem, _ transaction: YTransaction) {
         self.document._item = item
         transaction.subdocsAdded.insert(self.document)
         if self.document.shouldLoad {
@@ -45,7 +45,7 @@ extension DocumentContent {
         }
     }
 
-    func delete(_ transaction: Transaction) {
+    func delete(_ transaction: YTransaction) {
         if transaction.subdocsAdded.contains(self.document) {
             transaction.subdocsAdded.remove(self.document)
         } else {

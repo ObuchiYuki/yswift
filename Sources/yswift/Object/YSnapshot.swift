@@ -8,26 +8,26 @@
 import Foundation
 
 final public class YSnapshot: JSHashable {
-    public var deleteSet: DeleteSet
+    public var deleteSet: YDeleteSet
     public var stateVectors: [Int: Int]
 
-    public init(deleteSet: DeleteSet, stateVectors: [Int: Int]) {
+    public init(deleteSet: YDeleteSet, stateVectors: [Int: Int]) {
         self.deleteSet =  deleteSet
         self.stateVectors = stateVectors
     }
     
     public convenience init() {
-        self.init(deleteSet: DeleteSet(), stateVectors: [:])
+        self.init(deleteSet: YDeleteSet(), stateVectors: [:])
     }
     
     public convenience init(doc: Doc) {
         self.init(
-            deleteSet: DeleteSet.createFromStructStore(doc.store),
+            deleteSet: YDeleteSet.createFromStructStore(doc.store),
             stateVectors: doc.store.getStateVector()
         )
     }
    
-    public func splitAffectedStructs(_ transaction: Transaction) throws {
+    public func splitAffectedStructs(_ transaction: YTransaction) throws {
         enum __ { static let marker = UUID() }
         
         var meta = transaction.meta.setIfUndefined(__.marker, Set<AnyHashable>()) as! Set<AnyHashable>
@@ -61,7 +61,7 @@ final public class YSnapshot: JSHashable {
                 if clock < originDoc.store.getState(client) {
                     try StructStore.getItemCleanStart(transaction, id: ID(client: client, clock: clock))
                 }
-                let structs = originDoc.store.clients[client] ?? .init(value: [])
+                let structs = originDoc.store.clients[client] ?? []
                 let lastStructIndex = try StructStore.findIndexSS(structs: structs, clock: clock - 1)
                 // write # encoded structs
                 encoder.restEncoder.writeUInt(UInt(lastStructIndex + 1))
@@ -97,7 +97,7 @@ extension YSnapshot {
     static public func decodeV2(_ buf: Data, decoder: YDeleteSetDecoder? = nil) throws -> YSnapshot {
         let decoder = try decoder ?? YDeleteSetDecoderV2(LZDecoder(buf))
         return YSnapshot(
-            deleteSet: try DeleteSet.decode(decoder: decoder),
+            deleteSet: try YDeleteSet.decode(decoder: decoder),
             stateVectors: try decoder.readStateVector()
         )
     }
@@ -119,7 +119,7 @@ extension YSnapshot: Equatable {
         for (key, value) in sv1 where sv2[key] != value { return false }
         
         for (client, dsitems1) in ds1 {
-            let dsitems2 = ds2[client] ?? Ref(value: [])
+            let dsitems2 = ds2[client] ?? []
             if dsitems1.count != dsitems2.count { return false }
             
             for i in 0..<dsitems1.count {

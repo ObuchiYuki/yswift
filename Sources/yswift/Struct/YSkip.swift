@@ -18,7 +18,7 @@ final class YSkip: YStruct {
         return true
     }
 
-    override func integrate(transaction: Transaction, offset: Int) throws {
+    override func integrate(transaction: YTransaction, offset: Int) throws {
         throw YSwiftError.unexpectedCase
     }
 

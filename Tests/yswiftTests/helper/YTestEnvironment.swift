@@ -13,7 +13,7 @@ struct YTestEnvironment {
     let mergeUpdates: ([YUpdate]) throws -> YUpdate
     let applyUpdate: (Doc, YUpdate, Any?) throws -> Void
     let logUpdate: (YUpdate) -> Void
-    let updateEventName: Doc.EventName<(update: YUpdate, origin: Any?, Transaction)>
+    let updateEventName: Doc.EventName<(update: YUpdate, origin: Any?, YTransaction)>
     let diffUpdate: (YUpdate, Data) throws -> YUpdate
         
     private static let v1 = YTestEnvironment(

@@ -60,12 +60,12 @@ func followRedone(store: StructStore, id: ID) throws -> StructRedone {
 }
 
 public class StackItem {
-    public var deletions: DeleteSet
-    public var insertions: DeleteSet
+    public var deletions: YDeleteSet
+    public var insertions: YDeleteSet
 
     public var meta: [String: Any]
 
-    public init(_ deletions: DeleteSet, insertions: DeleteSet) {
+    public init(_ deletions: YDeleteSet, insertions: YDeleteSet) {
         self.insertions = insertions
         self.deletions = deletions
         self.meta = [:]
@@ -104,7 +104,7 @@ extension UndoManager {
     public struct Options {
         init(
             captureTimeout: TimeInterval = 500,
-            captureTransaction: @escaping ((Transaction) -> Bool) = {_ in true },
+            captureTransaction: @escaping ((YTransaction) -> Bool) = {_ in true },
 //            deleteFilter: @escaping ((Item) -> Bool) = {_ in true},
             trackedOrigins: Ref<Set<AnyHashable?>> = Ref(value: [nil as UInt8?]),
             ignoreRemoteMapChanges: Bool = false,
@@ -119,7 +119,7 @@ extension UndoManager {
         }
         
         var captureTimeout: TimeInterval
-        var captureTransaction: ((Transaction) -> Bool)
+        var captureTransaction: ((YTransaction) -> Bool)
         var deleteFilter: ((YItem) -> Bool) = {_ in true }
         var trackedOrigins: Ref<Set<AnyHashable?>>
         var ignoreRemoteMapChanges: Bool
@@ -147,7 +147,7 @@ final public class UndoManager: LZObservable, JSHashable {
     private var scope: Ref<[YObject]> = .init(value: [])
     private var deleteFilter: (YItem) -> Bool
     private var trackedOrigins: Ref<Set<AnyHashable?>>
-    private var captureTransaction: (Transaction) -> Bool
+    private var captureTransaction: (YTransaction) -> Bool
     private var undoStack: Ref<[StackItem]>
     private var redoStack: Ref<[StackItem]>
     
@@ -196,7 +196,7 @@ final public class UndoManager: LZObservable, JSHashable {
                 // neither undoing nor redoing: delete redoStack
                 try self.clear(false, clearRedoStack: true)
             }
-            let insertions = DeleteSet()
+            let insertions = YDeleteSet()
             transaction.afterState.forEach({ client, endClock in
                 let startClock = transaction.beforeState[client] ?? 0
                 let len = endClock - startClock
@@ -212,8 +212,8 @@ final public class UndoManager: LZObservable, JSHashable {
                 && !undoing && !redoing {
                 // append change to last stack op
                 let lastOp = stack[stack.count - 1]
-                lastOp.deletions = DeleteSet.mergeAll([lastOp.deletions, transaction.deleteSet])
-                lastOp.insertions = DeleteSet.mergeAll([lastOp.insertions, insertions])
+                lastOp.deletions = YDeleteSet.mergeAll([lastOp.deletions, transaction.deleteSet])
+                lastOp.insertions = YDeleteSet.mergeAll([lastOp.insertions, insertions])
             } else {
                 // create a stack op
                 stack.value.append(StackItem(transaction.deleteSet, insertions: insertions))
@@ -249,7 +249,7 @@ final public class UndoManager: LZObservable, JSHashable {
     }
 
 
-    public func clearStackItem(_ tr: Transaction, stackItem: StackItem) throws {
+    public func clearStackItem(_ tr: YTransaction, stackItem: StackItem) throws {
         try stackItem.deletions.iterate(tr) { item in
             if item is YItem && self.scope.contains(where: { type in type.isParentOf(child: (item as! YItem)) }) {
                 (item as? YItem)?.keepRecursive(keep: false)
@@ -262,7 +262,7 @@ final public class UndoManager: LZObservable, JSHashable {
         /** Whether a change happened */
         var result: StackItem? = nil
         /** Keep a reference to the transaction so we can fire the event with the changedParentTypes */
-        var _tr: Transaction? = nil
+        var _tr: YTransaction? = nil
         let doc = self.doc
         let scope = self.scope
         

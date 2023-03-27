@@ -136,7 +136,7 @@ extension YObject {
         return nil
     }
 
-    func listInsert(_ contents: [Any?], after referenceItem: YItem?, _ transaction: Transaction) throws {
+    func listInsert(_ contents: [Any?], after referenceItem: YItem?, _ transaction: YTransaction) throws {
         var left = referenceItem
         let doc = transaction.doc
         let ownClientId = doc.clientID
@@ -191,7 +191,7 @@ extension YObject {
     }
 
     // this -> parent
-    public func listInsert(_ contents: [Any?], at index: Int, _ transaction: Transaction) throws {
+    public func listInsert(_ contents: [Any?], at index: Int, _ transaction: YTransaction) throws {
         var index = index
         if index > self._length { throw YSwiftError.lengthExceeded }
 
@@ -237,7 +237,7 @@ extension YObject {
         return try self.listInsert(contents, after: n, transaction)
     }
     
-    public func listPush(_ contents: [Any?], _ transaction: Transaction) throws {
+    public func listPush(_ contents: [Any?], _ transaction: YTransaction) throws {
         let marker = (self.serchMarkers ?? [])
             .reduce(YArraySearchMarker(item: self._start, index: 0)) { maxMarker, currMarker in
                 return currMarker.index > maxMarker.index ? currMarker : maxMarker
@@ -249,7 +249,7 @@ extension YObject {
     }
 
 
-    public func listDelete(at index: Int, count: Int, _ transaction: Transaction) throws {
+    public func listDelete(at index: Int, count: Int, _ transaction: YTransaction) throws {
         var index = index, length = count
         
         if length == 0 { return }

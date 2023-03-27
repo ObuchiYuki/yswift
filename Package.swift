@@ -14,6 +14,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "yswift", dependencies: [.product(name: "Promise", package: "Promise")]),
-        .testTarget(name: "yswiftTests", dependencies: ["yswift"]),
+        .testTarget(name: "yswiftTests", dependencies: ["yswift"])
     ]
 )

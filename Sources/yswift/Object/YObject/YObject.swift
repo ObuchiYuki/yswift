@@ -24,8 +24,8 @@ public class YObject: JSHashable {
     var _start: YItem? = nil
     var _length: Int = 0
     
-    let _eventHandler: EventHandler<YEvent, Transaction> = EventHandler()
-    let _deepEventHandler: EventHandler<[YEvent], Transaction> = EventHandler()
+    let _eventHandler: YEventHandler<(event: YEvent, YTransaction)> = YEventHandler()
+    let _deepEventHandler: YEventHandler<(events: [YEvent], YTransaction)> = YEventHandler()
 
     var _first: YItem? {
         var item = self._start
@@ -64,7 +64,7 @@ public class YObject: JSHashable {
         return false
     }
 
-    func callObservers(transaction: Transaction, event: YEvent) throws {
+    func callObservers(transaction: YTransaction, event: YEvent) throws {
         var type = self
         let changedType = type
         
@@ -75,7 +75,7 @@ public class YObject: JSHashable {
             type = object
         }
         
-        try changedType._eventHandler.callListeners(event, transaction)
+        try changedType._eventHandler.callListeners((event, transaction))
     }
 
     // =========================================================================== //
@@ -88,7 +88,7 @@ public class YObject: JSHashable {
 
     func _write(_ _encoder: YUpdateEncoder) {}
 
-    func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
+    func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) throws {
         if !transaction.local && self.serchMarkers != nil {
             self.serchMarkers!.value.removeAll()
         }
@@ -96,23 +96,23 @@ public class YObject: JSHashable {
 
     /** Observe all events that are created on this type. */
     @discardableResult
-    public func observe(_ f: @escaping (YEvent, Transaction) throws -> Void) -> EventHandler.Disposer {
+    public func observe(_ f: @escaping (YEvent, YTransaction) throws -> Void) -> UUID {
         self._eventHandler.addListener(f)
     }
 
     /** Observe all events that are created by this type and its children. */
     @discardableResult
-    public func observeDeep(_ f: @escaping ([YEvent], Transaction) throws -> Void) -> EventHandler.Disposer {
+    public func observeDeep(_ f: @escaping ([YEvent], YTransaction) throws -> Void) -> UUID {
         self._deepEventHandler.addListener(f)
     }
 
     /** Unregister an observer function. */
-    public func unobserve(_ disposer: EventHandler.Disposer) {
+    public func unobserve(_ disposer: UUID) {
         self._eventHandler.removeListener(disposer)
     }
 
     /** Unregister an observer function. */
-    public func unobserveDeep(_ disposer: EventHandler.Disposer) {
+    public func unobserveDeep(_ disposer: UUID) {
         self._deepEventHandler.removeListener(disposer)
     }
 

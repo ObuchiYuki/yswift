@@ -20,9 +20,9 @@ class YStruct {
 
     func encode(into encoder: any YUpdateEncoder, offset: Int) throws { fatalError() }
 
-    func integrate(transaction: Transaction, offset: Int) throws -> Void { fatalError() }
+    func integrate(transaction: YTransaction, offset: Int) throws -> Void { fatalError() }
     
-    func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? { nil }
+    func getMissing(_ transaction: YTransaction, store: StructStore) throws -> Int? { nil }
 }
 
 extension YStruct {
@@ -52,7 +52,7 @@ extension YStruct {
         }
     }
 
-    static func tryMerge(withLeft structs: Ref<[YStruct]>, pos: Int) {
+    static func tryMerge(withLeft structs: RefArray<YStruct>, pos: Int) {
         let left = structs[pos - 1]
         let right = structs[pos]
         

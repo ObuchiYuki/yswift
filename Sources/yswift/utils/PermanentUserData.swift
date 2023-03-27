@@ -12,13 +12,13 @@ public class PermanentUserData {
     public var yusers: YMap // YMap<YMap<Any>> ...may be
     public var doc: Doc
     public var clients: [Int: String]
-    var dss: [String: DeleteSet]
+    var dss: [String: YDeleteSet]
 
     public init(doc: Doc, storeType: YMap?) throws {
         self.yusers = try storeType ?? doc.getMap("users")
         self.doc = doc
         self.clients = [:]
-        self.dss = [String: DeleteSet]()
+        self.dss = [String: YDeleteSet]()
         
         func initUser(user: YMap, userDescription: String) throws {
             let ds = user["ds"] as! YArray // <Data>
@@ -31,18 +31,18 @@ public class PermanentUserData {
                 try event.changes().added.forEach({ item in
                     try item.content.values.forEach({ encodedDs in
                         if encodedDs is Data {
-                            self.dss[userDescription] = DeleteSet.mergeAll([
-                                self.dss[userDescription] ?? DeleteSet(),
-                                try DeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(encodedDs as! Data)))
+                            self.dss[userDescription] = YDeleteSet.mergeAll([
+                                self.dss[userDescription] ?? YDeleteSet(),
+                                try YDeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(encodedDs as! Data)))
                             ])
                         }
                     })
                 })
             }
             
-            self.dss[userDescription] = DeleteSet.mergeAll(
+            self.dss[userDescription] = YDeleteSet.mergeAll(
                 try ds.map{ data in
-                    try DeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(data as! Data)))
+                    try YDeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(data as! Data)))
                 }
             )
             
@@ -77,7 +77,7 @@ public class PermanentUserData {
      * @param {Object} conf
      * @param {function(Transaction, DeleteSet):Bool} [conf.filter]
      */
-    public func setUserMapping(doc: Doc, clientid: Int, userDescription: String, filter: @escaping (Transaction, DeleteSet) -> Bool = {_, _ in true }) throws {
+    public func setUserMapping(doc: Doc, clientid: Int, userDescription: String, filter: @escaping (YTransaction, YDeleteSet) -> Bool = {_, _ in true }) throws {
         let users = self.yusers
         var user = users[userDescription] as? YMap
         

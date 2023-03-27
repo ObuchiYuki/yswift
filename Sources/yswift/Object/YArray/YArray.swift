@@ -8,9 +8,9 @@
 import Foundation
 
 final class YArrayEvent: YEvent {
-    var _transaction: Transaction
+    var _transaction: YTransaction
 
-    init(_ yarray: YArray, transaction: Transaction) {
+    init(_ yarray: YArray, transaction: YTransaction) {
         self._transaction = transaction
         super.init(yarray, transaction: transaction)
     }
@@ -90,7 +90,7 @@ final public class YArray: YObject {
 
     override func _copy() -> YArray { return YArray() }
 
-    override func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
+    override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) throws {
         try super._callObserver(transaction, _parentSubs: _parentSubs)
         try self.callObservers(transaction: transaction, event: YArrayEvent(self, transaction: transaction))
     }

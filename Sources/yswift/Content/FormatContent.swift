@@ -32,11 +32,11 @@ extension FormatContent {
 
     func merge(with right: Content) -> Bool { false }
 
-    func integrate(with item: YItem, _ transaction: Transaction) {
+    func integrate(with item: YItem, _ transaction: YTransaction) {
         item.parent?.object?.serchMarkers = nil
     }
 
-    func delete(_ transaction: Transaction) {}
+    func delete(_ transaction: YTransaction) {}
     
     func gc(_ store: StructStore) {}
     

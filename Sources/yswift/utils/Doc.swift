@@ -58,8 +58,8 @@ open class Doc: LZObservable, JSHashable {
     public var whenSynced: Promise<Void, Never>!
     
     var _item: YItem?
-    var _transaction: Transaction?
-    var _transactionCleanups: Ref<[Transaction]>
+    var _transaction: YTransaction?
+    var _transactionCleanups: RefArray<YTransaction>
 
     public init(opts: DocOpts = .init()) {
         
@@ -71,7 +71,7 @@ open class Doc: LZObservable, JSHashable {
         self.share = [:]
         self.store = StructStore()
         self._transaction = nil
-        self._transactionCleanups = .init(value: [])
+        self._transactionCleanups = []
         self.subdocs = Set()
         self._item = nil
         self.shouldLoad = opts.shouldLoad
@@ -137,8 +137,8 @@ open class Doc: LZObservable, JSHashable {
         
     }
 
-    public func transact(origin: Any? = nil, local: Bool = true, _ body: (Transaction) throws -> Void) throws {
-        try Transaction.transact(self, origin: origin, local: local, body)
+    public func transact(origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) throws {
+        try YTransaction.transact(self, origin: origin, local: local, body)
     }
 
     // JS実装では TypeConstructor なしで呼び出すとObjectを作った
@@ -243,20 +243,20 @@ extension Doc {
         public static let destroy = Doc.EventName<Void>("destroy")
         public static let destroyed = Doc.EventName<Bool>("destroyed")
         
-        public static let update = Doc.EventName<(update: YUpdate, origin: Any?, Transaction)>("update")
-        public static let updateV2 = Doc.EventName<(update: YUpdate, origin: Any?, Transaction)>("updateV2")
+        public static let update = Doc.EventName<(update: YUpdate, origin: Any?, YTransaction)>("update")
+        public static let updateV2 = Doc.EventName<(update: YUpdate, origin: Any?, YTransaction)>("updateV2")
         
-        public static let subdocs = Doc.EventName<(SubDocEvent, Transaction)>("subdocs")
+        public static let subdocs = Doc.EventName<(SubDocEvent, YTransaction)>("subdocs")
         
-        public static let beforeObserverCalls = Doc.EventName<Transaction>("beforeObserverCalls")
+        public static let beforeObserverCalls = Doc.EventName<YTransaction>("beforeObserverCalls")
         
-        public static let beforeTransaction = Doc.EventName<Transaction>("beforeTransaction")
-        public static let afterTransaction = Doc.EventName<Transaction>("afterTransaction")
+        public static let beforeTransaction = Doc.EventName<YTransaction>("beforeTransaction")
+        public static let afterTransaction = Doc.EventName<YTransaction>("afterTransaction")
                         
         public static let beforeAllTransactions = Doc.EventName<Void>("beforeAllTransactions")
-        public static let afterAllTransactions = Doc.EventName<[Transaction]>("afterAllTransactions")
+        public static let afterAllTransactions = Doc.EventName<[YTransaction]>("afterAllTransactions")
         
-        public static let afterTransactionCleanup = Doc.EventName<Transaction>("afterTransactionCleanup")
+        public static let afterTransactionCleanup = Doc.EventName<YTransaction>("afterTransactionCleanup")
     
 
         public struct SubDocEvent {

@@ -11,13 +11,13 @@ import Foundation
 public class YEvent {
     public var target: YObject // T
     public var currentTarget: YObject
-    public var transaction: Transaction
+    public var transaction: YTransaction
     
     var _changes: YEventChange? = nil
     var _keys: [String: YEventKey]? = nil
     var _delta: [YEventDelta]? = nil
 
-    init(_ target: YObject, transaction: Transaction) {
+    init(_ target: YObject, transaction: YTransaction) {
         self.target = target
         self.currentTarget = target
         self.transaction = transaction

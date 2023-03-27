@@ -21,7 +21,7 @@ class PendingStrcut: CustomStringConvertible {
 }
 
 final public class StructStore {
-    var clients: [Int: Ref<[YStruct]>] = [:]
+    var clients: [Int: RefArray<YStruct>] = [:]
     var pendingStructs: PendingStrcut? = nil
     var pendingDs: YUpdate? = nil
 
@@ -61,7 +61,7 @@ final public class StructStore {
     func addStruct(_ struct_: YStruct) throws {
         var structs = self.clients[struct_.id.client]
         if structs == nil {
-            structs = .init(value: [])
+            structs = []
             self.clients[struct_.id.client] = structs
         } else {
             let lastStruct = structs![structs!.count - 1]
@@ -87,7 +87,7 @@ final public class StructStore {
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
     @discardableResult
-    static func getItemCleanStart(_ transaction: Transaction, id: ID) throws -> YItem {
+    static func getItemCleanStart(_ transaction: YTransaction, id: ID) throws -> YItem {
         let index = try self.findIndexCleanStart(
             transaction: transaction,
             structs: transaction.doc.store.clients[id.client]!,
@@ -98,7 +98,7 @@ final public class StructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func getItemCleanEnd(_ transaction: Transaction, id: ID) throws -> YStruct {
+    func getItemCleanEnd(_ transaction: YTransaction, id: ID) throws -> YStruct {
         let structs = self.clients[id.client]!
         
         let index = try StructStore.findIndexSS(structs: structs, clock: id.clock)
@@ -118,7 +118,7 @@ final public class StructStore {
     }
 
     /** Iterate over a range of structs */
-    static func iterateStructs(transaction: Transaction, structs: Ref<[YStruct]>, clockStart: Int, len: Int, f: (YStruct) throws -> Void) throws {
+    static func iterateStructs(transaction: YTransaction, structs: RefArray<YStruct>, clockStart: Int, len: Int, f: (YStruct) throws -> Void) throws {
         if len == 0 { return }
         let clockEnd = clockStart + len
         var index = try self.findIndexCleanStart(transaction: transaction, structs: structs, clock: clockStart)
@@ -135,7 +135,7 @@ final public class StructStore {
 
 
     /** Perform a binary search on a sorted array */
-    static func findIndexSS(structs: Ref<[YStruct]>, clock: Int) throws -> Int {
+    static func findIndexSS(structs: RefArray<YStruct>, clock: Int) throws -> Int {
         var left = 0
         var right = structs.count - 1
         var mid = structs[right]
@@ -165,7 +165,7 @@ final public class StructStore {
         throw YSwiftError.unexpectedCase
     }
 
-    static func findIndexCleanStart(transaction: Transaction, structs: Ref<[YStruct]>, clock: Int) throws -> Int {
+    static func findIndexCleanStart(transaction: YTransaction, structs: RefArray<YStruct>, clock: Int) throws -> Int {
         let index = try StructStore.findIndexSS(structs: structs, clock: clock)
         let struct_ = structs[index]
         if struct_.id.clock < clock && struct_ is YItem {
@@ -178,7 +178,7 @@ final public class StructStore {
 }
 
 extension StructStore {
-    func integrateStructs(transaction: Transaction, clientsStructRefs: Ref<[Int: StructRef]>) throws -> PendingStrcut? {
+    func integrateStructs(transaction: YTransaction, clientsStructRefs: RefDictionary<Int, StructRef>) throws -> PendingStrcut? {
         let store = self
         
         var stack: [YStruct] = []
@@ -228,15 +228,13 @@ extension StructStore {
                 if unapplicableItems != nil {
                     // decrement because we weren't able to apply previous operation
                     unapplicableItems!.i -= 1
-                    restStructs.clients[client] = Ref(
-                        value: unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! }
-                    )
+                    restStructs.clients[client] = .init(unapplicableItems!.refs[unapplicableItems!.i...].map{ $0! })
                     clientsStructRefs.value.removeValue(forKey: client)
                     unapplicableItems!.i = 0
                     unapplicableItems!.refs = []
                 } else {
                     // item was the last item on clientsStructRefs and the field was already cleared. Add item to restStructs and continue
-                    restStructs.clients[client] = .init(value: [item])
+                    restStructs.clients[client] = .init([item])
                 }
                 // remove client from clientsStructRefsIds to prevent users from applying the same update again
                 clientsStructRefsIds = clientsStructRefsIds.filter{ $0 != client }

@@ -97,7 +97,7 @@ final class YItem: YStruct, JSHashable {
     // =========================================================================== //
     // MARK: - Methods -
     
-    override func getMissing(_ transaction: Transaction, store: StructStore) throws -> Int? {
+    override func getMissing(_ transaction: YTransaction, store: StructStore) throws -> Int? {
         if let origin = self.origin, origin.client != self.id.client, origin.clock >= store.getState(origin.client) {
             return origin.client
         }
@@ -141,7 +141,7 @@ final class YItem: YStruct, JSHashable {
         return nil
     }
 
-    override func integrate(transaction: Transaction, offset: Int) throws {
+    override func integrate(transaction: YTransaction, offset: Int) throws {
         if offset > 0 {
             self.id.clock += offset
             self.left = try transaction.doc.store.getItemCleanEnd(
@@ -333,7 +333,7 @@ final class YItem: YStruct, JSHashable {
 
 extension YItem {
     /** Mark this Item as deleted. */
-    func delete(_ transaction: Transaction) {
+    func delete(_ transaction: YTransaction) {
         guard !self.deleted, let parent = self.parent?.object else { return }
         
         // adjust the length of parent
@@ -378,7 +378,7 @@ extension YItem {
     }
 
     /// Split leftItem into two items; this -> leftItem
-    func split(_ transaction: Transaction, diff: Int) -> YItem {
+    func split(_ transaction: YTransaction, diff: Int) -> YItem {
         let client = self.id.client, clock = self.id.clock
         
         let rightItem = YItem(
@@ -408,7 +408,7 @@ extension YItem {
         return rightItem
     }
 
-    func redo(_ transaction: Transaction, redoitems: Set<YItem>, itemsToDelete: DeleteSet, ignoreRemoteMapChanges: Bool) throws -> YItem? {
+    func redo(_ transaction: YTransaction, redoitems: Set<YItem>, itemsToDelete: YDeleteSet, ignoreRemoteMapChanges: Bool) throws -> YItem? {
         if let redone = self.redone { return try StructStore.getItemCleanStart(transaction, id: redone) }
         
         let doc = transaction.doc

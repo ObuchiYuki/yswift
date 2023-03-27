@@ -9,12 +9,8 @@ import Foundation
 
 /// structを参照型にするため
 public final class Ref<T> {
-    #if DEBUG
-    @Observable public var value: T
-    #else
     public var value: T
-    #endif
-
+    
     public init(value: T) {
         self.value = value
     }
@@ -139,15 +135,6 @@ extension Ref: Comparable where T: Comparable {
         lhs.value < rhs.value
     }
 }
-
-//extension Ref: RangeReplaceableCollection where T: RangeReplaceableCollection {
-//    public convenience init() {
-//        self.init(value: T())
-//    }
-//    public func append(_ newElement: T.Element) {
-//        self.value.append(newElement)
-//    }
-//}
 
 extension Ref: DataProtocol where T: DataProtocol {
     public typealias Regions = T.Regions

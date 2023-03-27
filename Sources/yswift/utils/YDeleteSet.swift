@@ -7,20 +7,18 @@
 
 import Foundation
 
-public class DeleteItem: CustomStringConvertible {
+final public class YDeleteItem: CustomStringConvertible {
     public let clock: Int
     public var len: Int
     
-    public init(clock: Int, len: Int) {
+    init(clock: Int, len: Int) {
         self.clock = clock
         self.len = len
     }
     
-    public var description: String {
-        "DeleteItem(clock: \(clock), len: \(len))"
-    }
+    public var description: String { "DeleteItem(clock: \(clock), len: \(len))" }
 
-    static public func findIndex(_ dis: Ref<[DeleteItem]>, clock: Int) -> Int? {
+    static func findIndex(_ dis: RefArray<YDeleteItem>, clock: Int) -> Int? {
         var left = 0
         var right = dis.count - 1
         
@@ -41,10 +39,10 @@ public class DeleteItem: CustomStringConvertible {
     }
 }
 
-public class DeleteSet {
-    public var clients: [Int: Ref<[DeleteItem]>] = [:]
+public class YDeleteSet {
+    var clients: [Int: RefArray<YDeleteItem>] = [:]
 
-    func iterate(_ transaction: Transaction, body: (YStruct) throws -> Void) throws {
+    func iterate(_ transaction: YTransaction, body: (YStruct) throws -> Void) throws {
         
         return try self.clients.forEach{ clientid, deletes in
             for i in 0..<deletes.count {
@@ -60,7 +58,7 @@ public class DeleteSet {
 
     public func isDeleted(_ id: ID) -> Bool {
         let dis = self.clients[id.client]
-        return dis != nil && DeleteItem.findIndex(dis!, clock: id.clock) != nil
+        return dis != nil && YDeleteItem.findIndex(dis!, clock: id.clock) != nil
     }
 
     public func sortAndMerge() {
@@ -85,10 +83,10 @@ public class DeleteSet {
 
     public func add(client: Int, clock: Int, length: Int) {
         if self.clients[client] == nil {
-            self.clients[client] = Ref(value: [])
+            self.clients[client] = []
         }
         
-        self.clients[client]!.value.append(DeleteItem(clock: clock, len: length))
+        self.clients[client]!.value.append(YDeleteItem(clock: clock, len: length))
     }
     
     public func encode(into encoder: any YDeleteSetEncoder) throws {
@@ -164,14 +162,14 @@ public class DeleteSet {
         try self.tryMerge(store)
     }
     
-    static func mergeAll(_ dss: [DeleteSet]) -> DeleteSet {
-        let merged = DeleteSet()
+    static func mergeAll(_ dss: [YDeleteSet]) -> YDeleteSet {
+        let merged = YDeleteSet()
         
         for dssI in 0..<dss.count {
             dss[dssI].clients.forEachMutating({ client, delsLeft in
                 if merged.clients[client] == nil {
                     for i in dssI+1..<dss.count {
-                        delsLeft.value += dss[i].clients[client] ?? Ref(value: [])
+                        delsLeft.value += dss[i].clients[client] ?? []
                     }
                     merged.clients[client] = delsLeft
                 }
@@ -181,8 +179,8 @@ public class DeleteSet {
         return merged
     }
 
-    static func decode(decoder: YDeleteSetDecoder) throws -> DeleteSet {
-        let ds = DeleteSet()
+    static func decode(decoder: YDeleteSetDecoder) throws -> YDeleteSet {
+        let ds = YDeleteSet()
         let numClients = try decoder.restDecoder.readUInt()
         
         for _ in 0..<numClients {
@@ -190,10 +188,10 @@ public class DeleteSet {
             let client = try Int(decoder.restDecoder.readUInt())
             let IntOfDeletes = try decoder.restDecoder.readUInt()
             if IntOfDeletes > 0 {
-                if ds.clients[client] == nil { ds.clients[client] = Ref(value: []) }
+                if ds.clients[client] == nil { ds.clients[client] = [] }
                 
                 for _ in 0..<IntOfDeletes {
-                    ds.clients[client]!.value.append(DeleteItem(
+                    ds.clients[client]!.value.append(YDeleteItem(
                         clock: try decoder.readDeleteSetClock(),
                         len: try decoder.readDeleteSetLen()
                     ))
@@ -203,11 +201,11 @@ public class DeleteSet {
         return ds
     }
     
-    static func createFromStructStore(_ ss: StructStore) -> DeleteSet {
-        let ds = DeleteSet()
+    static func createFromStructStore(_ ss: StructStore) -> YDeleteSet {
+        let ds = YDeleteSet()
         
         for (client, structs) in ss.clients {
-            let dsitems: Ref<[DeleteItem]> = Ref(value: [])
+            let dsitems: RefArray<YDeleteItem> = []
             
             var i = 0; while i < structs.count {
                 let struct_ = structs[i]
@@ -225,7 +223,7 @@ public class DeleteSet {
                         }
                     }
                     
-                    dsitems.value.append(DeleteItem(clock: clock, len: len))
+                    dsitems.value.append(YDeleteItem(clock: clock, len: len))
                 }
                 i += 1
             }
@@ -237,15 +235,15 @@ public class DeleteSet {
         return ds
     }
 
-    static func decodeAndApply(_ decoder: YDeleteSetDecoder, transaction: Transaction, store: StructStore) throws -> YUpdate? {
-        let unappliedDS = DeleteSet()
+    static func decodeAndApply(_ decoder: YDeleteSetDecoder, transaction: YTransaction, store: StructStore) throws -> YUpdate? {
+        let unappliedDS = YDeleteSet()
         let numClients = try decoder.restDecoder.readUInt()
         
         for _ in 0..<numClients {
             decoder.resetDeleteSetValue()
             let client = try Int(decoder.restDecoder.readUInt())
             let numberOfDeletes = try decoder.restDecoder.readUInt()
-            let structs = store.clients[client] ?? .init(value: [])
+            let structs = store.clients[client] ?? []
             let state = store.getState(client)
             
             for _ in 0..<numberOfDeletes {

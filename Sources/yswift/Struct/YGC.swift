@@ -18,7 +18,7 @@ final class YGC: YStruct {
         return true
     }
 
-    override func integrate(transaction: Transaction, offset: Int) throws {
+    override func integrate(transaction: YTransaction, offset: Int) throws {
         if offset > 0 {
             self.id.clock += offset
             self.length -= offset

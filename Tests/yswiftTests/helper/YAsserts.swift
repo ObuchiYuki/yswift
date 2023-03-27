@@ -93,8 +93,8 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
         
         try XCTAssertEqual(docs[i].encodeStateVector(), docs[i+1].encodeStateVector())
         try YAssertEqualDeleteSet(
-            DeleteSet.createFromStructStore(docs[i].store),
-            DeleteSet.createFromStructStore(docs[i+1].store)
+            YDeleteSet.createFromStructStore(docs[i].store),
+            YDeleteSet.createFromStructStore(docs[i+1].store)
         )
         try YAssertEqualStructStore(docs[i].store, docs[i+1].store)
     }
@@ -146,7 +146,7 @@ func YAssertEqualStructStore(_ ss1: StructStore, _ ss2: StructStore) throws {
     }
 }
 
-func YAssertEqualDeleteSet(_ ds1: DeleteSet, _ ds2: DeleteSet) throws {
+func YAssertEqualDeleteSet(_ ds1: YDeleteSet, _ ds2: YDeleteSet) throws {
     XCTAssertEqual(ds1.clients.count, ds2.clients.count)
     
     for (client, deleteItems1) in ds1.clients {

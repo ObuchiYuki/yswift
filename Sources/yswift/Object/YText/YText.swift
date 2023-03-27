@@ -76,7 +76,7 @@ final class ItemTextListPosition {
         self.right = self.right!.right as? YItem
     }
 
-    func findNext(_ transaction: Transaction, count: Int) throws -> ItemTextListPosition {
+    func findNext(_ transaction: YTransaction, count: Int) throws -> ItemTextListPosition {
         var count = count
         
         while (self.right != nil && count > 0) {
@@ -100,7 +100,7 @@ final class ItemTextListPosition {
         return self
     }
 
-    static func find(_ transaction: Transaction, parent: YObject, index: Int) throws -> ItemTextListPosition {
+    static func find(_ transaction: YTransaction, parent: YObject, index: Int) throws -> ItemTextListPosition {
         let currentAttributes: YTextAttributes = [:]
         let marker = YArraySearchMarker.find(parent, index: index)
         
@@ -121,7 +121,7 @@ final class ItemTextListPosition {
 }
 
 func insertNegatedAttributes(
-    transaction: Transaction,
+    transaction: YTransaction,
     parent: YObject,
     currPos: ItemTextListPosition,
     negatedAttributes: YTextAttributes
@@ -195,7 +195,7 @@ func minimizeAttributeChanges(currPos: ItemTextListPosition, attributes: YTextAt
 }
 
 func insertAttributes(
-    transaction: Transaction,
+    transaction: YTransaction,
     parent: YObject,
     currPos: ItemTextListPosition,
     attributes: YTextAttributes
@@ -236,7 +236,7 @@ func insertAttributes(
 
 
 func insertText(
-    transaction: Transaction,
+    transaction: YTransaction,
     parent: YObject,
     currPos: ItemTextListPosition,
     text: YEventDeltaInsertType,
@@ -284,7 +284,7 @@ func insertText(
 }
  
 func formatText(
-    transaction: Transaction,
+    transaction: YTransaction,
     parent: YObject,
     currPos: ItemTextListPosition,
     length: Int,
@@ -369,7 +369,7 @@ func formatText(
 }
 
 func cleanupFormattingGap(
-    transaction: Transaction,
+    transaction: YTransaction,
     start: YItem,
     curr: YItem?,
     startAttributes: YTextAttributes,
@@ -423,7 +423,7 @@ func cleanupFormattingGap(
     return cleanups
 }
 
-func cleanupContextlessFormattingGap(transaction: Transaction, item: YItem?) {
+func cleanupContextlessFormattingGap(transaction: YTransaction, item: YItem?) {
     var item = item // swift add
     // iterate until item.right is nil or content
     while (item != nil && item!.right != nil && (item!.right!.deleted || !(item!.right as! YItem).countable)) {
@@ -470,7 +470,7 @@ func cleanupYTextFormatting(type: YText) throws -> Int {
 }
 
 func deleteText(
-    transaction: Transaction,
+    transaction: YTransaction,
     currPos: ItemTextListPosition,
     length: Int
 ) throws -> ItemTextListPosition {
@@ -521,7 +521,7 @@ final public class YTextEvent: YEvent {
 
     public var keysChanged: Set<String>
 
-    public init(_ ytext: YText, transaction: Transaction, subs: Set<String?>) {
+    public init(_ ytext: YText, transaction: YTransaction, subs: Set<String?>) {
         self.childListChanged = false
         self.keysChanged = Set()
         
@@ -732,7 +732,7 @@ final public class YText: YObject {
         return text
     }
 
-    public override func _callObserver(_ transaction: Transaction, _parentSubs: Set<String?>) throws {
+    public override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) throws {
         try super._callObserver(transaction, _parentSubs: _parentSubs)
         let event = YTextEvent(self, transaction: transaction, subs: _parentSubs)
         let doc = transaction.doc

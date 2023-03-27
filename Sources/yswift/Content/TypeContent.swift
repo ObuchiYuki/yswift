@@ -28,11 +28,11 @@ extension TypeContent {
 
     func merge(with right: Content) -> Bool { false }
 
-    func integrate(with item: YItem, _ transaction: Transaction) throws {
+    func integrate(with item: YItem, _ transaction: YTransaction) throws {
         try self.type._integrate(transaction.doc, item: item)
     }
 
-    func delete(_ transaction: Transaction) {
+    func delete(_ transaction: YTransaction) {
         var item = self.type._start
         while let uitem = item {
             if !uitem.deleted {

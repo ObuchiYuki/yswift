@@ -28,9 +28,9 @@ extension BinaryContent {
 
     func merge(with right: Content) -> Bool { return false }
     
-    func integrate(with item: YItem, _ transaction: Transaction) {}
+    func integrate(with item: YItem, _ transaction: YTransaction) {}
     
-    func delete(_ transaction: Transaction) {}
+    func delete(_ transaction: YTransaction) {}
     
     func gc(_ store: StructStore) {}
     

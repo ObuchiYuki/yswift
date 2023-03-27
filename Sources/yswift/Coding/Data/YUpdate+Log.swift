@@ -26,7 +26,7 @@ extension YUpdate {
                 curr = try lazyDecoder.next()
             }
             print("Structs: \(structs)")
-            let ds = try DeleteSet.decode(decoder: updateDecoder)
+            let ds = try YDeleteSet.decode(decoder: updateDecoder)
             print("DeleteSet: \(ds)")
         } catch {
             print(error)
