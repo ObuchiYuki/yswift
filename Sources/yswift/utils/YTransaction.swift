@@ -87,9 +87,7 @@ final public class YTransaction {
     func addChangedType(_ type: YObject, parentSub: String?) {
         let item = type.item
         if item == nil || (item!.id.clock < (self.beforeState[item!.id.client] ?? 0) && !item!.deleted) {
-            var changed = self.changed[type] ?? Set<String?>() => {
-                self.changed[type] = $0
-            }
+            var changed = self.changed.setIfUndefined(type, Set())
             changed.insert(parentSub)
             self.changed[type] = changed
         }

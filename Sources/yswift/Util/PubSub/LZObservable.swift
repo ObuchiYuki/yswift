@@ -8,7 +8,7 @@
 import Foundation
 import Promise
 
-open class LZObservable {
+public class LZObservable {
     public struct EventName<Arguments> {
         public let name: String
         public init(_ name: String) { self.name = name }

@@ -44,11 +44,11 @@ extension Array {
 }
 
 extension NSRange {
-    public init(from: Int, to: Int) {
+    init(from: Int, to: Int) {
         self.init(location: from, length: to-from)
     }
     
-    public init(_ range: Range<Int>) {
+    init(_ range: Range<Int>) {
         self.init(from: range.lowerBound, to: range.upperBound)
     }
 }
@@ -66,13 +66,13 @@ extension JSHashable {
 
 
 extension Dictionary {
-    public mutating func forEachMutating(_ block: (Key, inout Value) -> Void) {
+    mutating func forEachMutating(_ block: (Key, inout Value) -> Void) {
         for key in self.keys {
             block(key, &self[key]!)
         }
     }
     
-    public mutating func setIfUndefined(_ key: Key, _ make: @autoclosure () throws -> Value) rethrows -> Value {
+    mutating func setIfUndefined(_ key: Key, _ make: @autoclosure () throws -> Value) rethrows -> Value {
         if let value = self[key] { return value }
         let newValue = try make()
         self[key] = newValue
@@ -81,7 +81,7 @@ extension Dictionary {
 }
 
 extension Array {
-    public func jsReduce(_ body: (Element, Element) -> Element) -> Element {
+    func jsReduce(_ body: (Element, Element) -> Element) -> Element {
         if self.isEmpty { fatalError() }
         if self.count == 1 { return self[0] }
         
@@ -89,7 +89,7 @@ extension Array {
     }
 }
 
-public func generateDocGuid() -> String {
+func generateDocGuid() -> String {
     #if DEBUG // to remove randomness
     enum __ { static var cliendID: UInt = 0 }
     if NSClassFromString("XCTest") != nil {
@@ -101,7 +101,7 @@ public func generateDocGuid() -> String {
     return UUID().uuidString
 }
 
-public func generateNewClientID() -> Int {
+func generateNewClientID() -> Int {
     #if DEBUG // to remove randomness
     enum __ { static var cliendID: Int = 0 }
     if NSClassFromString("XCTest") != nil {
@@ -114,7 +114,7 @@ public func generateNewClientID() -> Int {
     return Int(UInt32.random(in: UInt32.min...UInt32.max))
 }
 
-public func equalJSON(_ a: Any?, _ b: Any?) -> Bool {
+func equalJSON(_ a: Any?, _ b: Any?) -> Bool {
     if a == nil && b == nil { return true }
     if a is NSNull && b is NSNull { return true }
     if let a = a as? AnyObject, let b = b as? AnyObject, a === b { return true }

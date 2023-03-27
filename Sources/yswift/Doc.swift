@@ -39,14 +39,14 @@ public struct DocOpts {
     }
 }
 
-open class Doc: LZObservable, JSHashable {
+public class Doc: LZObservable, JSHashable {
     var gcFilter: (YItem) -> Bool
     public var gc: Bool
     public var clientID: Int
     public var guid: String
     public var collectionid: String?
     public var share: [String: YObject] // [String: Object_<YEvent<any>>]
-    public var store: StructStore
+    public var store: YStructStore
     public var subdocs: Set<Doc>
     public var shouldLoad: Bool
     public var autoLoad: Bool
@@ -69,7 +69,7 @@ open class Doc: LZObservable, JSHashable {
         self.guid = opts.guid ?? generateDocGuid()
         self.collectionid = opts.collectionid
         self.share = [:]
-        self.store = StructStore()
+        self.store = YStructStore()
         self._transaction = nil
         self._transactionCleanups = []
         self.subdocs = Set()

@@ -304,7 +304,7 @@ final class YItem: YStruct, JSHashable {
             case .object(let parent):
                 let parentItem = parent.item
                 if parentItem == nil {
-                    let ykey = try findRootTypeKey(type: parent)
+                    let ykey = try parent.findRootTypeKey()
                     encoder.writeParentInfo(true)
                     encoder.writeString(ykey)
                 } else {

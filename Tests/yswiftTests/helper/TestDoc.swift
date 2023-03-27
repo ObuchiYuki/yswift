@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-import yswift
+@testable import yswift
 
 class TestDoc: Doc {
     var connector: TestConnector

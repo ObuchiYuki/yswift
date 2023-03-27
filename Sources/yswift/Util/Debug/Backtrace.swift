@@ -7,15 +7,15 @@
 
 import Foundation
 
-final public class Backtrace: CustomStringConvertible {
-    final public class Symbol: CustomStringConvertible {
-        public let moduleName: String
-        public let address: String
-        public let mangledName: String
-        public let offset: Int?
-        public lazy var symbolName = Demangler.humanReadableDemangle(self.mangledName)
+final class Backtrace: CustomStringConvertible {
+    final class Symbol: CustomStringConvertible {
+        let moduleName: String
+        let address: String
+        let mangledName: String
+        let offset: Int?
+        lazy var symbolName = Demangler.humanReadableDemangle(self.mangledName)
         
-        public var description: String {
+        var description: String {
             "\(moduleName)\t\t\t\(symbolName)"
         }
         
@@ -35,7 +35,7 @@ final public class Backtrace: CustomStringConvertible {
     private var omitSymbolCount: Int
     static let testing: Bool = NSClassFromString("XCTest") != nil
     
-    public var description: String {
+    var description: String {
         let symbolList = symbols
             .enumerated()
             .map{ "\($0)\t\($1.description)" }
@@ -45,7 +45,7 @@ final public class Backtrace: CustomStringConvertible {
         
     }
     
-    public init(dropFirstSymbols: Int = 0) {
+    init(dropFirstSymbols: Int = 0) {
         let symbols = Thread.callStackSymbols
             .map{ Backtrace.Symbol($0) }
             .dropFirst(2 + dropFirstSymbols)
@@ -63,4 +63,34 @@ final public class Backtrace: CustomStringConvertible {
             self.omitSymbolCount = 0
         }
     }
+}
+
+fileprivate enum Demangler {
+    static func demangle(_ mangledName: String) -> String {
+        mangledName.utf8CString.withUnsafeBufferPointer { str in
+            guard let namePtr = _demangle(mangledName: str.baseAddress, length: UInt(str.count-1)) else {
+                return mangledName
+            }
+            defer { namePtr.deallocate() }
+            return String(cString: namePtr)
+        }
+    }
+    
+    static func humanReadableDemangle(_ mangledName: String) -> String {
+        demangle(mangledName)
+            .replacingOccurrences(of: "Swift.", with: "")
+            .replacingOccurrences(of: "yswift.", with: "")
+            .replacingOccurrences(of: "@owned ", with: "")
+            .replacingOccurrences(of: "@unowned ", with: "")
+            .replacingOccurrences(of: "@error ", with: "")
+            .replacingOccurrences(of: "@callee_guaranteed ", with: "")
+            .replacingOccurrences(of: "@in_guaranteed ", with: "")
+            .replacingOccurrences(of: "@in_guaranteed ", with: "")
+    }
+
+    @_silgen_name("swift_demangle")
+    private static func _demangle(
+        mangledName: UnsafePointer<CChar>?, length: UInt,
+        _: Int? = nil, _: Int? = nil, _: UInt32 = 0
+    ) -> UnsafeMutablePointer<CChar>?
 }
