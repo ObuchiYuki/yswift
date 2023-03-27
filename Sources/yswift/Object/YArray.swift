@@ -121,6 +121,6 @@ extension YArray {
     func toArray() -> [Any?] { Array(self) }
 }
 
-func readYArray(_decoder: UpdateDecoder) -> YArray {
+func readYArray(_decoder: YUpdateDecoder) -> YArray {
     return YArray()
 }

@@ -94,8 +94,8 @@ extension Snapshot {
         return try self.encodeV2(DSEncoderV1())
     }
     
-    static public func decodeV2(_ buf: Data, decoder: DSDecoder? = nil) throws -> Snapshot {
-        let decoder = try decoder ?? DSDecoderV2(LZDecoder(buf))
+    static public func decodeV2(_ buf: Data, decoder: YDeleteSetDecoder? = nil) throws -> Snapshot {
+        let decoder = try decoder ?? YDeleteSetDecoderV2(LZDecoder(buf))
         return Snapshot(
             deleteSet: try DeleteSet.decode(decoder: decoder),
             stateVectors: try decoder.readStateVector()
@@ -103,7 +103,7 @@ extension Snapshot {
     }
     
     static public func decode(_ buf: Data) throws -> Snapshot {
-        return try Snapshot.decodeV2(buf, decoder: DSDecoderV1(LZDecoder(buf)))
+        return try Snapshot.decodeV2(buf, decoder: YDeleteSetDecoderV1(LZDecoder(buf)))
     }
 }
 

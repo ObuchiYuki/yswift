@@ -1065,6 +1065,6 @@ final public class YText: YObject {
     }
 }
 
-public func readYText(_decoder: UpdateDecoder) -> YText {
+public func readYText(_decoder: YUpdateDecoder) -> YText {
     return YText()
 }

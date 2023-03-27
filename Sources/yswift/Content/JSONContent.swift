@@ -57,7 +57,7 @@ extension JSONContent {
         }
     }
 
-    static func decode(from decoder: UpdateDecoder) throws -> JSONContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> JSONContent {
         let len = try decoder.readLen()
         var cs: [Any?] = []
         for _ in 0..<len {

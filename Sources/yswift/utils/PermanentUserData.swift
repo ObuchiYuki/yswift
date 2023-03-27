@@ -33,7 +33,7 @@ public class PermanentUserData {
                         if encodedDs is Data {
                             self.dss[userDescription] = DeleteSet.mergeAll([
                                 self.dss[userDescription] ?? DeleteSet(),
-                                try DeleteSet.decode(decoder: DSDecoderV1(LZDecoder(encodedDs as! Data)))
+                                try DeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(encodedDs as! Data)))
                             ])
                         }
                     })
@@ -42,7 +42,7 @@ public class PermanentUserData {
             
             self.dss[userDescription] = DeleteSet.mergeAll(
                 try ds.map{ data in
-                    try DeleteSet.decode(decoder: DSDecoderV1(LZDecoder(data as! Data)))
+                    try DeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(data as! Data)))
                 }
             )
             

@@ -20,7 +20,7 @@ struct YTestEnvironment {
         encodeStateAsUpdate: { try UpdateEncoderV1().encodeStateAsUpdate(doc: $0, encodedStateVector: $1) },
         mergeUpdates: { try YUpdate.merged($0) },
         applyUpdate: { try $0.applyUpdate($1, transactionOrigin: $2) },
-        logUpdate: yswift.logUpdate,
+        logUpdate: { $0.log() },
         updateEventName: Doc.On.update,
         diffUpdate: { try $0.diff(to: $1) }
     )
@@ -29,7 +29,7 @@ struct YTestEnvironment {
         encodeStateAsUpdate: { try UpdateEncoderV2().encodeStateAsUpdate(doc: $0, encodedStateVector: $1) },
         mergeUpdates: { try YUpdate.mergedV2($0) },
         applyUpdate: { try $0.applyUpdateV2($1, transactionOrigin: $2) },
-        logUpdate: { logUpdateV2($0) },
+        logUpdate: { $0.log() },
         updateEventName: Doc.On.updateV2,
         diffUpdate: { try $0.diffV2(to: $1) }
     )

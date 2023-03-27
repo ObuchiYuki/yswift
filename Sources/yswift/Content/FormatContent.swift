@@ -45,7 +45,7 @@ extension FormatContent {
         try encoder.writeJSON(self.value)
     }
 
-    static func decode(from decoder: UpdateDecoder) throws -> FormatContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> FormatContent {
         // TODO: this as? may be wrong
         let key = try decoder.readKey()
         let value = try decoder.readJSON()

@@ -181,7 +181,7 @@ public class DeleteSet {
         return merged
     }
 
-    public static func decode(decoder: DSDecoder) throws -> DeleteSet {
+    public static func decode(decoder: YDeleteSetDecoder) throws -> DeleteSet {
         let ds = DeleteSet()
         let numClients = try decoder.restDecoder.readUInt()
         
@@ -237,7 +237,7 @@ public class DeleteSet {
         return ds
     }
 
-    static public func decodeAndApply(_ decoder: DSDecoder, transaction: Transaction, store: StructStore) throws -> YUpdate? {
+    static public func decodeAndApply(_ decoder: YDeleteSetDecoder, transaction: Transaction, store: StructStore) throws -> YUpdate? {
         let unappliedDS = DeleteSet()
         let numClients = try decoder.restDecoder.readUInt()
         

@@ -73,7 +73,7 @@ extension YUpdate {
     // MARK: - Implementations -
     
     private func _convertUpdateFormat(
-        YDecoder: (LZDecoder) throws -> UpdateDecoder = UpdateDecoderV2.init,
+        YDecoder: (LZDecoder) throws -> YUpdateDecoder = UpdateDecoderV2.init,
         YEncoder: () -> UpdateEncoder = UpdateEncoderV2.init
     ) throws -> YUpdate {
         let updateDecoder = try YDecoder(LZDecoder(self.data))
@@ -94,10 +94,10 @@ extension YUpdate {
     
     private func _diff(
         to sv: Data,
-        YDecoder: (LZDecoder) throws -> UpdateDecoder = UpdateDecoderV2.init,
+        YDecoder: (LZDecoder) throws -> YUpdateDecoder = UpdateDecoderV2.init,
         YEncoder: () -> UpdateEncoder = UpdateEncoderV2.init
     ) throws -> YUpdate {
-        let state = try DSDecoderV1(sv).readStateVector()
+        let state = try YDeleteSetDecoderV1(sv).readStateVector()
         let encoder = YEncoder()
         let lazyStructWriter = LazyStructWriter(encoder)
         let decoder = try YDecoder(LZDecoder(self.data))
@@ -133,7 +133,7 @@ extension YUpdate {
         return encoder.toUpdate()
     }
 
-    private func _parseUpdateMeta(YDecoder: (LZDecoder) throws -> UpdateDecoder = UpdateDecoderV2.init) throws -> YUpdateMeta {
+    private func _parseUpdateMeta(YDecoder: (LZDecoder) throws -> YUpdateDecoder = UpdateDecoderV2.init) throws -> YUpdateMeta {
         var from: [Int: Int] = [:]
         var to: [Int: Int] = [:]
         
@@ -163,7 +163,7 @@ extension YUpdate {
     
     
     
-    private func _encodeStateVectorFromUpdate(YEncoder: () -> DSEncoder, YDecoder: (LZDecoder) throws -> UpdateDecoder) throws -> Data {
+    private func _encodeStateVectorFromUpdate(YEncoder: () -> DSEncoder, YDecoder: (LZDecoder) throws -> YUpdateDecoder) throws -> Data {
         var encoder = YEncoder()
         let updateDecoder = try LazyStructReader(YDecoder(LZDecoder(self.data)), filterSkips: false)
         var curr = updateDecoder.curr
@@ -209,7 +209,7 @@ extension YUpdate {
         }
     }
     
-    private static func _mergeUpdates(updates: [YUpdate], YDecoder: (LZDecoder) throws -> UpdateDecoder, YEncoder: () -> UpdateEncoder) throws -> YUpdate {
+    private static func _mergeUpdates(updates: [YUpdate], YDecoder: (LZDecoder) throws -> YUpdateDecoder, YEncoder: () -> UpdateEncoder) throws -> YUpdate {
         if updates.count == 1 {
             return updates[0]
         }

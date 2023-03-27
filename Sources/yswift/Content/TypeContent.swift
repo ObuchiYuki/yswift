@@ -74,7 +74,7 @@ extension TypeContent {
         self.type._write(encoder)
     }
     
-    static func decode(from decoder: UpdateDecoder) throws -> TypeContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> TypeContent {
         return try TypeContent(
             typeRefs[Int(decoder.readTypeRef())](decoder)
         )

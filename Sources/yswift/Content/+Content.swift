@@ -30,15 +30,15 @@ protocol Content: AnyObject {
 
     func encode(into encoder: UpdateEncoder, offset: Int) throws -> Void
     
-    static func decode(from decoder: UpdateDecoder) throws -> Self
+    static func decode(from decoder: YUpdateDecoder) throws -> Self
 }
 
-func decodeContent(from decoder: UpdateDecoder, info: UInt8) throws -> any Content {
+func decodeContent(from decoder: YUpdateDecoder, info: UInt8) throws -> any Content {
     return try contentDecoders_[Int(info & 0b0001_1111)](decoder)
 }
 
 /** A lookup map for reading Item content. */
-fileprivate let contentDecoders_: [(UpdateDecoder) throws -> any Content] = [
+fileprivate let contentDecoders_: [(YUpdateDecoder) throws -> any Content] = [
     {_ in throw YSwiftError.unexpectedCase }, // GC is not ItemContent
     DeletedContent.decode(from:), // 1
     JSONContent.decode(from:), // 2

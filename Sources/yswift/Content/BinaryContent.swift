@@ -36,7 +36,7 @@ extension BinaryContent {
     
     func encode(into encoder: UpdateEncoder, offset: Int) { encoder.writeBuf(self.data) }
     
-    static func decode(from decoder: UpdateDecoder) throws -> BinaryContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> BinaryContent {
         try BinaryContent(decoder.readBuf())
     }
 }

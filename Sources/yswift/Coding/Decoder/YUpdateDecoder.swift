@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol UpdateDecoder: DSDecoder {
+public protocol YUpdateDecoder: YDeleteSetDecoder {
     func readLeftID() throws -> ID
     func readRightID() throws -> ID
     func readClient() throws -> Int
@@ -22,7 +22,7 @@ public protocol UpdateDecoder: DSDecoder {
     func readJSON() throws -> Any?
 }
 
-public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
+public class UpdateDecoderV1: YDeleteSetDecoderV1, YUpdateDecoder {
     public func readLeftID() throws -> ID {
         return try ID(
             client: Int(self.restDecoder.readUInt()),
@@ -79,7 +79,7 @@ public class UpdateDecoderV1: DSDecoderV1, UpdateDecoder {
     }
 }
 
-public class UpdateDecoderV2: DSDecoderV2, UpdateDecoder {
+public class UpdateDecoderV2: YDeleteSetDecoderV2, YUpdateDecoder {
     var keys: [String] = []
     
     let keyClockDecoder: LZIntDiffOptRleDecoder

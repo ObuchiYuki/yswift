@@ -7,7 +7,7 @@
 
 import Foundation
 
-final public class DecodedUpdate {
+final public class YDecodedUpdate {
     public var structs: [Struct]
     public var ds: DeleteSet
     
@@ -16,7 +16,7 @@ final public class DecodedUpdate {
         self.ds = ds
     }
     
-    public init(_ update: Data, YDecoder: (LZDecoder) throws -> UpdateDecoder = UpdateDecoderV1.init) throws {
+    public init(_ update: Data, YDecoder: (LZDecoder) throws -> YUpdateDecoder = UpdateDecoderV1.init) throws {
         var structs: [Struct] = []
         let updateDecoder = try YDecoder(LZDecoder(update))
         let lazyDecoder = try LazyStructReader(updateDecoder, filterSkips: false)

@@ -8,7 +8,7 @@
 import Foundation
 
 
-public func lazyStructReaderGenerator(_ decoder: UpdateDecoder, yield: (Struct) -> ()) throws {
+public func lazyStructReaderGenerator(_ decoder: YUpdateDecoder, yield: (Struct) -> ()) throws {
 
     let numOfStateUpdates = try decoder.restDecoder.readUInt()
     

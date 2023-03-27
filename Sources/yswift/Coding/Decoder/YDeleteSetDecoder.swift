@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol DSDecoder {
+public protocol YDeleteSetDecoder {
     var restDecoder: LZDecoder { get }
 
     init(_ decoder: LZDecoder) throws
@@ -17,18 +17,18 @@ public protocol DSDecoder {
     func readDeleteSetLen() throws -> Int
 }
 
-extension DSDecoder {
+extension YDeleteSetDecoder {
     public init(_ update: YUpdate) throws { try self.init(update.data) }
     public init(_ data: Data) throws { try self.init(LZDecoder(data)) }
 }
 
-public class DSDecoderV1 {
+public class YDeleteSetDecoderV1 {
     public let restDecoder: LZDecoder
 
     required public init(_ decoder: LZDecoder) { self.restDecoder = decoder }
 }
 
-extension DSDecoderV1: DSDecoder {
+extension YDeleteSetDecoderV1: YDeleteSetDecoder {
     public func resetDeleteSetValue() {}
 
     public func readDeleteSetClock() throws -> Int {
@@ -40,7 +40,7 @@ extension DSDecoderV1: DSDecoder {
     }
 }
 
-public class DSDecoderV2 {
+public class YDeleteSetDecoderV2 {
     public let restDecoder: LZDecoder
     
     private var deleteSetCurrentValue = 0
@@ -48,7 +48,7 @@ public class DSDecoderV2 {
     required public init(_ decoder: LZDecoder) throws { self.restDecoder = decoder }
 }
 
-extension DSDecoderV2: DSDecoder {
+extension YDeleteSetDecoderV2: YDeleteSetDecoder {
     public func resetDeleteSetValue() { self.deleteSetCurrentValue = 0 }
 
     public func readDeleteSetClock() throws -> Int {

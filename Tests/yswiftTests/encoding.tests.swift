@@ -58,7 +58,7 @@ final class EncodingTests: XCTestCase {
         let update13 = try YUpdate.merged([updates[0], updates[2]])
                 
         let sv = try update13.encodeStateVectorFromUpdate()
-        let state = try DSDecoderV1(sv).readStateVector()
+        let state = try YDeleteSetDecoderV1(sv).readStateVector()
         XCTAssertEqual(state[ydoc.clientID], 1)
         XCTAssertEqual(state.count, 1)
     }

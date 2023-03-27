@@ -36,7 +36,7 @@ extension EmbedContent {
 
     func encode(into encoder: UpdateEncoder, offset: Int) throws { try encoder.writeJSON(self.embed) }
     
-    static func decode(from decoder: UpdateDecoder) throws -> EmbedContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> EmbedContent {
         try EmbedContent(decoder.readJSON())
     }
 }

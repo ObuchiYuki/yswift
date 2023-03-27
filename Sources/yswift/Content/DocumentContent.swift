@@ -60,7 +60,7 @@ extension DocumentContent {
         encoder.writeAny(self.options.encode())
     }
     
-    static func decode(from decoder: UpdateDecoder) throws -> DocumentContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> DocumentContent {
         let guid = try decoder.readString()
         let options = try Options.decode(decoder.readAny()).documentOptions(guid: guid)
         return DocumentContent(Doc(opts: options))

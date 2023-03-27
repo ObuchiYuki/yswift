@@ -50,7 +50,7 @@ extension AnyContent {
         }
     }
     
-    static func decode(from decoder: UpdateDecoder) throws -> AnyContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> AnyContent {
         let len = try decoder.readLen()
         var cs = [Any?]()
         for _ in 0..<len {

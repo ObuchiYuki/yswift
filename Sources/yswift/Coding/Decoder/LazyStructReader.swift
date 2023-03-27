@@ -15,7 +15,7 @@ final class LazyStructReader {
     private(set) var curr: Struct?
     private(set) var done: Bool
     
-    init(_ decoder: UpdateDecoder, filterSkips: Bool) throws {
+    init(_ decoder: YUpdateDecoder, filterSkips: Bool) throws {
         
         // TODO: lazy!
         var array = [Struct]()

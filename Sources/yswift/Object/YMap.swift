@@ -165,6 +165,6 @@ final public class YMap: YObject {
     }
 }
 
-func readYMap(_decoder: UpdateDecoder) -> YMap {
+func readYMap(_decoder: YUpdateDecoder) -> YMap {
     return YMap()
 }

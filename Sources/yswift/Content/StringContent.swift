@@ -69,7 +69,7 @@ extension StringContent {
         }
     }
     
-    static func decode(from decoder: UpdateDecoder) throws -> StringContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> StringContent {
         try StringContent(decoder.readString() as NSString)
     }
 }

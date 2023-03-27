@@ -47,7 +47,7 @@ extension DeletedContent: Content {
     func encode(into encoder: UpdateEncoder, offset: Int) { encoder.writeLen(self.length - offset) }
 
     
-    static func decode(from decoder: UpdateDecoder) throws -> DeletedContent {
+    static func decode(from decoder: YUpdateDecoder) throws -> DeletedContent {
         try DeletedContent(decoder.readLen())
     }
 }
