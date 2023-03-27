@@ -26,7 +26,7 @@ protocol Content: AnyObject {
 
     func delete(_ transaction: YTransaction) -> Void
 
-    func gc(_ store: StructStore) throws -> Void
+    func gc(_ store: YStructStore) throws -> Void
 
     func encode(into encoder: YUpdateEncoder, offset: Int) throws -> Void
     

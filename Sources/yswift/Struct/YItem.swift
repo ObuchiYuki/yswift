@@ -8,11 +8,11 @@
 extension YItem {
     enum Parent {
         case string(String)
-        case id(ID)
+        case id(YID)
         case object(YObject)
         
         var string: String? { if case .string(let parent) = self { return parent }; return nil }
-        var id: ID? { if case .id(let parent) = self { return parent }; return nil }
+        var id: YID? { if case .id(let parent) = self { return parent }; return nil }
         var object: YObject? { if case .object(let parent) = self { return parent }; return nil }
     }
 }
@@ -24,7 +24,7 @@ final class YItem: YStruct, JSHashable {
     // MARK: - Properties -
 
     /// The item that was originally to the left of this item.
-    var origin: ID?
+    var origin: YID?
 
     /// The item that is currently to the left of this item.
     var left: YStruct?
@@ -33,13 +33,13 @@ final class YItem: YStruct, JSHashable {
     var right: YStruct?
 
     /// The item that was originally to the right of this item. */
-    var rightOrigin: ID?
+    var rightOrigin: YID?
     
     var parent: Parent?
     
     var parentKey: String?
     
-    var redone: ID?
+    var redone: YID?
     
     var content: any Content
 
@@ -75,12 +75,12 @@ final class YItem: YStruct, JSHashable {
     }
 
     /// Computes the last content address of this Item.
-    var lastID: ID {
+    var lastID: YID {
         if self.length == 1 { return self.id }
-        return ID(client: self.id.client, clock: self.id.clock + self.length - 1)
+        return YID(client: self.id.client, clock: self.id.clock + self.length - 1)
     }
 
-    init(id: ID, left: YStruct?, origin: ID?, right: YStruct?, rightOrigin: ID?, parent: Parent?, parentSub: String?, content: any Content) {
+    init(id: YID, left: YStruct?, origin: YID?, right: YStruct?, rightOrigin: YID?, parent: Parent?, parentSub: String?, content: any Content) {
         self.origin = origin
         self.left = left
         self.right = right
@@ -97,7 +97,7 @@ final class YItem: YStruct, JSHashable {
     // =========================================================================== //
     // MARK: - Methods -
     
-    override func getMissing(_ transaction: YTransaction, store: StructStore) throws -> Int? {
+    override func getMissing(_ transaction: YTransaction, store: YStructStore) throws -> Int? {
         if let origin = self.origin, origin.client != self.id.client, origin.clock >= store.getState(origin.client) {
             return origin.client
         }
@@ -114,7 +114,7 @@ final class YItem: YStruct, JSHashable {
             self.origin = (self.left as? YItem)?.lastID
         }
         if let rightOrigin = self.rightOrigin {
-            self.right = try StructStore.getItemCleanStart(transaction, id: rightOrigin)
+            self.right = try YStructStore.getItemCleanStart(transaction, id: rightOrigin)
             self.rightOrigin = self.right!.id
         }
         if self.left is YGC || self.right is YGC {
@@ -146,7 +146,7 @@ final class YItem: YStruct, JSHashable {
             self.id.clock += offset
             self.left = try transaction.doc.store.getItemCleanEnd(
                 transaction,
-                id: ID(client: self.id.client, clock: self.id.clock - 1)
+                id: YID(client: self.id.client, clock: self.id.clock - 1)
             )
             self.origin = (self.left as? YItem)?.lastID
             self.content = self.content.splice(offset)
@@ -284,7 +284,7 @@ final class YItem: YStruct, JSHashable {
     }
 
     override func encode(into encoder: YUpdateEncoder, offset: Int) throws {
-        let origin = offset > 0 ? ID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
+        let origin = offset > 0 ? YID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
         let rightOrigin = self.rightOrigin
         let parentSub = self.parentKey
         
@@ -347,7 +347,7 @@ extension YItem {
         self.content.delete(transaction)
     }
 
-    func gc(_ store: StructStore, parentGC: Bool) throws {
+    func gc(_ store: YStructStore, parentGC: Bool) throws {
         if !self.deleted { throw YSwiftError.unexpectedCase }
         
         try self.content.gc(store)
@@ -382,9 +382,9 @@ extension YItem {
         let client = self.id.client, clock = self.id.clock
         
         let rightItem = YItem(
-            id: ID(client: client, clock: clock + diff),
+            id: YID(client: client, clock: clock + diff),
             left: self,
-            origin: ID(client: client, clock: clock + diff - 1),
+            origin: YID(client: client, clock: clock + diff - 1),
             right: self.right,
             rightOrigin: self.rightOrigin,
             parent: self.parent,
@@ -394,7 +394,7 @@ extension YItem {
         if self.deleted { rightItem.deleted = true }
         if self.keep { rightItem.keep = true }
         
-        if let redone = self.redone { rightItem.redone = ID(client: redone.client, clock: redone.clock + diff) }
+        if let redone = self.redone { rightItem.redone = YID(client: redone.client, clock: redone.clock + diff) }
         
         self.right = rightItem
         if let rightRightItem = rightItem.right as? YItem { rightRightItem.left = rightItem }
@@ -409,7 +409,7 @@ extension YItem {
     }
 
     func redo(_ transaction: YTransaction, redoitems: Set<YItem>, itemsToDelete: YDeleteSet, ignoreRemoteMapChanges: Bool) throws -> YItem? {
-        if let redone = self.redone { return try StructStore.getItemCleanStart(transaction, id: redone) }
+        if let redone = self.redone { return try YStructStore.getItemCleanStart(transaction, id: redone) }
         
         let doc = transaction.doc
         let store = doc.store
@@ -429,7 +429,7 @@ extension YItem {
             }
             
             while let redone = uparentItem.redone {
-                parentItem = try StructStore.getItemCleanStart(transaction, id: redone)
+                parentItem = try YStructStore.getItemCleanStart(transaction, id: redone)
             }
             
         }
@@ -453,7 +453,7 @@ extension YItem {
                 
                 while let uleftTrace = leftTrace, uleftTrace.parent?.object?.item !== parentItem {
                     guard let redone = uleftTrace.redone else { leftTrace = nil; break }
-                    leftTrace = try StructStore.getItemCleanStart(transaction, id: redone)
+                    leftTrace = try YStructStore.getItemCleanStart(transaction, id: redone)
                 }
                 if let uleftTrace = leftTrace, uleftTrace.parent?.object?.item === parentItem {
                     left = uleftTrace; break
@@ -467,7 +467,7 @@ extension YItem {
                 
                 while let urightTrace = rightTrace, urightTrace.parent?.object?.item !== parentItem {
                     if let redone = urightTrace.redone {
-                        rightTrace = try StructStore.getItemCleanStart(transaction, id: redone)
+                        rightTrace = try YStructStore.getItemCleanStart(transaction, id: redone)
                     } else {
                         rightTrace = nil
                         break
@@ -489,7 +489,7 @@ extension YItem {
                     left = uleft.right
                 }
                 while let redone = (left as? YItem)?.redone {
-                    left = try StructStore.getItemCleanStart(transaction, id: redone)
+                    left = try YStructStore.getItemCleanStart(transaction, id: redone)
                 }
                 if let uleft = left as? YItem, uleft.right != nil {
                     return nil
@@ -501,7 +501,7 @@ extension YItem {
             }
         }
         let nextClock = store.getState(ownClientID)
-        let nextId = ID(client: ownClientID, clock: nextClock)
+        let nextId = YID(client: ownClientID, clock: nextClock)
         let redoneItem = YItem(
             id: nextId,
             left: left,

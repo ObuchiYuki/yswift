@@ -88,7 +88,7 @@ final class ItemTextListPosition {
                 if !self.right!.deleted {
                     if count < self.right!.length {
                         // split right
-                        try StructStore.getItemCleanStart(transaction, id: ID(client: self.right!.id.client, clock: self.right!.id.clock + count))
+                        try YStructStore.getItemCleanStart(transaction, id: YID(client: self.right!.id.client, clock: self.right!.id.clock + count))
                     }
                     self.index += self.right!.length
                     count -= self.right!.length
@@ -152,7 +152,7 @@ func insertNegatedAttributes(
         let left = currPos.left
         let right = currPos.right
         let nextFormat = YItem(
-            id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
+            id: YID(client: ownClientId, clock: doc.store.getState(ownClientId)),
             left: left,
             origin: left?.lastID,
             right: right,
@@ -217,7 +217,7 @@ func insertAttributes(
                         
             let left = currPos.left, right = currPos.right
             currPos.right = YItem(
-                id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
+                id: YID(client: ownClientId, clock: doc.store.getState(ownClientId)),
                 left: left,
                 origin: left?.lastID,
                 right: right,
@@ -266,7 +266,7 @@ func insertText(
         YArraySearchMarker.updateChanges(parent.serchMarkers!, index: currPos.index, len: content.count)
     }
     right = YItem(
-        id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
+        id: YID(client: ownClientId, clock: doc.store.getState(ownClientId)),
         left: left,
         origin: left?.lastID,
         right: right,
@@ -332,9 +332,9 @@ func formatText(
                 
             default:
                 if length < currPos.right!.length {
-                    try StructStore.getItemCleanStart(
+                    try YStructStore.getItemCleanStart(
                         transaction,
-                        id: ID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
+                        id: YID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
                     )
                 }
                 length -= currPos.right!.length
@@ -351,7 +351,7 @@ func formatText(
         }
         
         currPos.right = YItem(
-            id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
+            id: YID(client: ownClientId, clock: doc.store.getState(ownClientId)),
             left: currPos.left,
             origin: currPos.left?.lastID,
             right: currPos.right,
@@ -485,8 +485,8 @@ func deleteText(
                 currPos.right!.content is EmbedContent ||
                 currPos.right!.content is StringContent {
                 if length < currPos.right!.length {
-                    try StructStore.getItemCleanStart(
-                        transaction, id: ID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
+                    try YStructStore.getItemCleanStart(
+                        transaction, id: YID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
                     )
                 }
                 length -= currPos.right!.length
@@ -749,7 +749,7 @@ final public class YText: YObject {
                     continue
                 }
                 
-                try StructStore.iterateStructs(
+                try YStructStore.iterateStructs(
                     transaction: transaction,
                     structs: doc.store.clients[client]!,
                     clockStart: clock,
@@ -855,7 +855,7 @@ final public class YText: YObject {
     public func toDelta(
         _ snapshot: YSnapshot? = nil,
         prevSnapshot: YSnapshot? = nil,
-        computeYChange: ((YChangeAction, ID) -> YTextAttributeValue)? = nil
+        computeYChange: ((YChangeAction, YID) -> YTextAttributeValue)? = nil
     ) throws -> [YEventDelta] {
         var ops: [YEventDelta] = []
         let currentAttributes: YTextAttributes = [:]

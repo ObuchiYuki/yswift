@@ -47,7 +47,7 @@ public class YDeleteSet {
         return try self.clients.forEach{ clientid, deletes in
             for i in 0..<deletes.count {
                 let del = deletes[i]
-                try StructStore.iterateStructs(
+                try YStructStore.iterateStructs(
                     transaction: transaction,
                     structs: transaction.doc.store.clients[clientid]!,
                     clockStart: del.clock, len: del.len, f: body
@@ -56,7 +56,7 @@ public class YDeleteSet {
         }
     }
 
-    public func isDeleted(_ id: ID) -> Bool {
+    public func isDeleted(_ id: YID) -> Bool {
         let dis = self.clients[id.client]
         return dis != nil && YDeleteItem.findIndex(dis!, clock: id.clock) != nil
     }
@@ -108,7 +108,7 @@ public class YDeleteSet {
             })
     }
 
-    func tryGCDeleteSet(_ store: StructStore, gcFilter: (YItem) -> Bool) throws {
+    func tryGCDeleteSet(_ store: YStructStore, gcFilter: (YItem) -> Bool) throws {
         for (client, deleteItems) in self.clients {
             let structs = store.clients[client]!
             
@@ -116,7 +116,7 @@ public class YDeleteSet {
                 let deleteItem = deleteItems[di]
                 let endDeleteItemClock = deleteItem.clock + deleteItem.len
                 
-                var si = try StructStore.findIndexSS(structs: structs, clock: deleteItem.clock)
+                var si = try YStructStore.findIndexSS(structs: structs, clock: deleteItem.clock)
                 var struct_ = structs[si]
                 
                 while si < structs.count && struct_.id.clock < endDeleteItemClock {
@@ -135,7 +135,7 @@ public class YDeleteSet {
         }
     }
 
-    public func tryMerge(_ store: StructStore) throws {
+    public func tryMerge(_ store: YStructStore) throws {
         try self.clients.forEach({ client, deleteItems in
             let structs = store.clients[client]!
             
@@ -144,7 +144,7 @@ public class YDeleteSet {
                 // start with merging the item next to the last deleted item
                 let mostRightIndexToCheck = min(
                     structs.count - 1,
-                    try 1 + StructStore.findIndexSS(structs: structs, clock: deleteItem.clock + deleteItem.len - 1)
+                    try 1 + YStructStore.findIndexSS(structs: structs, clock: deleteItem.clock + deleteItem.len - 1)
                 )
                 var si = mostRightIndexToCheck, struct_ = structs[si];
                 
@@ -157,7 +157,7 @@ public class YDeleteSet {
         })
     }
 
-    func tryGC(_ store: StructStore, gcFilter: (YItem) -> Bool) throws {
+    func tryGC(_ store: YStructStore, gcFilter: (YItem) -> Bool) throws {
         try self.tryGCDeleteSet(store, gcFilter: gcFilter)
         try self.tryMerge(store)
     }
@@ -201,7 +201,7 @@ public class YDeleteSet {
         return ds
     }
     
-    static func createFromStructStore(_ ss: StructStore) -> YDeleteSet {
+    static func createFromStructStore(_ ss: YStructStore) -> YDeleteSet {
         let ds = YDeleteSet()
         
         for (client, structs) in ss.clients {
@@ -235,7 +235,7 @@ public class YDeleteSet {
         return ds
     }
 
-    static func decodeAndApply(_ decoder: YDeleteSetDecoder, transaction: YTransaction, store: StructStore) throws -> YUpdate? {
+    static func decodeAndApply(_ decoder: YDeleteSetDecoder, transaction: YTransaction, store: YStructStore) throws -> YUpdate? {
         let unappliedDS = YDeleteSet()
         let numClients = try decoder.restDecoder.readUInt()
         
@@ -256,7 +256,7 @@ public class YDeleteSet {
                     if state < clockEnd {
                         unappliedDS.add(client: client, clock: state, length: clockEnd - state)
                     }
-                    var index = try StructStore.findIndexSS(structs: structs, clock: clock)
+                    var index = try YStructStore.findIndexSS(structs: structs, clock: clock)
                     var struct_ = structs[index]
                     // split the first item if necessary
                     if !struct_.deleted && struct_.id.clock < clock {

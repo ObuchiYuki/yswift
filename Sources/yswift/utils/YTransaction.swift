@@ -79,9 +79,9 @@ final public class YTransaction {
         return true
     }
 
-    func nextID() -> ID {
+    func nextID() -> YID {
         let y = self.doc
-        return ID(client: y.clientID, clock: y.store.getState(y.clientID))
+        return YID(client: y.clientID, clock: y.store.getState(y.clientID))
     }
 
     func addChangedType(_ type: YObject, parentSub: String?) {
@@ -119,7 +119,7 @@ final public class YTransaction {
                 if beforeClock != clock {
                     let structs = store.clients[client]!
                     // we iterate from right to left so we can safely remove entries
-                    let firstChangePos = try max(StructStore.findIndexSS(structs: structs, clock: beforeClock), 1)
+                    let firstChangePos = try max(YStructStore.findIndexSS(structs: structs, clock: beforeClock), 1)
 
                     for i in (firstChangePos..<structs.count).reversed() {
                         YStruct.tryMerge(withLeft: structs, pos: i)
@@ -131,7 +131,7 @@ final public class YTransaction {
             for i in 0..<mergeStructs.count {
                 let client = mergeStructs[i].id.client, clock = mergeStructs[i].id.clock
                 let structs = store.clients[client]!
-                let replacedStructPos = try StructStore.findIndexSS(structs: structs, clock: clock)
+                let replacedStructPos = try YStructStore.findIndexSS(structs: structs, clock: clock)
                 if replacedStructPos + 1 < structs.count {
                     YStruct.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
                 }

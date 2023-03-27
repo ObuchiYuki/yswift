@@ -6,10 +6,10 @@
 //
 
 class YStruct {
-    let id: ID
+    let id: YID
     var length: Int
     
-    init(id: ID, length: Int) {
+    init(id: YID, length: Int) {
         self.id = id
         self.length = length
     }
@@ -22,7 +22,7 @@ class YStruct {
 
     func integrate(transaction: YTransaction, offset: Int) throws -> Void { fatalError() }
     
-    func getMissing(_ transaction: YTransaction, store: StructStore) throws -> Int? { nil }
+    func getMissing(_ transaction: YTransaction, store: YStructStore) throws -> Int? { nil }
 }
 
 extension YStruct {
@@ -31,18 +31,18 @@ extension YStruct {
         
         if left is YGC {
             let client = left.id.client, clock = left.id.clock
-            return YGC(id: ID(client: client, clock: clock + diff), length: left.length - diff)
+            return YGC(id: YID(client: client, clock: clock + diff), length: left.length - diff)
         } else if left is YSkip {
             let client = left.id.client, clock = left.id.clock
-            return YSkip(id: ID(client: client, clock: clock + diff), length: left.length - diff)
+            return YSkip(id: YID(client: client, clock: clock + diff), length: left.length - diff)
         } else {
             let leftItem = left as! YItem
             let client = leftItem.id.client, clock = leftItem.id.clock
             
             return YItem(
-                id: ID(client: client, clock: clock + diff),
+                id: YID(client: client, clock: clock + diff),
                 left: nil,
-                origin: ID(client: client, clock: clock + diff - 1),
+                origin: YID(client: client, clock: clock + diff - 1),
                 right: nil,
                 rightOrigin: leftItem.rightOrigin,
                 parent: leftItem.parent,

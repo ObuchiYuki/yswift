@@ -52,7 +52,7 @@ extension TypeContent {
         transaction.changed.removeValue(forKey: self.type)
     }
 
-    func gc(_ store: StructStore) throws {
+    func gc(_ store: YStructStore) throws {
         var item = self.type._start
         while let uitem = item {
             try uitem.gc(store, parentGC: true)

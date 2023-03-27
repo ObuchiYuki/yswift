@@ -39,7 +39,7 @@ extension AnyContent {
     
     func delete(_ transaction: YTransaction) {}
     
-    func gc(_ store: StructStore) {}
+    func gc(_ store: YStructStore) {}
     
     func encode(into encoder: YUpdateEncoder, offset: Int) {
         let count = self.array.count

@@ -351,7 +351,7 @@ final class YMapTests: XCTestCase {
         try map1.setThrowingError("map", value: _map1)
         
         var calls = 0
-        var dmapid: ID?
+        var dmapid: YID?
         map1.observeDeep({ events, _ in
             try events.forEach({ event in
                 let mevent = try XCTUnwrap(event as? YMapEvent)

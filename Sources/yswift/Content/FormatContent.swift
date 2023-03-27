@@ -38,7 +38,7 @@ extension FormatContent {
 
     func delete(_ transaction: YTransaction) {}
     
-    func gc(_ store: StructStore) {}
+    func gc(_ store: YStructStore) {}
     
     func encode(into encoder: YUpdateEncoder, offset: Int) throws {
         encoder.writeKey(self.key)

@@ -32,7 +32,7 @@ extension EmbedContent {
     
     func delete(_ transaction: YTransaction) {}
     
-    func gc(_ store: StructStore) {}
+    func gc(_ store: YStructStore) {}
 
     func encode(into encoder: YUpdateEncoder, offset: Int) throws { try encoder.writeJSON(self.embed) }
     

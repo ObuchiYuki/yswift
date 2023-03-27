@@ -104,7 +104,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [Doc] {
     return docs
 }
 
-func YAssertEqualStructStore(_ ss1: StructStore, _ ss2: StructStore) throws {
+func YAssertEqualStructStore(_ ss1: YStructStore, _ ss2: YStructStore) throws {
     XCTAssertEqual(ss1.clients.count, ss2.clients.count)
     
     for (client, structs1) in ss1.clients {

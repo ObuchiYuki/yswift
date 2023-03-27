@@ -120,3 +120,12 @@ public class YObject: JSHashable {
         fatalError()
     }
 }
+
+extension YObject {
+    func findRootTypeKey() throws -> String {
+        for (key, value) in self.doc?.share ?? [:] {
+            if value === self { return key }
+        }
+        throw YSwiftError.unexpectedCase
+    }
+}

@@ -43,13 +43,13 @@ final class StructRedone {
     }
 }
 
-func followRedone(store: StructStore, id: ID) throws -> StructRedone {
-    var nextID: ID? = id
+func followRedone(store: YStructStore, id: YID) throws -> StructRedone {
+    var nextID: YID? = id
     var diff = 0
     var item: YStruct? = nil
     repeat {
         if diff > 0 {
-            nextID = ID(client: nextID!.client, clock: nextID!.clock + diff)
+            nextID = YID(client: nextID!.client, clock: nextID!.clock + diff)
         }
         item = try store.find(nextID!)
         diff = Int(nextID!.clock - item!.id.clock)
@@ -281,7 +281,7 @@ final public class UndoManager: LZObservable, JSHashable {
                             let redone = try followRedone(store: store, id: struct_.id)
                             var item = redone.item, diff = redone.diff
                             if diff > 0 {
-                                item = try StructStore.getItemCleanStart(transaction, id: ID(client: item.id.client, clock: item.id.clock + diff))
+                                item = try YStructStore.getItemCleanStart(transaction, id: YID(client: item.id.client, clock: item.id.clock + diff))
                             }
                             struct_ = item
                         }

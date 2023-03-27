@@ -39,7 +39,7 @@ extension JSONContent {
     
     func delete(_ transaction: YTransaction) {}
     
-    func gc(_ store: StructStore) {}
+    func gc(_ store: YStructStore) {}
     
     func encode(into encoder: YUpdateEncoder, offset: Int) throws {
         let len = self.array.count

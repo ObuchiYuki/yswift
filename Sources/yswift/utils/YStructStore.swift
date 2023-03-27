@@ -20,7 +20,7 @@ class PendingStrcut: CustomStringConvertible {
     var description: String { "PendingStrcut(missing: \(missing), update: \(update))" }
 }
 
-final public class StructStore {
+final public class YStructStore {
     var clients: [Int: RefArray<YStruct>] = [:]
     var pendingStructs: PendingStrcut? = nil
     var pendingDs: YUpdate? = nil
@@ -74,20 +74,20 @@ final public class StructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func find(_ id: ID) throws -> YStruct {
+    func find(_ id: YID) throws -> YStruct {
         let structs = self.clients[id.client]!
-        return structs.value[try StructStore.findIndexSS(structs: structs, clock: id.clock)]
+        return structs.value[try YStructStore.findIndexSS(structs: structs, clock: id.clock)]
     }
 
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func getItem(_ id: ID) throws -> YItem {
+    func getItem(_ id: YID) throws -> YItem {
         return try self.find(id) as! YItem
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
     @discardableResult
-    static func getItemCleanStart(_ transaction: YTransaction, id: ID) throws -> YItem {
+    static func getItemCleanStart(_ transaction: YTransaction, id: YID) throws -> YItem {
         let index = try self.findIndexCleanStart(
             transaction: transaction,
             structs: transaction.doc.store.clients[id.client]!,
@@ -98,10 +98,10 @@ final public class StructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func getItemCleanEnd(_ transaction: YTransaction, id: ID) throws -> YStruct {
+    func getItemCleanEnd(_ transaction: YTransaction, id: YID) throws -> YStruct {
         let structs = self.clients[id.client]!
         
-        let index = try StructStore.findIndexSS(structs: structs, clock: id.clock)
+        let index = try YStructStore.findIndexSS(structs: structs, clock: id.clock)
         let struct_ = structs[index]
         if id.clock != struct_.id.clock + struct_.length - 1 && !(struct_ is YGC) {            
             structs.value
@@ -113,7 +113,7 @@ final public class StructStore {
     /** Replace `item` with `newitem` in store */
     func replaceStruct(_ struct_: YStruct, newStruct: YStruct) throws {
         self.clients[struct_.id.client]![
-            try StructStore.findIndexSS(structs: self.clients[struct_.id.client]!, clock: struct_.id.clock)
+            try YStructStore.findIndexSS(structs: self.clients[struct_.id.client]!, clock: struct_.id.clock)
         ] = newStruct
     }
 
@@ -166,7 +166,7 @@ final public class StructStore {
     }
 
     static func findIndexCleanStart(transaction: YTransaction, structs: RefArray<YStruct>, clock: Int) throws -> Int {
-        let index = try StructStore.findIndexSS(structs: structs, clock: clock)
+        let index = try YStructStore.findIndexSS(structs: structs, clock: clock)
         let struct_ = structs[index]
         if struct_.id.clock < clock && struct_ is YItem {
             structs.value
@@ -177,7 +177,7 @@ final public class StructStore {
     }
 }
 
-extension StructStore {
+extension YStructStore {
     func integrateStructs(transaction: YTransaction, clientsStructRefs: RefDictionary<Int, StructRef>) throws -> PendingStrcut? {
         let store = self
         
@@ -208,7 +208,7 @@ extension StructStore {
             return nil
         }
 
-        let restStructs: StructStore = StructStore()
+        let restStructs: YStructStore = YStructStore()
         var missingSV = [Int: Int]()
         func updateMissingSv(client: Int, clock: Int) {
             let mclock = missingSV[client]

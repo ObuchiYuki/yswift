@@ -284,7 +284,7 @@ extension YUpdate {
                             try lazyStructEncoder.write(currWrite!.struct_, offset: currWrite!.offset)
                             
                             let diff = curr!.id.clock - currWrite!.struct_.id.clock - currWrite!.struct_.length
-                            let struct_ = YSkip(id: ID(client: firstClient, clock: currWrite!.struct_.id.clock + currWrite!.struct_.length), length: diff)
+                            let struct_ = YSkip(id: YID(client: firstClient, clock: currWrite!.struct_.id.clock + currWrite!.struct_.length), length: diff)
                             currWrite = StructWrite(struct_: struct_, offset: 0)
                         }
                     } else { // if currWrite.struct.id.clock + currWrite.struct.length >= curr.id.clock {

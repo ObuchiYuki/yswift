@@ -34,7 +34,7 @@ extension YObject {
                 }
             }
         }
-        let id = ID(client: ownClientId, clock: doc.store.getState(ownClientId))
+        let id = YID(client: ownClientId, clock: doc.store.getState(ownClientId))
         try YItem(id: id, left: left, origin: left?.lastID, right: nil, rightOrigin: nil, parent: .object(self), parentSub: key, content: content)
             .integrate(transaction: transaction, offset: 0)
     }

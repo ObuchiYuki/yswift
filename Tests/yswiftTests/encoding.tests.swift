@@ -11,8 +11,8 @@ final class EncodingTests: XCTestCase {
     func testPermanentUserData() async throws {
         let ydoc1 = Doc()
         let ydoc2 = Doc()
-        let pd1 = try PermanentUserData(doc: ydoc1, storeType: nil)
-        let pd2 = try PermanentUserData(doc: ydoc2, storeType: nil)
+        let pd1 = try YPermanentUserData(doc: ydoc1, storeType: nil)
+        let pd2 = try YPermanentUserData(doc: ydoc2, storeType: nil)
         try pd1.setUserMapping(doc: ydoc1, clientid: Int(ydoc1.clientID), userDescription: "user a")
         try pd2.setUserMapping(doc: ydoc2, clientid: Int(ydoc2.clientID), userDescription: "user b")
         try ydoc1.getText().insert(0, text: "xhi")
@@ -28,7 +28,7 @@ final class EncodingTests: XCTestCase {
         // now sync a third doc with same name as doc1 and then create PermanentUserData
         let ydoc3 = Doc()
         try ydoc3.applyUpdate(ydoc1.encodeStateAsUpdate())
-        let pd3 = try PermanentUserData(doc: ydoc3, storeType: nil)
+        let pd3 = try YPermanentUserData(doc: ydoc3, storeType: nil)
         try pd3.setUserMapping(doc: ydoc3, clientid: Int(ydoc3.clientID), userDescription: "user a")
     }
     

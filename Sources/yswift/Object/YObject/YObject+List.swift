@@ -147,7 +147,7 @@ extension YObject {
 
         func packJsonContent() throws {
             if (jsonContent.count <= 0) { return }
-            let id = ID(client: ownClientId, clock: store.getState(ownClientId))
+            let id = YID(client: ownClientId, clock: store.getState(ownClientId))
             let content = AnyContent(jsonContent)
             left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: content)
             try left!.integrate(transaction: transaction, offset: 0)
@@ -165,19 +165,19 @@ extension YObject {
             } else {
                 try packJsonContent()
                 if (content is Data) {
-                    let id = ID(client: ownClientId, clock: store.getState(ownClientId))
+                    let id = YID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = BinaryContent(content as! Data)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else if content is Doc {
-                    let id = ID(client: ownClientId, clock: store.getState(ownClientId))
+                    let id = YID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = DocumentContent(content as! Doc)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     
                     try left!.integrate(transaction: transaction, offset: 0)
                     
                 } else if content is YObject {
-                    let id = ID(client: ownClientId, clock: store.getState(ownClientId))
+                    let id = YID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = TypeContent(content as! YObject)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
@@ -221,8 +221,8 @@ extension YObject {
             if !n!.deleted && n!.countable {
                 if index <= n!.length {
                     if index < n!.length {
-                        let id = ID(client: n!.id.client, clock: n!.id.clock + index)
-                        try StructStore.getItemCleanStart(transaction, id: id)
+                        let id = YID(client: n!.id.client, clock: n!.id.clock + index)
+                        try YStructStore.getItemCleanStart(transaction, id: id)
                     }
                     break
                 }
@@ -265,8 +265,8 @@ extension YObject {
         while item != nil && index > 0 {
             if !item!.deleted && item!.countable {
                 if index < item!.length {
-                    let id = ID(client: item!.id.client, clock: item!.id.clock + index)
-                    _ = try StructStore.getItemCleanStart(transaction, id: id)
+                    let id = YID(client: item!.id.client, clock: item!.id.clock + index)
+                    _ = try YStructStore.getItemCleanStart(transaction, id: id)
                 }
                 index -= item!.length
             }
@@ -277,8 +277,8 @@ extension YObject {
         while (length > 0 && item != nil) {
             if !item!.deleted {
                 if length < item!.length {
-                    let id = ID(client: item!.id.client, clock: item!.id.clock + length)
-                    _ = try StructStore.getItemCleanStart(transaction, id: id)
+                    let id = YID(client: item!.id.client, clock: item!.id.clock + length)
+                    _ = try YStructStore.getItemCleanStart(transaction, id: id)
                 }
                 item!.delete(transaction)
                 length -= item!.length

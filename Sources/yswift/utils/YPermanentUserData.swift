@@ -8,7 +8,7 @@
 import Foundation
 import Promise
 
-public class PermanentUserData {
+public class YPermanentUserData {
     public var yusers: YMap // YMap<YMap<Any>> ...may be
     public var doc: Doc
     public var clients: [Int: String]
@@ -130,7 +130,7 @@ public class PermanentUserData {
         return self.clients[clientid]
     }
 
-    public func getUserByDeletedId(_ id: ID) -> String? {
+    public func getUserByDeletedId(_ id: YID) -> String? {
         for (userDescription, ds) in self.dss {
             if ds.isDeleted(id) {
                 return userDescription
