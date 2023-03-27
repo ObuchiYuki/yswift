@@ -21,10 +21,10 @@ extension YUpdate: CustomDebugStringConvertible {
 
 extension YUpdate {
     public static func merged(_ updates: [YUpdate]) throws -> YUpdate {
-        return try _mergeUpdates(updates: updates, YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV1.init)
+        return try self._mergeUpdates(updates: updates, YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV1.init)
     }
     public static func mergedV2(_ updates: [YUpdate]) throws -> YUpdate {
-        return try _mergeUpdates(updates: updates, YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV2.init)
+        return try self._mergeUpdates(updates: updates, YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV2.init)
     }
     
     public func encodeStateVectorFromUpdate() throws -> Data {
@@ -35,17 +35,48 @@ extension YUpdate {
     }
     
     public func updateMeta() throws -> YUpdateMeta {
-        return try _parseUpdateMeta(YDecoder: UpdateDecoderV1.init)
+        return try self._parseUpdateMeta(YDecoder: UpdateDecoderV1.init)
     }
     public func updateMetaV2() throws -> YUpdateMeta {
-        return try _parseUpdateMeta(YDecoder: UpdateDecoderV2.init)
+        return try self._parseUpdateMeta(YDecoder: UpdateDecoderV2.init)
     }
-    
+
     public func diff(to sv: Data) throws -> YUpdate {
-        return try _diff(to: sv, YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV1.init)
+        return try self._diff(to: sv, YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV1.init)
     }
     public func diffV2(to sv: Data) throws -> YUpdate {
-        return try _diff(to: sv, YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV2.init)
+        return try self._diff(to: sv, YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV2.init)
+    }
+    
+    public func toV2() throws -> YUpdate {
+        return try self._convertUpdateFormat(YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV2.init)
+    }
+
+    public func toV1() throws -> YUpdate {
+        return try self._convertUpdateFormat(YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV1.init)
+    }
+    
+    // ======================================================================================================== //
+    // MARK: - Implementations -
+    
+    private func _convertUpdateFormat(
+        YDecoder: (LZDecoder) throws -> UpdateDecoder = UpdateDecoderV2.init,
+        YEncoder: () -> UpdateEncoder = UpdateEncoderV2.init
+    ) throws -> YUpdate {
+        let updateDecoder = try YDecoder(LZDecoder(self.data))
+        let lazyDecoder = try LazyStructReader(updateDecoder, filterSkips: false)
+        let updateEncoder = YEncoder()
+        let lazyWriter = LazyStructWriter(updateEncoder)
+
+        var curr = lazyDecoder.curr; while curr != nil {
+            try writeStructToLazyStructWriter(lazyWriter: lazyWriter, struct_: curr!, offset: 0)
+            curr = try lazyDecoder.next()
+        }
+        
+        finishLazyStructWriting(lazyWriter: lazyWriter)
+        let ds = try DeleteSet.decode(decoder: updateDecoder)
+        try ds.encode(into: updateEncoder)
+        return updateEncoder.toUpdate()
     }
     
     private func _diff(

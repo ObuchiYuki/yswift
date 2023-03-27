@@ -87,32 +87,3 @@ func finishLazyStructWriting(lazyWriter: LazyStructWriter) {
         restEncoder.writeOpaqueSizeData(partStructs.restEncoder)
     }
 }
-
-public func convertUpdateFormat(
-    update: YUpdate,
-    YDecoder: (LZDecoder) throws -> UpdateDecoder = UpdateDecoderV2.init,
-    YEncoder: () -> UpdateEncoder = UpdateEncoderV2.init
-) throws -> YUpdate {
-    let updateDecoder = try YDecoder(LZDecoder(update.data))
-    let lazyDecoder = try LazyStructReader(updateDecoder, filterSkips: false)
-    let updateEncoder = YEncoder()
-    let lazyWriter = LazyStructWriter(updateEncoder)
-
-    var curr = lazyDecoder.curr; while curr != nil {
-        try writeStructToLazyStructWriter(lazyWriter: lazyWriter, struct_: curr!, offset: 0)
-        curr = try lazyDecoder.next()
-    }
-    
-    finishLazyStructWriting(lazyWriter: lazyWriter)
-    let ds = try DeleteSet.decode(decoder: updateDecoder)
-    try ds.encode(into: updateEncoder)
-    return updateEncoder.toUpdate()
-}
-
-public func convertUpdateFormatV1ToV2(update: YUpdate) throws -> YUpdate {
-    return try convertUpdateFormat(update: update, YDecoder: UpdateDecoderV1.init, YEncoder: UpdateEncoderV2.init)
-}
-
-public func convertUpdateFormatV2ToV1(update: YUpdate) throws -> YUpdate {
-    return try convertUpdateFormat(update: update, YDecoder: UpdateDecoderV2.init, YEncoder: UpdateEncoderV1.init)
-}
