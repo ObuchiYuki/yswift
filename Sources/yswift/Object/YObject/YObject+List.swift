@@ -52,7 +52,7 @@ extension YObject {
 //        return cs
 //    }
 
-    func listToArray(snapshot: Snapshot) -> [Any?] {
+    func listToArray(snapshot: YSnapshot) -> [Any?] {
         var cs: [Any?] = []
         var n = self._start
         while (n != nil) {
@@ -104,7 +104,7 @@ extension YObject {
         }
     }
 
-    func listForEach(snapshot: Snapshot, _ body: (Any?) -> Void) {
+    func listForEach(snapshot: YSnapshot, _ body: (Any?) -> Void) {
         var item = self._start
         while (item != nil) {
             if item!.countable && item!.isVisible(snapshot) {
@@ -119,7 +119,7 @@ extension YObject {
 
     func listGet(_ index: Int) -> Any? {
         var index = index
-        let marker = ArraySearchMarker.find(self, index: index)
+        let marker = YArraySearchMarker.find(self, index: index)
         var item = self._start
         if let marker = marker {
             item = marker.item
@@ -197,7 +197,7 @@ extension YObject {
 
         if index == 0 {
             if self.serchMarkers != nil {
-                ArraySearchMarker.updateChanges(self.serchMarkers!, index: index, len: contents.count)
+                YArraySearchMarker.updateChanges(self.serchMarkers!, index: index, len: contents.count)
             }
             
             try self.listInsert(contents, after: nil, transaction)
@@ -205,7 +205,7 @@ extension YObject {
         }
         
         let startIndex = index
-        let marker = ArraySearchMarker.find(self, index: index)
+        let marker = YArraySearchMarker.find(self, index: index)
         var n = self._start
         if marker != nil {
             n = marker!.item
@@ -231,7 +231,7 @@ extension YObject {
             n = n!.right as? Item
         }
         if (self.serchMarkers != nil) {
-            ArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: contents.count)
+            YArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: contents.count)
         }
         
         return try self.listInsert(contents, after: n, transaction)
@@ -239,7 +239,7 @@ extension YObject {
     
     public func listPush(_ contents: [Any?], _ transaction: Transaction) throws {
         let marker = (self.serchMarkers ?? [])
-            .reduce(ArraySearchMarker(item: self._start, index: 0)) { maxMarker, currMarker in
+            .reduce(YArraySearchMarker(item: self._start, index: 0)) { maxMarker, currMarker in
                 return currMarker.index > maxMarker.index ? currMarker : maxMarker
             }
     
@@ -255,7 +255,7 @@ extension YObject {
         if length == 0 { return }
         let startIndex = index
         let startLength = length
-        let marker = ArraySearchMarker.find(self, index: index)
+        let marker = YArraySearchMarker.find(self, index: index)
         var item = self._start
         if marker != nil {
             item = marker!.item
@@ -289,7 +289,7 @@ extension YObject {
             throw YSwiftError.lengthExceeded
         }
         if (self.serchMarkers != nil) {
-            ArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: length - startLength)
+            YArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: length - startLength)
         }
     }
 }

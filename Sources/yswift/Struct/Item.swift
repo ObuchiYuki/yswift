@@ -367,7 +367,7 @@ extension Item {
         }
     }
 
-    func isVisible(_ snapshot: Snapshot?) -> Bool {
+    func isVisible(_ snapshot: YSnapshot?) -> Bool {
         guard let snapshot = snapshot else {
             return !self.deleted
         }

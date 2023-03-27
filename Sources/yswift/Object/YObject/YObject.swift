@@ -19,7 +19,7 @@ public class YObject: JSHashable {
     
     var storage: [String: Item] = [:]
     
-    var serchMarkers: RefArray<ArraySearchMarker>? = nil
+    var serchMarkers: RefArray<YArraySearchMarker>? = nil
 
     var _start: Item? = nil
     var _length: Int = 0

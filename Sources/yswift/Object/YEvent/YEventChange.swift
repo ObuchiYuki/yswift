@@ -11,10 +11,10 @@ public enum YEventAction: String {
     case add, update, delete
 }
 
-public class YEventKey {
-    public var action: YEventAction
-    public var oldValue: Any?
-    public var newValue: Any?
+public struct YEventKey {
+    public let action: YEventAction
+    public let oldValue: Any?
+    public let newValue: Any?
     
     init(action: YEventAction, oldValue: Any? = nil, newValue: Any? = nil) {
         self.action = action
@@ -23,11 +23,11 @@ public class YEventKey {
     }
 }
 
-public class YEventChange {
-    public var added: Set<Item>
-    public var deleted: Set<Item>
-    public var keys: [String: YEventKey]
-    public var delta: [YEventDelta]
+public struct YEventChange {
+    public internal(set) var added: Set<Item>
+    public internal(set) var deleted: Set<Item>
+    public internal(set) var keys: [String: YEventKey]
+    public internal(set) var delta: [YEventDelta]
     
     init(added: Set<Item>, deleted: Set<Item>, keys: [String : YEventKey], delta: [YEventDelta]) {
         self.added = added

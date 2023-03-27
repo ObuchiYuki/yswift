@@ -7,7 +7,7 @@
 
 import Foundation
 
-final public class Snapshot: JSHashable {
+final public class YSnapshot: JSHashable {
     public var deleteSet: DeleteSet
     public var stateVectors: [Int: Int]
 
@@ -83,7 +83,7 @@ final public class Snapshot: JSHashable {
 }
 
 // Coding
-extension Snapshot {
+extension YSnapshot {
     public func encodeV2(_ encoder: YDeleteSetEncoder = YDeleteSetEncoderV2()) throws -> Data {
         try self.deleteSet.encode(into: encoder)
         try encoder.writeStateVector(from: self.stateVectors)
@@ -94,21 +94,21 @@ extension Snapshot {
         return try self.encodeV2(YDeleteSetEncoderV1())
     }
     
-    static public func decodeV2(_ buf: Data, decoder: YDeleteSetDecoder? = nil) throws -> Snapshot {
+    static public func decodeV2(_ buf: Data, decoder: YDeleteSetDecoder? = nil) throws -> YSnapshot {
         let decoder = try decoder ?? YDeleteSetDecoderV2(LZDecoder(buf))
-        return Snapshot(
+        return YSnapshot(
             deleteSet: try DeleteSet.decode(decoder: decoder),
             stateVectors: try decoder.readStateVector()
         )
     }
     
-    static public func decode(_ buf: Data) throws -> Snapshot {
-        return try Snapshot.decodeV2(buf, decoder: YDeleteSetDecoderV1(LZDecoder(buf)))
+    static public func decode(_ buf: Data) throws -> YSnapshot {
+        return try YSnapshot.decodeV2(buf, decoder: YDeleteSetDecoderV1(LZDecoder(buf)))
     }
 }
 
-extension Snapshot: Equatable {
-    public static func == (lhs: Snapshot, rhs: Snapshot) -> Bool {
+extension YSnapshot: Equatable {
+    public static func == (lhs: YSnapshot, rhs: YSnapshot) -> Bool {
         let ds1 = lhs.deleteSet.clients
         let ds2 = rhs.deleteSet.clients
         let sv1 = lhs.stateVectors

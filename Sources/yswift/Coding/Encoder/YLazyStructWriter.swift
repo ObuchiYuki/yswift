@@ -7,12 +7,12 @@
 
 import Foundation
 
-struct ClientStruct {
-    var written: Int
-    var restEncoder: Data
-}
-
-final class LazyStructWriter {
+final class YLazyStructWriter {
+    private struct ClientStruct {
+        var written: Int
+        var restEncoder: Data
+    }
+    
     private var currClient: Int
     private var startClock: Int
     private var written: Int
@@ -28,7 +28,7 @@ final class LazyStructWriter {
     }
 }
 
-extension LazyStructWriter {
+extension YLazyStructWriter {
     func flush() {
         if self.written > 0 {
             let clientStruct = ClientStruct(written: self.written, restEncoder: self.encoder.restEncoder.data)

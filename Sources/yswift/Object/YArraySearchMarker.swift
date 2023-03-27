@@ -13,7 +13,7 @@ protocol YText_or_YArray {
 extension YText: YText_or_YArray {}
 extension YArray: YText_or_YArray {}
 
-final class ArraySearchMarker {
+final class YArraySearchMarker {
     var timestamp: Int
     var item: Item?
     var index: Int
@@ -27,19 +27,19 @@ final class ArraySearchMarker {
         
         item?.marker = true
         
-        self.timestamp = ArraySearchMarker.globalSearchMarkerTimestamp
-        ArraySearchMarker.globalSearchMarkerTimestamp += 1
+        self.timestamp = YArraySearchMarker.globalSearchMarkerTimestamp
+        YArraySearchMarker.globalSearchMarkerTimestamp += 1
     }
 
-    static func markPosition(_ markers: RefArray<ArraySearchMarker>, item: Item, index: Int) -> ArraySearchMarker {
-        if markers.count >= ArraySearchMarker.maxSearchMarker {
+    static func markPosition(_ markers: RefArray<YArraySearchMarker>, item: Item, index: Int) -> YArraySearchMarker {
+        if markers.count >= YArraySearchMarker.maxSearchMarker {
             // override oldest marker (we don't want to create more objects)
             let marker = markers.min(by: { $0.timestamp < $1.timestamp })!
             marker.overwrite(item, index: index)
             return marker
         } else {
             // create marker
-            let pm = ArraySearchMarker(item: item, index: index)
+            let pm = YArraySearchMarker(item: item, index: index)
             markers.value.append(pm)
             return pm
         }
@@ -51,12 +51,12 @@ final class ArraySearchMarker {
      * A maximum of `maxSearchMarker` objects are created.
      * This function always returns a refreshed marker (updated timestamp)
      */
-    static func find(_ yarray: YObject, index: Int) -> ArraySearchMarker? {
+    static func find(_ yarray: YObject, index: Int) -> YArraySearchMarker? {
         guard let _ = yarray._start, let arraySearchMarkers = yarray.serchMarkers, index != 0 else {
             return nil
         }
         
-        let marker: ArraySearchMarker? = arraySearchMarkers.count == 0
+        let marker: YArraySearchMarker? = arraySearchMarkers.count == 0
             ? nil
             : arraySearchMarkers.value.jsReduce{ a, b in abs(index - a.index) < abs(index - b.index) ? a : b }
         
@@ -94,18 +94,18 @@ final class ArraySearchMarker {
 
         guard let item = item, let lobject = item.parent?.object as? YText_or_YArray else { return nil }
 
-        let len = Int(lobject.count) / ArraySearchMarker.maxSearchMarker
+        let len = Int(lobject.count) / YArraySearchMarker.maxSearchMarker
         if let marker = marker, abs(marker.index - pindex) < len {
             // adjust existing marker
             marker.overwrite(item, index: pindex)
             return marker
         } else {
             // create marker
-            return ArraySearchMarker.markPosition(arraySearchMarkers, item: item, index: pindex)
+            return YArraySearchMarker.markPosition(arraySearchMarkers, item: item, index: pindex)
         }
     }
     
-    static func updateChanges(_ markers: RefArray<ArraySearchMarker>, index: Int, len: Int) {
+    static func updateChanges(_ markers: RefArray<YArraySearchMarker>, index: Int, len: Int) {
         for i in (0..<markers.count).reversed() {
             let marker = markers[i]
 
@@ -138,8 +138,8 @@ final class ArraySearchMarker {
     }
 
     func refreshTimestamp() {
-        self.timestamp = ArraySearchMarker.globalSearchMarkerTimestamp
-        ArraySearchMarker.globalSearchMarkerTimestamp += 1
+        self.timestamp = YArraySearchMarker.globalSearchMarkerTimestamp
+        YArraySearchMarker.globalSearchMarkerTimestamp += 1
     }
         
     /// This is rather complex so this function is the only thing that should overwrite a marker
@@ -148,7 +148,7 @@ final class ArraySearchMarker {
         self.item = item
         item.marker = true
         self.index = index
-        self.timestamp = ArraySearchMarker.globalSearchMarkerTimestamp
-        ArraySearchMarker.globalSearchMarkerTimestamp += 1
+        self.timestamp = YArraySearchMarker.globalSearchMarkerTimestamp
+        YArraySearchMarker.globalSearchMarkerTimestamp += 1
     }
 }

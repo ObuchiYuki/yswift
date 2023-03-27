@@ -8,12 +8,12 @@
 import Foundation
 
 // Swift has no generator. So just providing API.
-final class LazyStructReader {
-    var gen: Array<Struct>.Iterator
-    let filterSkips: Bool
-    
+final class YLazyStructReader {
     private(set) var curr: Struct?
     private(set) var done: Bool
+    
+    private var gen: Array<Struct>.Iterator
+    private let filterSkips: Bool
     
     init(_ decoder: YUpdateDecoder, filterSkips: Bool) throws {
         
@@ -24,9 +24,6 @@ final class LazyStructReader {
         })
         
         self.gen = array.makeIterator()
-        /**
-         * @type {nil | Item | Skip | GC}
-         */
         self.curr = nil
         self.done = false
         self.filterSkips = filterSkips

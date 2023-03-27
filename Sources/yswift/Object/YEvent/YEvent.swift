@@ -13,11 +13,11 @@ public class YEvent {
     public var currentTarget: YObject
     public var transaction: Transaction
     
-    public var _changes: YEventChange? = nil
-    public var _keys: [String: YEventKey]? = nil
-    public var _delta: [YEventDelta]? = nil
+    var _changes: YEventChange? = nil
+    var _keys: [String: YEventKey]? = nil
+    var _delta: [YEventDelta]? = nil
 
-    public init(_ target: YObject, transaction: Transaction) {
+    init(_ target: YObject, transaction: Transaction) {
         self.target = target
         self.currentTarget = target
         self.transaction = transaction
@@ -94,7 +94,7 @@ public class YEvent {
     public func changes() throws -> YEventChange {
         if (self._changes != nil) { return self._changes! }
         
-        let changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: [])
+        var changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: [])
         let changed = self.transaction.changed[self.target]!
         
         if changed.contains(nil) {

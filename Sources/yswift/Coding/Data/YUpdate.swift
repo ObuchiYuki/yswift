@@ -19,11 +19,6 @@ public struct YUpdate {
     }
 }
 
-struct StructWrite {
-    let struct_: Struct
-    let offset: Int
-}
-
 extension YUpdate: Equatable, Hashable {}
 
 extension YUpdate: CustomDebugStringConvertible {
@@ -77,9 +72,9 @@ extension YUpdate {
         YEncoder: () -> YUpdateEncoder = YUpdateEncoderV2.init
     ) throws -> YUpdate {
         let updateDecoder = try YDecoder(LZDecoder(self.data))
-        let lazyDecoder = try LazyStructReader(updateDecoder, filterSkips: false)
+        let lazyDecoder = try YLazyStructReader(updateDecoder, filterSkips: false)
         let updateEncoder = YEncoder()
-        let lazyWriter = LazyStructWriter(updateEncoder)
+        let lazyWriter = YLazyStructWriter(updateEncoder)
 
         var curr = lazyDecoder.curr; while curr != nil {
             try lazyWriter.write(curr!, offset: 0)
@@ -99,9 +94,9 @@ extension YUpdate {
     ) throws -> YUpdate {
         let state = try YDeleteSetDecoderV1(sv).readStateVector()
         let encoder = YEncoder()
-        let lazyStructWriter = LazyStructWriter(encoder)
+        let lazyStructWriter = YLazyStructWriter(encoder)
         let decoder = try YDecoder(LZDecoder(self.data))
-        let reader = try LazyStructReader(decoder, filterSkips: false)
+        let reader = try YLazyStructReader(decoder, filterSkips: false)
         while reader.curr != nil {
             let curr = reader.curr
             let currClient = curr!.id.client
@@ -137,7 +132,7 @@ extension YUpdate {
         var from: [Int: Int] = [:]
         var to: [Int: Int] = [:]
         
-        let updateDecoder = try LazyStructReader(YDecoder(LZDecoder(self.data)), filterSkips: false)
+        let updateDecoder = try YLazyStructReader(YDecoder(LZDecoder(self.data)), filterSkips: false)
         var curr = updateDecoder.curr
         if curr != nil {
             var currClient = curr!.id.client
@@ -165,7 +160,7 @@ extension YUpdate {
     
     private func _encodeStateVectorFromUpdate(YEncoder: () -> YDeleteSetEncoder, YDecoder: (LZDecoder) throws -> YUpdateDecoder) throws -> Data {
         var encoder = YEncoder()
-        let updateDecoder = try LazyStructReader(YDecoder(LZDecoder(self.data)), filterSkips: false)
+        let updateDecoder = try YLazyStructReader(YDecoder(LZDecoder(self.data)), filterSkips: false)
         var curr = updateDecoder.curr
         if curr != nil {
             var size = 0
@@ -210,16 +205,21 @@ extension YUpdate {
     }
     
     private static func _mergeUpdates(updates: [YUpdate], YDecoder: (LZDecoder) throws -> YUpdateDecoder, YEncoder: () -> YUpdateEncoder) throws -> YUpdate {
+        struct StructWrite {
+            let struct_: Struct
+            let offset: Int
+        }
+        
         if updates.count == 1 {
             return updates[0]
         }
         let updateDecoders = try updates.map{ try YDecoder(LZDecoder($0.data)) }
-        var lazyStructDecoders = try updateDecoders.map{ try LazyStructReader($0, filterSkips: true) }
+        var lazyStructDecoders = try updateDecoders.map{ try YLazyStructReader($0, filterSkips: true) }
 
         var currWrite: StructWrite? = nil
 
         let updateEncoder = YEncoder()
-        let lazyStructEncoder = LazyStructWriter(updateEncoder)
+        let lazyStructEncoder = YLazyStructWriter(updateEncoder)
         
         while (true) {
             lazyStructDecoders = lazyStructDecoders.filter{

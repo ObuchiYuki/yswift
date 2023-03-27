@@ -102,7 +102,7 @@ public class ItemTextListPosition {
 
     static public func find(_ transaction: Transaction, parent: YObject, index: Int) throws -> ItemTextListPosition {
         let currentAttributes: YTextAttributes = [:]
-        let marker = ArraySearchMarker.find(parent, index: index)
+        let marker = YArraySearchMarker.find(parent, index: index)
         
         if marker != nil && marker!.item != nil {
             let pos = ItemTextListPosition(
@@ -263,7 +263,7 @@ public func insertText(
     var left = currPos.left, right = currPos.right, index = currPos.index
     
     if parent.serchMarkers != nil {
-        ArraySearchMarker.updateChanges(parent.serchMarkers!, index: currPos.index, len: content.count)
+        YArraySearchMarker.updateChanges(parent.serchMarkers!, index: currPos.index, len: content.count)
     }
     right = Item(
         id: ID(client: ownClientId, clock: doc.store.getState(ownClientId)),
@@ -509,7 +509,7 @@ public func deleteText(
     
     let parent = (currPos.left ?? currPos.right)?.parent?.object
     if let serchMarkers = parent?.serchMarkers {
-        ArraySearchMarker.updateChanges(serchMarkers, index: currPos.index, len: -startLength + length)
+        YArraySearchMarker.updateChanges(serchMarkers, index: currPos.index, len: -startLength + length)
     }
     return currPos
 }
@@ -853,8 +853,8 @@ final public class YText: YObject {
 
     /** Returns the Delta representation of this YText type. */
     public func toDelta(
-        _ snapshot: Snapshot? = nil,
-        prevSnapshot: Snapshot? = nil,
+        _ snapshot: YSnapshot? = nil,
+        prevSnapshot: YSnapshot? = nil,
         computeYChange: ((YChangeAction, ID) -> YTextAttributeValue)? = nil
     ) throws -> [YEventDelta] {
         var ops: [YEventDelta] = []

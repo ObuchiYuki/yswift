@@ -19,7 +19,7 @@ extension YUpdate {
         do {
             var structs: [Struct] = []
             let updateDecoder = try YDecoder(LZDecoder(self.data))
-            let lazyDecoder = try LazyStructReader(updateDecoder, filterSkips: false)
+            let lazyDecoder = try YLazyStructReader(updateDecoder, filterSkips: false)
             
             var curr = lazyDecoder.curr; while curr != nil {
                 structs.append(curr!)

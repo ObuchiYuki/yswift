@@ -59,7 +59,7 @@ extension YObject {
         return val != nil && !val!.deleted
     }
 
-    func mapGet(_ key: String, snapshot: Snapshot) -> Any? {
+    func mapGet(_ key: String, snapshot: YSnapshot) -> Any? {
         var v = self.storage[key]
         while (v != nil && (snapshot.stateVectors[v!.id.client] == nil || v!.id.clock >= (snapshot.stateVectors[v!.id.client] ?? 0))) {
             v = v!.left as? Item
