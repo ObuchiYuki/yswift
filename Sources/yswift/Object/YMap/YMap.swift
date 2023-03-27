@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-final public class YMap<Value: YElement>: YConcreteObject {
+final public class YMap<Value: YElement> {
     public let opaque: YOpaqueMap
     
     public init(opaque: YOpaqueMap) { self.opaque = opaque }
@@ -21,7 +21,25 @@ extension YMap {
     
     public var isEmpty: Bool { self.opaque.isEmpty }
     
-    public func keys() -> some Sequence<String> { self.opaque.keys() }
+    public subscript(key: String) -> Value? {
+        get {
+            guard let value = self.opaque[key] else { return nil }
+            return Value.decode(from: value)
+        }
+        set { self.opaque[key] = newValue?.encodeToOpaque() }
+    }
+
+    public func setThrowingError(_ key: String, value: Value?) throws {
+        try self.opaque.setThrowingError(key, value: value)
+    }
+    
+    public func keys() -> some Sequence<String> {
+        self.opaque.keys()
+    }
+    
+    public func values() -> some Sequence<Value> {
+        self.opaque.values().lazy.map{ Value.decode(from: $0)  }
+    }
     
     public func removeValue(forKey key: String) throws {
         try self.opaque.removeValue(forKey: key)
@@ -44,6 +62,23 @@ extension YMap {
     }
 }
 
+extension YMap: YElement {
+    public func encodeToOpaque() -> Any? { self.opaque }
+    public static func decode(from opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueMap) }
+}
+
+extension YMap: CustomStringConvertible {
+    public var description: String { opaque.description }
+}
+
+extension YMap: Sequence {
+    public typealias Element = (key: String, value: Value)
+    
+    public func makeIterator() -> some IteratorProtocol<Element> {
+        self.opaque.lazy.map{ (key: $0, value: Value.decode(from: $1)) }.makeIterator()
+    }
+}
+
 extension YMap {
     public var publisher: some Combine.Publisher<Void, Never> {
         self.opaque._eventHandler.publisher.map{_ in () }
@@ -52,8 +87,4 @@ extension YMap {
     public var deepPublisher: some Combine.Publisher<Void, Never> {
         self.opaque._deepEventHandler.publisher.map{_ in () }
     }
-}
-
-extension YMap: CustomStringConvertible {
-    public var description: String { opaque.description }
 }

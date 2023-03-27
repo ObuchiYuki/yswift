@@ -85,7 +85,6 @@ public class YEvent {
         return self.transaction.deleteSet.isDeleted(struct_.id)
     }
 
-
     public func changes() throws -> YEventChange {
         if (self._changes != nil) { return self._changes! }
         

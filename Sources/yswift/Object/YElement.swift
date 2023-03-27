@@ -7,62 +7,110 @@
 
 import Foundation
 
-public protocol YElement {}
-
-public protocol YConcreteObject: YElement {
-    associatedtype Opaque: YObject
-    
-    var opaque: Opaque { get }
-
-    init(opaque: Opaque)
+public protocol YElement {
+    func encodeToOpaque() -> Any?
+    static func decode(from opaque: Any?) -> Self
 }
 
-public protocol YPrimitive: YElement, Equatable, Hashable {}
-
-extension Int: YPrimitive {}
-extension Int8: YPrimitive {}
-extension Int16: YPrimitive {}
-extension Int32: YPrimitive {}
-extension Int64: YPrimitive {}
-
-extension UInt: YPrimitive {}
-extension UInt8: YPrimitive {}
-extension UInt16: YPrimitive {}
-extension UInt32: YPrimitive {}
-extension UInt64: YPrimitive {}
-
-extension Float: YPrimitive {}
-extension Double: YPrimitive {}
-
-extension String: YPrimitive {}
-extension Data: YPrimitive {}
-
-extension Dictionary: YElement where Key == String, Value: YPrimitive {}
-extension Dictionary: YPrimitive where Key == String, Value: YPrimitive {}
-
-extension Array: YElement where Element: YPrimitive {}
-extension Array: YPrimitive where Element: YPrimitive {}
-
-extension NSString: YPrimitive {}
-extension NSArray: YPrimitive {}
-extension NSDictionary: YPrimitive {}
-
-public protocol YCodable: YElement {
-    func encode() throws -> NSDictionary
-    static func decode(from dictionary: NSDictionary) throws -> Self
-}
-
+// ============================================================================== //
+// MARK: - Ex + Codable -
 private let dictionayEncoder = DictionaryEncoder()
 private let dictionayDecoder = DictionaryDecoder()
 
-extension YCodable where Self: Encodable {
-    func encode() throws -> NSDictionary {
-        try dictionayEncoder.encode(self)
+extension YElement where Self: Encodable {
+    public func encodeToOpaque() -> Any? {
+        try! dictionayEncoder.encode(self) as NSDictionary
     }
 }
 
-extension YCodable where Self: Decodable {
-    static func decode(from dictionary: NSDictionary) throws -> Self {
-        try dictionayDecoder.decode(Self.self, from: dictionary)
+extension YElement where Self: Decodable {
+    public static func decode(from opaque: Any?) -> Self {
+        try! dictionayDecoder.decode(Self.self, from: opaque as! NSDictionary)
     }
+}
+
+// ============================================================================== //
+// MARK: - Ex + Primitive -
+
+extension Int: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension Int8: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension Int16: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension Int32: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension Int64: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+
+extension UInt: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension UInt8: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension UInt16: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension UInt32: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension UInt64: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+
+extension Float: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension Double: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+
+extension String: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension Data: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+
+extension Dictionary: YElement where Key == String, Value: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+
+extension Array: YElement where Element: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+
+extension NSString: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension NSArray: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+extension NSDictionary: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
 }
