@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 extension YArray where Element: YCodable {
     public convenience init<S: Sequence>(_ contents: S) throws where S.Element == Element {

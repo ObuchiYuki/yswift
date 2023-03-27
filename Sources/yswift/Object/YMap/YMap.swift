@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 final public class YMap<Value: YElement>: YConcreteObject {
     public let opaque: YOpaqueMap
@@ -40,6 +41,16 @@ extension YMap {
     
     public func toJSON() -> Any {
         self.opaque.toJSON()
+    }
+}
+
+extension YMap {
+    public var publisher: some Combine.Publisher<Void, Never> {
+        self.opaque._eventHandler.publisher.map{_ in () }
+    }
+    
+    public var deepPublisher: some Combine.Publisher<Void, Never> {
+        self.opaque._deepEventHandler.publisher.map{_ in () }
     }
 }
 

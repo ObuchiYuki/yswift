@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 final public class YArray<Element: YElement>: YConcreteObject {
     public let opaque: YOpaqueArray
@@ -16,7 +17,9 @@ final public class YArray<Element: YElement>: YConcreteObject {
 }
 
 extension YArray {
-    public var count: Int { opaque.count }
+    public var count: Int { self.opaque.count }
+    
+    public var isEmpty: Bool { self.opaque.count == 0 }
     
     public func remove(at index: Int, count: Int = 1) throws {
         try opaque.remove(index)
@@ -28,6 +31,16 @@ extension YArray {
     
     public func toJSON() -> Any {
         self.opaque.toJSON()
+    }
+}
+
+extension YArray {
+    public var publisher: some Combine.Publisher<Void, Never> {
+        self.opaque._eventHandler.publisher.map{_ in () }
+    }
+    
+    public var deepPublisher: some Combine.Publisher<Void, Never> {
+        self.opaque._deepEventHandler.publisher.map{_ in () }
     }
 }
 

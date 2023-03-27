@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 final class YEventHandler<Args> {
     private var handlers: [Disposer: (Args) throws -> Void] = [:]
@@ -29,4 +30,10 @@ final class YEventHandler<Args> {
     func callListeners(_ args: Args) throws {
         for (_, handler) in self.handlers { try handler(args) }
     }
+    
+    public private(set) lazy var publisher: some Combine.Publisher<Args, Never> = {
+        let publisher = PassthroughSubject<Args, Never>()
+        _ = self.addListener({ publisher.send($0) })
+        return publisher
+    }()
 }
