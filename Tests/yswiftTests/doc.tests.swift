@@ -6,7 +6,7 @@ final class DocTests: XCTestCase {
     
     func testAfterTransactionRecursion() throws { // xml -> array
         let ydoc = YDocument()
-        let ymap = try ydoc.getArray("")
+        let ymap = try ydoc.getOpaqueArray("")
         ydoc.on(YDocument.On.afterTransaction) { tr in
             if tr.origin as! String == "test" {
                 _ = ymap.toJSON()
@@ -50,17 +50,17 @@ final class DocTests: XCTestCase {
         let doc2 = YDocument()
         doc2.clientID = 0
         XCTAssertEqual(doc2.clientID, doc1.clientID)
-        try doc1.getArray("a").insert(contentsOf: [1, 2], at: 0)
+        try doc1.getOpaqueArray("a").insert(contentsOf: [1, 2], at: 0)
         try doc2.applyUpdate(doc1.encodeStateAsUpdate())
         XCTAssertNotEqual(doc2.clientID, doc1.clientID)
     }
 
     func testGetTypeEmptyId() throws {
-        let doc1 = YDocument(opts: .init(cliendID: 100))
+        let doc1 = YDocument(.init(cliendID: 100))
         try doc1.getText("").insert(0, text: "h")
         try doc1.getText("").insert(1, text: "i")
                 
-        let doc2 = YDocument(opts: .init(cliendID: 101))
+        let doc2 = YDocument(.init(cliendID: 101))
         
         let update = try doc1.encodeStateAsUpdate()
                 
@@ -74,10 +74,10 @@ final class DocTests: XCTestCase {
         let doc = YDocument()
         XCTAssertTrue(doc.toJSON().isEmpty, "doc.toJSON yields empty object")
 
-        let arr = try doc.getArray("array")
+        let arr = try doc.getOpaqueArray("array")
         try arr.append(contentsOf: ["test1"])
 
-        let map = try doc.getMap("map")
+        let map = try doc.getOpaqueMap("map")
         try map.setThrowingError("k1", value: "v1")
         let map2 = YOpaqueMap()
         try map.setThrowingError("k2", value: map2)
@@ -111,8 +111,8 @@ final class DocTests: XCTestCase {
                 ]
             }
             
-            let subdocs = try doc.getMap("mysubdocs")
-            let docA = YDocument(opts: .init(guid: "a"))
+            let subdocs = try doc.getOpaqueMap("mysubdocs")
+            let docA = YDocument(.init(guid: "a"))
             try docA.load()
             try subdocs.setThrowingError("a", value: docA)
             
@@ -128,12 +128,12 @@ final class DocTests: XCTestCase {
             try (subdocs["a"] as! YDocument).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
-            try subdocs.setThrowingError("b", value: YDocument(opts: .init(guid: "a", shouldLoad: false)))
+            try subdocs.setThrowingError("b", value: YDocument(.init(guid: "a", shouldLoad: false)))
             XCTAssertEqual(event, [["a"], [], []])
             try (subdocs["b"] as! YDocument).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
-            let docC = YDocument(opts: .init(guid: "c"))
+            let docC = YDocument(.init(guid: "c"))
             try docC.load()
             try subdocs.setThrowingError("c", value: docC)
             XCTAssertEqual(event, [["c"], [], ["c"]])
@@ -157,12 +157,12 @@ final class DocTests: XCTestCase {
             try doc2.applyUpdate(doc.encodeStateAsUpdate())
             XCTAssertEqual(event, [["a", "a", "c"], [], []])
 
-            try (doc2.getMap("mysubdocs")["a"] as! YDocument).load()
+            try (doc2.getOpaqueMap("mysubdocs")["a"] as! YDocument).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
             XCTAssertEqual(doc2.getSubdocGuids(), ["a", "c"])
 
-            try doc2.getMap("mysubdocs").removeValue(forKey: "a")
+            try doc2.getOpaqueMap("mysubdocs").removeValue(forKey: "a")
             XCTAssertEqual(event, [[], ["a"], []])
             XCTAssertEqual(doc2.getSubdocGuids(), ["a", "c"])
         }
@@ -170,7 +170,7 @@ final class DocTests: XCTestCase {
 
     func testSubdocLoadEdgeCases() throws {
         let ydoc = YDocument()
-        let yarray = try ydoc.getArray("") // [Doc]
+        let yarray = try ydoc.getOpaqueArray("") // [Doc]
         let subdoc1 = YDocument()
         var lastEvent: YDocument.On.SubDocEvent? = nil
         
@@ -199,7 +199,7 @@ final class DocTests: XCTestCase {
             lastEvent = event
         }
         try ydoc2.applyUpdate(ydoc.encodeStateAsUpdate())
-        let subdoc3 = try XCTUnwrap(try ydoc2.getArray("")[0] as? YDocument)
+        let subdoc3 = try XCTUnwrap(try ydoc2.getOpaqueArray("")[0] as? YDocument)
         XCTAssert(subdoc3.shouldLoad == false)
         XCTAssert(subdoc3.autoLoad == false)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc3))
@@ -213,8 +213,8 @@ final class DocTests: XCTestCase {
 
     func testSubdocLoadEdgeCasesAutoload() throws {
         let ydoc = YDocument()
-        let yarray = try ydoc.getArray("") // [Doc]
-        let subdoc1 = YDocument(opts: .init(autoLoad: true))
+        let yarray = try ydoc.getOpaqueArray("") // [Doc]
+        let subdoc1 = YDocument(.init(autoLoad: true))
         
         var lastEvent: YDocument.On.SubDocEvent? = nil
         ydoc.on(YDocument.On.subdocs) { event, _ in
@@ -248,7 +248,7 @@ final class DocTests: XCTestCase {
         }
         let update = try ydoc.encodeStateAsUpdate()
         try ydoc2.applyUpdate(update)
-        let subdoc3 = try XCTUnwrap(ydoc2.getArray("")[0] as? YDocument)
+        let subdoc3 = try XCTUnwrap(ydoc2.getOpaqueArray("")[0] as? YDocument)
         XCTAssert(subdoc1.shouldLoad)
         XCTAssert(subdoc1.autoLoad)
         try XCTAssert(XCTUnwrap(lastEvent).added.contains(subdoc3))
@@ -257,7 +257,7 @@ final class DocTests: XCTestCase {
 
     func testSubdocsUndo() throws {
         let ydoc = YDocument()
-        let elems = try ydoc.getArray()
+        let elems = try ydoc.getOpaqueArray()
         let undoManager = YUndoManager(typeScope: elems, options: .init())
         let subdoc = YDocument()
         try elems.insert(subdoc, at: 0)

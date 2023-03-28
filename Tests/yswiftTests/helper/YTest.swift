@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import yswift
+@testable import yswift
 
 struct YTest<T> {
     let connector: TestConnector
@@ -54,8 +54,8 @@ struct YTest<T> {
             let doc = try TestDoc(userID: i, connector: connector)
             doc.clientID = i
             docs.append(doc)
-            try array.append(doc.getArray("array"))
-            try map.append(doc.getMap("map"))
+            try array.append(doc.getOpaqueArray("array"))
+            try map.append(doc.getOpaqueMap("map"))
             try text.append(doc.getText("text"))
         }
         

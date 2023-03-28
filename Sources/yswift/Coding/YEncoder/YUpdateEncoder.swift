@@ -14,7 +14,7 @@ public protocol YUpdateEncoder: YDeleteSetEncoder {
     func writeInfo(_ info: UInt8)
     func writeString(_ s: String)
     func writeParentInfo(_ isYKey: Bool)
-    func writeTypeRef(_ info: UInt8)
+    func writeTypeRef(_ info: Int)
     func writeLen(_ len: Int)
     func writeAny(_ any: Any?)
     func writeBuf(_ buf: Data)
@@ -50,7 +50,7 @@ public class YUpdateEncoderV1: YDeleteSetEncoderV1, YUpdateEncoder {
         self.restEncoder.writeUInt(isYKey ? 1 : 0)
     }
 
-    public func writeTypeRef(_ info: UInt8) {
+    public func writeTypeRef(_ info: Int) {
         self.restEncoder.writeUInt(UInt(info))
     }
 
@@ -140,7 +140,7 @@ public class YUpdateEncoderV2: YDeleteSetEncoderV2, YUpdateEncoder {
         self.parentInfoEncoder.write(isYKey ? 1 : 0)
     }
 
-    public func writeTypeRef(_ info: UInt8) {
+    public func writeTypeRef(_ info: Int) {
         self.typeRefEncoder.write(UInt(info))
     }
 

@@ -15,7 +15,7 @@ final public class YPermanentUserData {
     var dss: [String: YDeleteSet]
 
     public init(doc: YDocument, storeType: YOpaqueMap?) throws {
-        self.yusers = try storeType ?? doc.getMap("users")
+        self.yusers = try storeType ?? doc.getOpaqueMap("users")
         self.doc = doc
         self.clients = [:]
         self.dss = [String: YDeleteSet]()

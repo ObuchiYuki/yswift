@@ -5,7 +5,7 @@ import yswift
 final class SnapshotTests: XCTestCase {
     
 //    func testBasicRestoreSnapshot() throws {
-//        let doc = Doc(opts: DocOpts(gc: false))
+//        let doc = Doc(opts: YDocument.Options(gc: false))
 //        try doc.getArray("array").insert(0, ["hello"])
 //        let snap = Snapshot.snapshot(doc)
 //        try doc.getArray("array").insert(1, ["world"])

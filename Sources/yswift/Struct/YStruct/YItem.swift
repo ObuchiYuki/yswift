@@ -133,7 +133,7 @@ final class YItem: YStruct, JSHashable {
         } else if let parent = self.parent?.id {
             let parentItem = try store.find(parent)
             if let content = (parentItem as? YItem)?.content as? YObjectContent {
-                self.parent = .object(content.type)
+                self.parent = .object(content.object)
             } else {
                 self.parent = nil
             }
@@ -437,7 +437,7 @@ extension YItem {
         let parentType: YObject
         
         if let parentContent = parentItem?.content as? YObjectContent {
-            parentType = parentContent.type
+            parentType = parentContent.object
         } else if let parentObject = self.parent?.object {
             parentType = parentObject
         } else {

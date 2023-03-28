@@ -78,7 +78,7 @@ final public class YUpdateEnvironment {
 
     static let doc = YUpdateEnvironment(
         mergeUpdates: { updates in
-            let ydoc = YDocument(opts: DocOpts(gc: false))
+            let ydoc = YDocument(YDocument.Options(gc: false))
             try updates.forEach{ try ydoc.applyUpdateV2($0) }
             return try ydoc.encodeStateAsUpdate(encoder: YUpdateEncoderV2())
         },
@@ -92,7 +92,7 @@ final public class YUpdateEnvironment {
         updateEventName: YDocument.On.updateV2,
         description: "Merge via Doc",
         diffUpdate: { update, sv in
-            let ydoc = YDocument(opts: DocOpts(gc: false))
+            let ydoc = YDocument(YDocument.Options(gc: false))
             try ydoc.applyUpdateV2(update)
             return try ydoc.encodeStateAsUpdate(encodedStateVector: sv, encoder: YUpdateEncoderV2())
         }

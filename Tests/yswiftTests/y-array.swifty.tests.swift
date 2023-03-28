@@ -95,5 +95,20 @@ final class YArraySwiftyTests: XCTestCase {
         
         XCTAssertEqual(array.toArray(), (0..<10).map{ $0 })
     }
+    
+    func testDocumentGetArray() throws {
+        let test = try YTest<Any>(docs: 1)
+        let doc = test.docs[0]
+        
+        let root = try doc.getMap(YArray<Int>.self)
+        
+        root["alice"] = [1, 2, 3]
+        root["bob"] = [4, 5, 6]
+        
+        XCTAssertEqualJSON(root.toJSON(), [
+            "alice": [1, 2, 3],
+            "bob": [4, 5, 6],
+        ])
+    }
 }
 

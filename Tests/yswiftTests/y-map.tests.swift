@@ -142,7 +142,7 @@ final class YMapTests: XCTestCase {
         try connector.flushAllMessages()
 
         for doc in docs {
-            let u = try doc.getMap("map")
+            let u = try doc.getOpaqueMap("map")
             XCTAssertEqualJSON(u["stuff"], "stuffy")
 //            XCTAssertEqualJSON(u.get("undefined") == undefined, "undefined")
             XCTAssertEqualJSON(u["nil"], nil, "nil")
@@ -190,7 +190,7 @@ final class YMapTests: XCTestCase {
         try connector.flushAllMessages()
         
         for doc in docs {
-            let u = try doc.getMap("map")
+            let u = try doc.getOpaqueMap("map")
             XCTAssertEqualJSON(u["stuff"], "stuffy")
         }
         
@@ -206,7 +206,7 @@ final class YMapTests: XCTestCase {
         try connector.flushAllMessages()
         
         for doc in docs {
-            let u = try doc.getMap("map")
+            let u = try doc.getOpaqueMap("map")
             XCTAssertEqualJSON(u["stuff"], "c1")
         }
         
@@ -239,7 +239,7 @@ final class YMapTests: XCTestCase {
         try connector.flushAllMessages()
         
         for doc in docs {
-            let u = try doc.getMap("map")
+            let u = try doc.getOpaqueMap("map")
             XCTAssertNil(u["stuff"])
         }
         
@@ -257,7 +257,7 @@ final class YMapTests: XCTestCase {
         try connector.flushAllMessages()
         
         for doc in docs {
-            let u = try doc.getMap("map")
+            let u = try doc.getOpaqueMap("map")
             XCTAssertNil(u["stuff"])
             XCTAssertNil(u["otherstuff"])
             XCTAssert(u.count == 0, "map size after clear is \(u.count), expected 0")
@@ -288,7 +288,7 @@ final class YMapTests: XCTestCase {
         try connector.flushAllMessages()
         
         for doc in docs {
-            let u = try doc.getMap("map")
+            let u = try doc.getOpaqueMap("map")
             XCTAssertNil(u["stuff"])
             XCTAssertNil(u["otherstuff"])
             XCTAssert(u.count == 0, "map size after clear is \(u.count), expected 0")
@@ -309,7 +309,7 @@ final class YMapTests: XCTestCase {
         try connector.flushAllMessages()
         
         for doc in docs {
-            let u = try doc.getMap("map")
+            let u = try doc.getOpaqueMap("map")
             XCTAssertEqualJSON(u["stuff"], "c3")
         }
         
@@ -336,7 +336,7 @@ final class YMapTests: XCTestCase {
         try connector.flushAllMessages()
         
         for doc in docs {
-            let u = try doc.getMap("map")
+            let u = try doc.getOpaqueMap("map")
             XCTAssertNil(u["stuff"])
         }
         
@@ -526,7 +526,7 @@ final class YMapTests: XCTestCase {
 
     func testYmapEventExceptionsShouldCompleteTransaction() throws {
         let doc = YDocument()
-        let map = try doc.getMap("map")
+        let map = try doc.getOpaqueMap("map")
 
         var updateCalled = false
         var throwingObserverCalled = false
@@ -570,12 +570,12 @@ final class YMapTests: XCTestCase {
         { doc, test, _ in // set
             let key = test.gen.oneOf(["one", "two"])
             let value = test.gen.string()
-            try doc.getMap("map").setThrowingError(key, value: value)
+            try doc.getOpaqueMap("map").setThrowingError(key, value: value)
         },
         { doc, test, _ in // setType
             let key = test.gen.oneOf(["one", "two"])
             let type = test.gen.oneOf([YOpaqueArray(), YOpaqueMap()])
-            try doc.getMap("map").setThrowingError(key, value: type)
+            try doc.getOpaqueMap("map").setThrowingError(key, value: type)
             if let type = type as? YOpaqueArray {
                 try type.insert(contentsOf: [1, 2, 3, 4], at: 0)
             } else if let type = type as? YOpaqueMap {
@@ -584,7 +584,7 @@ final class YMapTests: XCTestCase {
         },
         { doc, test, _ in // delete
             let key = test.gen.oneOf(["one", "two"])
-            try doc.getMap("map").removeValue(forKey: key)
+            try doc.getOpaqueMap("map").removeValue(forKey: key)
         }
     ]
 

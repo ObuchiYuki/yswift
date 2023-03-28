@@ -7,7 +7,7 @@
 
 import Foundation
  
-public class YObject: JSHashable {
+open class YObject: JSHashable {
         
     // =========================================================================== //
     // MARK: - Property -

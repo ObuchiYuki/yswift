@@ -6,15 +6,15 @@ final class YArrayTests: XCTestCase {
     func testBasicUpdate() throws {
         let doc1 = YDocument()
         let doc2 = YDocument()
-        try doc1.getArray("array").insert("hi", at: 0)
+        try doc1.getOpaqueArray("array").insert("hi", at: 0)
         let update = try doc1.encodeStateAsUpdate()
         try doc2.applyUpdate(update)
-        try XCTAssertEqualJSON(doc2.getArray("array").toArray(), ["hi"])
+        try XCTAssertEqualJSON(doc2.getOpaqueArray("array").toArray(), ["hi"])
     }
     
     func testSlice() throws {
         let doc1 = YDocument()
-        let arr = try doc1.getArray("array")
+        let arr = try doc1.getOpaqueArray("array")
         try arr.insert(contentsOf: [1, 2, 3], at: 0)
         XCTAssertEqualJSON(arr.slice(0), [1, 2, 3])
         XCTAssertEqualJSON(arr.slice(1), [2, 3])
@@ -26,7 +26,7 @@ final class YArrayTests: XCTestCase {
 
     func testArrayFrom() throws {
         let doc1 = YDocument()
-        let db1 = try doc1.getMap("root")
+        let db1 = try doc1.getOpaqueMap("root")
         let nestedArray1 = Array([0, 1, 2])
         try db1.setThrowingError("array", value: nestedArray1)
         // ?
@@ -40,7 +40,7 @@ final class YArrayTests: XCTestCase {
      */
     func testLengthIssue() throws {
         let doc1 = YDocument()
-        let arr = try doc1.getArray("array")
+        let arr = try doc1.getOpaqueArray("array")
         try arr.append(contentsOf: [0, 1, 2, 3])
         try arr.remove(0)
         try arr.insert(0, at: 0)
@@ -69,7 +69,7 @@ final class YArrayTests: XCTestCase {
      */
     func testLengthIssue2() throws {
         let doc = YDocument()
-        let next = try doc.getArray()
+        let next = try doc.getOpaqueArray()
         try doc.transact({ _ in
             try next.insert("group2", at: 0)
         })
@@ -446,7 +446,7 @@ final class YArrayTests: XCTestCase {
 
     func testIteratingArrayContainingTypes() throws {
         let y = YDocument()
-        let arr = try y.getArray("arr") // YArray<YMap<Int>>
+        let arr = try y.getOpaqueArray("arr") // YArray<YMap<Int>>
         let numItems = 10
         for i in 0..<numItems {
             let map = YOpaqueMap()
@@ -471,7 +471,7 @@ final class YArrayTests: XCTestCase {
 
     private lazy var arrayTransactions: [(YDocument, YTest<Any>, Any?) throws -> Void] = [
         { doc, test, _ in // insert
-            let yarray = try doc.getArray("array")
+            let yarray = try doc.getOpaqueArray("array")
             let uniqueNumber = self.getUniqueNumber()
             var content: [Int] = []
             let len = test.gen.int(in: 1...4)
@@ -487,7 +487,7 @@ final class YArrayTests: XCTestCase {
             XCTAssertEqualJSON(yarray.toArray(), oldContent)
         },
         { doc, test, _ in // insertTypeArray
-            let yarray = try doc.getArray("array")
+            let yarray = try doc.getOpaqueArray("array")
             let pos = test.gen.int(in: 0...yarray.count)
             try yarray.insert(YOpaqueArray(), at: pos)
             
@@ -497,7 +497,7 @@ final class YArrayTests: XCTestCase {
             try array2.insert(contentsOf: [1, 2, 3, 4], at: 0)
         },
         { doc, test, _ in // insertTypeMap
-            let yarray = try doc.getArray("array")
+            let yarray = try doc.getOpaqueArray("array")
             let pos = test.gen.int(in: 0...yarray.count)
             
             test.log("insert YMap at '\(pos)'")
@@ -509,13 +509,13 @@ final class YArrayTests: XCTestCase {
             try map.setThrowingError("someprop", value: 44)
         },
         { doc, test, _ in // insertTypeNull
-            let yarray = try doc.getArray("array")
+            let yarray = try doc.getOpaqueArray("array")
             let pos = test.gen.int(in: 0...yarray.count)
             test.log("insert 'nil' at '\(pos)'")
             try yarray.insert(nil, at: pos)
         },
         { doc, test, _ in // delete
-            let yarray = try doc.getArray("array")
+            let yarray = try doc.getOpaqueArray("array")
             let length = yarray.count
             guard length > 0 else {
                 test.log("no delete")

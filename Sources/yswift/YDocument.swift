@@ -9,45 +9,46 @@ import Foundation
 import Promise
 
 public class YDocument: LZObservable, JSHashable {
-    public var gc: Bool
-    public var clientID: Int
-    public var guid: String
-    public var collectionid: String?
-    public var share: [String: YObject] // [String: Object_<YEvent<any>>]
-    public var store: YStructStore
-    public var subdocs: Set<YDocument>
-    public var shouldLoad: Bool
-    public var autoLoad: Bool
-    public var meta: Any?
-    public var isLoaded: Bool
-    public var isSynced: Bool
+    public internal(set) var gc: Bool
+    public internal(set) var guid: String
+    public internal(set) var clientID: Int
+    public internal(set) var collectionid: String?
+    public internal(set) var share: [String: YObject]
+    public internal(set) var store: YStructStore
+    public internal(set) var subdocs: Set<YDocument>
+    public internal(set) var shouldLoad: Bool
+    public internal(set) var autoLoad: Bool
+    public internal(set) var meta: Any?
+    public internal(set) var isLoaded: Bool
+    public internal(set) var isSynced: Bool
     
-    public var whenLoaded: Promise<Void, Never>!
-    public var whenSynced: Promise<Void, Never>!
+    public internal(set) var whenLoaded: Promise<Void, Never>!
+    public internal(set) var whenSynced: Promise<Void, Never>!
     
     var _gcFilter: (YItem) -> Bool
     var _item: YItem?
     var _transaction: YTransaction?
     var _transactionCleanups: RefArray<YTransaction>
 
-    public init(opts: DocOpts = .init()) {
+    public init(_ opts: Options = Options()) {
         
         self.gc = opts.gc
-        self._gcFilter = opts.gcFilter
         self.clientID = opts.cliendID ?? YDocument.generateNewClientID()
         self.guid = opts.guid ?? YDocument.generateDocGuid()
         self.collectionid = opts.collectionid
         self.share = [:]
         self.store = YStructStore()
-        self._transaction = nil
-        self._transactionCleanups = []
         self.subdocs = Set()
-        self._item = nil
         self.shouldLoad = opts.shouldLoad
         self.autoLoad = opts.autoLoad
         self.meta = opts.meta
         self.isLoaded = false
         self.isSynced = false
+        
+        self._gcFilter = opts.gcFilter
+        self._item = nil
+        self._transaction = nil
+        self._transactionCleanups = []
         
         super.init()
         
@@ -82,13 +83,6 @@ public class YDocument: LZObservable, JSHashable {
         self.whenSynced = provideSyncedPromise()
     }
 
-    /**
-     * Notify the parent document that you request to load data into this subdocument (if it is a subdocument).
-     *
-     * `load()` might be used in the future to request any provider to load the most current data.
-     *
-     * It is safe to call `load()` multiple times.
-     */
     public func load() throws {
         let item = self._item
         if item != nil && !self.shouldLoad {
@@ -101,16 +95,12 @@ public class YDocument: LZObservable, JSHashable {
 
     public func getSubdocs() -> Set<YDocument> { return self.subdocs }
 
-    public func getSubdocGuids() -> Set<String> {
-        return Set(self.subdocs.map{ $0.guid })
-        
-    }
+    public func getSubdocGuids() -> Set<String> { Set(self.subdocs.map{ $0.guid }) }
 
     public func transact(origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) throws {
         try YTransaction.transact(self, origin: origin, local: local, body)
     }
 
-    // JS実装では TypeConstructor なしで呼び出すとObjectを作った
     public func get<T: YObject>(_: T.Type, name: String = "", make: () -> T) throws -> T {
         let type_ = try self.share.setIfUndefined(name, {
             let t = make()
@@ -147,11 +137,19 @@ public class YDocument: LZObservable, JSHashable {
         return type_ as! T
     }
 
-    public func getMap(_ name: String = "") throws -> YOpaqueMap {
+    public func getMap<T>(_: T.Type, _ name: String = "") throws -> YMap<T> {
+        try YMap(opaque: self.getOpaqueMap(name))
+    }
+    
+    public func getArray<T>(_: T.Type, name: String = "") throws -> YArray<T> {
+        try YArray(opaque: self.getOpaqueArray(name))
+    }
+    
+    public func getOpaqueMap(_ name: String = "") throws -> YOpaqueMap {
         return try self.get(YOpaqueMap.self, name: name, make: { YOpaqueMap.init(nil) })
     }
 
-    public func getArray(_ name: String = "") throws -> YOpaqueArray {
+    public func getOpaqueArray(_ name: String = "") throws -> YOpaqueArray {
         return try self.get(YOpaqueArray.self, name: name, make: { YOpaqueArray.init() })
     }
     
@@ -167,10 +165,6 @@ public class YDocument: LZObservable, JSHashable {
         })
         return doc
     }
-    
-//
-//    public func getXmlFragment(_ name: String = '') -> YXmlFragment { return self.get(name, YXmlFragment) }
-//
 
     public override func destroy() throws {
         try self.subdocs.forEach{ try $0.destroy() }
@@ -181,14 +175,14 @@ public class YDocument: LZObservable, JSHashable {
             let content = item!.content as? YDocumentContent
             
             // swift add
-            var __copyOpts = DocOpts()
-            __copyOpts.guid = self.guid
-            if let gc = content?.options.gc { __copyOpts.gc = gc }
-            if let meta = content?.options.meta { __copyOpts.meta = meta }
-            if let autoLoad = content?.options.autoLoad { __copyOpts.autoLoad = autoLoad }
-            __copyOpts.shouldLoad = false
+            var copiedOptions = Options()
+            copiedOptions.guid = self.guid
+            if let gc = content?.options.gc { copiedOptions.gc = gc }
+            if let meta = content?.options.meta { copiedOptions.meta = meta }
+            if let autoLoad = content?.options.autoLoad { copiedOptions.autoLoad = autoLoad }
+            copiedOptions.shouldLoad = false
             
-            let subdoc = YDocument(opts: __copyOpts)
+            let subdoc = YDocument(copiedOptions)
             content?.document = subdoc
             content?.document._item = item!
             
@@ -263,33 +257,29 @@ extension YDocument {
     }
 }
 
-public struct DocOpts {
-    public var gc: Bool = true
-    var gcFilter: (YItem) -> Bool = {_ in true }
-    public var guid: String?
-    public var collectionid: String?
-    public var meta: Any?
-    public var autoLoad: Bool
-    public var shouldLoad: Bool
-    public var cliendID: Int?
-    
-    public init(
-        gc: Bool = true,
-//        gcFilter: @escaping (Item) -> Bool = {_ in true },
-        guid: String? = nil,
-        collectionid: String? = nil,
-        meta: Any? = nil,
-        autoLoad: Bool = false,
-        shouldLoad: Bool = true,
-        cliendID: Int? = nil
-    ) {
-        self.gc = gc
-//        self.gcFilter = gcFilter
-        self.guid = guid
-        self.collectionid = collectionid
-        self.meta = meta
-        self.autoLoad = autoLoad
-        self.shouldLoad = shouldLoad
-        self.cliendID = cliendID
+extension YDocument {
+    public struct Options {
+        public var gc: Bool = true
+        public var guid: String?
+        public var collectionid: String?
+        public var meta: Any?
+        public var autoLoad: Bool
+        public var shouldLoad: Bool
+        public var cliendID: Int?
+        
+        // pending...
+        var gcFilter: (YItem) -> Bool = {_ in true }
+        
+        public init(gc: Bool = true, guid: String? = nil, collectionid: String? = nil, meta: Any? = nil, autoLoad: Bool = false, shouldLoad: Bool = true, cliendID: Int? = nil) {
+            self.gc = gc
+            self.guid = guid
+            self.collectionid = collectionid
+            self.meta = meta
+            self.autoLoad = autoLoad
+            self.shouldLoad = shouldLoad
+            self.cliendID = cliendID
+        }
     }
+
 }
+

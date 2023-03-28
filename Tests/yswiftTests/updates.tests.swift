@@ -17,7 +17,7 @@ final class UpdatesTests: XCTestCase {
             let merged = try env.docFromUpdates(ndocs.map{ $0 })
         
             try XCTAssertEqualJSON(
-                array0.map{ $0 }, merged.getArray("array").map{ $0 }
+                array0.map{ $0 }, merged.getOpaqueArray("array").map{ $0 }
             )
         }
     }
@@ -47,12 +47,12 @@ final class UpdatesTests: XCTestCase {
     func testMergeUpdates1() throws {
         for env in YUpdateEnvironment.encoders {
             print("== Using encoder: \(env.description) ==")
-            let ydoc = YDocument(opts: DocOpts(gc: false))
+            let ydoc = YDocument(YDocument.Options(gc: false))
             
             var updates = [YUpdate]()
             ydoc.on(env.updateEventName) { update, _, _ in updates.append(update) }
 
-            let array = try ydoc.getArray()
+            let array = try ydoc.getOpaqueArray()
             try array.insert(1, at: 0)
             try array.insert(2, at: 0)
             try array.insert(3, at: 0)
@@ -65,14 +65,14 @@ final class UpdatesTests: XCTestCase {
     func testMergeUpdates2() throws {
         for env in [YUpdateEnvironment.v2] {
             print("== Using encoder: \(env.description) ==")
-            let ydoc = YDocument(opts: DocOpts(gc: false))
+            let ydoc = YDocument(YDocument.Options(gc: false))
             
             var updates: [YUpdate] = []
             ydoc.on(env.updateEventName) {
                 update, _, _ in updates.append(update)
             }
 
-            let array = try ydoc.getArray()
+            let array = try ydoc.getOpaqueArray()
             try array.insert(contentsOf: [1, 2], at: 0)
             try array.remove(1, count: 1)
             try array.insert(contentsOf: [3, 4], at: 0)
@@ -154,9 +154,9 @@ final class UpdatesTests: XCTestCase {
 
 
         for mergedUpdates in cases {
-            let merged = YDocument(opts: DocOpts(gc: false))
+            let merged = YDocument(YDocument.Options(gc: false))
             try enc.applyUpdate(merged, mergedUpdates, nil)
-            try XCTAssertEqualJSON(merged.getArray().map{ $0 }, ydoc.getArray().map{ $0 })
+            try XCTAssertEqualJSON(merged.getOpaqueArray().map{ $0 }, ydoc.getOpaqueArray().map{ $0 })
             
             try XCTAssertEqual(
                 enc.encodeStateVector_Doc(merged).map{ $0 },
