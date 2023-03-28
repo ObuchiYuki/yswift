@@ -56,7 +56,7 @@ extension YMap {
     }
     
     public func copy() throws -> YMap<Value> {
-        try YMap(opaque: self.opaque.clone())
+        try YMap(opaque: self.opaque.copy())
     }
     
     public func toJSON() -> Any {

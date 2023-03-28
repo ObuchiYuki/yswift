@@ -2,90 +2,101 @@ import XCTest
 import Promise
 @testable import yswift
 
-final class ObjectTests: XCTestCase {
-    final class Person: YObject {
-        @Property public var name: String = ""
-        @Property public var age: Int = 0
-        
-        required init() {
-            super.init()
-            self.register(_name, for: "name")
-            self.register(_age, for: "age")
-        }
-        
-        convenience init(name: String, age: Int) {
-            self.init()
-            self.name = name
-            self.age = age
-        }
-    }
-
-    final class PersonOptional: YObject {
-        @Property public var name: String?
-        @Property public var age: Int?
-        
-        required init() {
-            super.init()
-            self.register(_name, for: "name")
-            self.register(_age, for: "age")
-        }
-    }
-
-    final class PersonPair: YObject {
-        @Property var person0: Person?
-        @Property var person1: Person?
-        
-        required init() {
-            super.init()
-            self.register(_person0, for: "p0")
-            self.register(_person1, for: "p1")
-        }
-    }
-
-    class Base: YObject {
-        @Property var base: String = "base"
-        
-        required init() {
-            super.init()
-            self.register(_base, for: "base")
-        }
-    }
-
-    final class Sub1: Base {
-        @Property var sub1: String = "sub1"
-        
-        required init() {
-            super.init()
-            self.register(_sub1, for: "sub1")
-        }
-    }
-
-    final class Sub2: Base {
-        @Property var sub2: String = "sub2"
-        
-        required init() {
-            super.init()
-            self.register(_sub2, for: "sub2")
-        }
-    }
-
-    final class BaseContainer: YObject {
-        @Property var base: Base?
-        
-        required init() {
-            super.init()
-            self.register(_base, for: "base")
-        }
+final class Person: YObject {
+    @Property public var name: String = ""
+    @Property public var age: Int = 0
+    
+    required init() {
+        super.init()
+        self.register(_name, for: "name")
+        self.register(_age, for: "age")
     }
     
+    convenience init(name: String, age: Int) {
+        self.init()
+        self.name = name
+        self.age = age
+    }
+}
+
+final class PersonOptional: YObject {
+    @Property public var name: String?
+    @Property public var age: Int?
+    
+    required init() {
+        super.init()
+        self.register(_name, for: "name")
+        self.register(_age, for: "age")
+    }
+}
+
+final class PersonPair: YObject {
+    @Property var person0: Person?
+    @Property var person1: Person?
+    
+    required init() {
+        super.init()
+        self.register(_person0, for: "p0")
+        self.register(_person1, for: "p1")
+    }
+}
+
+class Base: YObject {
+    @Property var base: String = "base"
+    
+    required init() {
+        super.init()
+        self.register(_base, for: "base")
+    }
+}
+
+final class Sub1: Base {
+    @Property var sub1: String = "sub1"
+    
+    required init() {
+        super.init()
+        self.register(_sub1, for: "sub1")
+    }
+}
+
+final class Sub2: Base {
+    @Property var sub2: String = "sub2"
+    
+    required init() {
+        super.init()
+        self.register(_sub2, for: "sub2")
+    }
+}
+
+final class BaseContainer: YObject {
+    @Property var content: Base?
+    
+    required init() {
+        super.init()
+        self.register(_content, for: "base")
+    }
+}
+
+final class InitialValue: YObject {
+    @Property var value: String = "Initial Value"
+    
+    required init() {
+        super.init()
+        self.register(_value, for: "value")
+    }
+}
+
+final class ObjectTests: XCTestCase {
+    
     override func setUp() async throws {
-        Person.register(0)
-        PersonPair.register(1)
-        PersonOptional.register(2)
-        Base.register(3)
-        Sub1.register(4)
-        Sub2.register(5)
-        BaseContainer.register(6)
+        Person.registerAuto()
+        PersonPair.registerAuto()
+        PersonOptional.registerAuto()
+        Base.registerAuto()
+        Sub1.registerAuto()
+        Sub2.registerAuto()
+        BaseContainer.registerAuto()
+        InitialValue.registerAuto()
     }
     override func tearDown() async throws {
         Person.unregister()
@@ -94,6 +105,151 @@ final class ObjectTests: XCTestCase {
         Base.unregister()
         Sub1.unregister()
         Sub2.unregister()
+        BaseContainer.unregister()
+        InitialValue.unregister()
+    }
+    
+    func testObjectWithArrayPropertyBasic() throws {
+        final class ObjectWithArray: YObject {
+            @Property var array: [Int] = []
+            required init() { super.init(); self.register(_array, for: "array") }
+        }
+        ObjectWithArray.registerAuto()
+        
+        let test = try YTest<Any>(docs: 2)
+        let map0 = test.swiftyMap(ObjectWithArray.self, 0), map1 = test.swiftyMap(ObjectWithArray.self, 1)
+                
+        ObjectWithArray.registerAuto()
+        
+        let object0 = ObjectWithArray()
+        map0["object"] = object0
+        
+        try test.connector.flushAllMessages()
+        
+        let object1 = try XCTUnwrap(map1["object"])
+        
+        XCTAssertEqual(object0.array, [])
+
+        object0.array.append(1)
+        XCTAssertEqual(object0.array, [1])
+        
+        try test.connector.flushAllMessages()
+        
+        XCTAssertEqual(object1.array, [1])
+    }
+    
+    
+    func testInitialValueObjectSync() throws {
+        let test = try YTest<Any>(docs: 2)
+        let map0 = test.swiftyMap(InitialValue.self, 0), map1 = test.swiftyMap(InitialValue.self, 1)
+        
+        let object0 = InitialValue()
+        map0["object_1"] = object0
+        
+        XCTAssertEqual(object0.value, "Initial Value")
+        
+        try test.connector.flushAllMessages()
+        
+        let object1 = try XCTUnwrap(map1["object_1"])
+
+        XCTAssertEqual(object1.value, "Initial Value")
+    }
+    
+    func testInitialValueObjectOverride() throws {
+        let test = try YTest<Any>(docs: 2)
+        let map0 = test.swiftyMap(InitialValue.self, 0), map1 = test.swiftyMap(InitialValue.self, 1)
+        
+        let object0 = InitialValue()
+        map0["object_2"] = object0
+        
+        XCTAssertEqual(object0.value, "Initial Value")
+        
+        object0.value = "Second Value"
+        
+        try test.connector.flushAllMessages()
+        
+        let object1 = try XCTUnwrap(map1["object_2"])
+
+        XCTAssertEqual(object1.value, "Second Value")
+    }
+    
+    func testInitialValueLazyProperty() throws {
+        
+        class Object: YObject {
+            static var initializeCount = 0
+            @Property var value = {
+                Object.initializeCount += 1
+                return "Hello World"
+            }()
+            
+            required init() {
+                super.init()
+                self.register(_value, for: "value")
+            }
+        }
+        Object.registerAuto()
+        defer { Object.unregister() }
+        
+        let test = try YTest<Any>(docs: 2)
+        let map0 = test.swiftyMap(Object.self, 0), map1 = test.swiftyMap(Object.self, 1)
+        
+        let object0 = Object()
+        map0["object"] = object0
+        
+        XCTAssertEqual(Object.initializeCount, 1)
+        XCTAssertEqual(object0.value, "Hello World")
+        
+        try test.connector.flushAllMessages()
+        
+        let object1 = try XCTUnwrap(map1["object"])
+        
+        XCTAssertEqual(Object.initializeCount, 1)
+        XCTAssertEqual(object1.value, "Hello World")
+        
+        object0.value = "Hello Override"
+        
+        try test.connector.flushAllMessages()
+        
+        XCTAssertEqual(Object.initializeCount, 1)
+        XCTAssertEqual(object1.value, "Hello Override")
+    }
+    
+    func testInheritedObjectPublisherLocal() throws {
+        let test = try YTest<Any>(docs: 1)
+        let map0 = test.swiftyMap(BaseContainer.self, 0)
+
+        let container = BaseContainer()
+        map0["container"] = container
+
+        var baseNames = [String]()
+        var sub1Names = [String]()
+        var sub2Names = [String]()
+
+        container.$content.compactMap{ $0?.$base }.switchToLatest()
+            .sink{ baseNames.append($0) }.store(in: &objectBag)
+        container.$content.compactMap{ ($0 as? Sub1)?.$sub1 }.switchToLatest()
+            .sink{ sub1Names.append($0) }.store(in: &objectBag)
+        container.$content.compactMap{ ($0 as? Sub2)?.$sub2 }.switchToLatest()
+            .sink{ sub2Names.append($0) }.store(in: &objectBag)
+
+        let base = Base()
+        let sub1 = Sub1()
+        let sub2 = Sub2()
+
+        XCTAssertEqual(container.content, nil)
+
+        container.content = base
+        XCTAssertEqual(baseNames, ["base"])
+        container.content?.base = "base2"
+        XCTAssertEqual(baseNames, ["base", "base2"])
+        container.content = sub1
+        XCTAssertEqual(baseNames, ["base", "base2", "base"])
+        XCTAssertEqual(sub1Names, ["sub1"])
+        
+        container.content = sub2
+        XCTAssertEqual(baseNames, ["base", "base2", "base", "base"])
+        XCTAssertEqual(sub1Names, ["sub1"])
+        XCTAssertEqual(sub2Names, ["sub2"])
     }
     
     func testInheritedObjectSync() throws {
@@ -107,16 +263,16 @@ final class ObjectTests: XCTestCase {
         
         let container1 = try XCTUnwrap(map1["container"])
         
-        XCTAssertNil(container0.base)
-        XCTAssertNil(container1.base)
+        XCTAssertNil(container0.content)
+        XCTAssertNil(container1.content)
         
-        container0.base = Sub1()
+        container0.content = Sub1()
         try test.connector.flushAllMessages()
-        XCTAssert(container1.base is Sub1)
+        XCTAssert(container1.content is Sub1)
         
-        container0.base = Sub2()
+        container0.content = Sub2()
         try test.connector.flushAllMessages()
-        XCTAssert(container1.base is Sub2)
+        XCTAssert(container1.content is Sub2)
         
     }
     
@@ -131,16 +287,16 @@ final class ObjectTests: XCTestCase {
         let sub1 = Sub1()
         let sub2 = Sub2()
         
-        XCTAssertEqual(container.base, nil)
+        XCTAssertEqual(container.content, nil)
         
-        container.base = base
-        XCTAssert(container.base === base)
+        container.content = base
+        XCTAssert(container.content === base)
         
-        container.base = sub1
-        XCTAssert(container.base === sub1)
+        container.content = sub1
+        XCTAssert(container.content === sub1)
         
-        container.base = sub2
-        XCTAssert(container.base === sub2)
+        container.content = sub2
+        XCTAssert(container.content === sub2)
     }
     
     func testNestedObjectPropertyLocal() throws {
@@ -218,9 +374,9 @@ final class ObjectTests: XCTestCase {
         XCTAssertNil(person0.age)
         
         person0.name = "Alice"
-        
         XCTAssertEqual(person0.name, "Alice")
         
+        try test.connector.flushAllMessages()
         let person1 = try XCTUnwrap(map1["person"])
         
         XCTAssertEqual(person1.name, "Alice")
@@ -345,3 +501,11 @@ final class ObjectTests: XCTestCase {
     
 }
 
+
+extension YObject {
+    fileprivate static var count: UInt = 0
+    fileprivate static func registerAuto() {
+        self.register(count)
+        self.count += 1
+    }
+}

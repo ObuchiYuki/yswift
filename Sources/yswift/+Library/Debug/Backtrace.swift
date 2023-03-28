@@ -7,15 +7,15 @@
 
 import Foundation
 
-final class Backtrace: CustomStringConvertible {
-    final class Symbol: CustomStringConvertible {
+final public class Backtrace: CustomStringConvertible {
+    final public class Symbol: CustomStringConvertible {
         let moduleName: String
         let address: String
         let mangledName: String
         let offset: Int?
         lazy var symbolName = Demangler.humanReadableDemangle(self.mangledName)
         
-        var description: String {
+        public var description: String {
             "\(moduleName)\t\t\t\(symbolName)"
         }
         
@@ -35,7 +35,7 @@ final class Backtrace: CustomStringConvertible {
     private var omitSymbolCount: Int
     static let testing: Bool = NSClassFromString("XCTest") != nil
     
-    var description: String {
+    public var description: String {
         let symbolList = symbols
             .enumerated()
             .map{ "\($0)\t\($1.description)" }
@@ -45,7 +45,7 @@ final class Backtrace: CustomStringConvertible {
         
     }
     
-    init(dropFirstSymbols: Int = 0) {
+    public init(dropFirstSymbols: Int = 0) {
         let symbols = Thread.callStackSymbols
             .map{ Backtrace.Symbol($0) }
             .dropFirst(2 + dropFirstSymbols)

@@ -155,7 +155,7 @@ public final class LZEncoder {
         case let data as Bool:
             self.writeUInt8(data ? 120 : 121)
         default: // undefined
-            assertionFailure("undefined object to code")
+            assertionFailure("undefined object to code \(data ?? "nil")")
             self.writeUInt8(127)
         }
     }

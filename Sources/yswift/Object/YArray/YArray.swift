@@ -44,7 +44,7 @@ final public class YArray<Element: YElement> {
     }
     
     public func copy() throws -> YArray<Element> {
-        try YArray(opaque: self.opaque.clone())
+        try YArray(opaque: self.opaque.copy())
     }
     
     public func toJSON() -> Any { self.opaque.toJSON() }

@@ -60,10 +60,10 @@ final public class YOpaqueArray: YOpaqueObject {
         }
     }
 
-    public override func clone() throws -> YOpaqueArray {
+    public override func copy() throws -> YOpaqueArray {
         let array = YOpaqueArray()
         try array.insert(contentsOf: self.map{ element in
-            try element is YOpaqueObject ? (element as! YOpaqueObject).clone() : element
+            try element is YOpaqueObject ? (element as! YOpaqueObject).copy() : element
         }, at: 0)
         return array
     }

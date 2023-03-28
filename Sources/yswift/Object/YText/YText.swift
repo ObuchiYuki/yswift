@@ -726,7 +726,7 @@ final public class YText: YOpaqueObject {
         return YText()
     }
 
-    public override func clone() throws -> YText {
+    public override func copy() throws -> YText {
         let text = YText()
         try text.applyDelta(self.toDelta())
         return text

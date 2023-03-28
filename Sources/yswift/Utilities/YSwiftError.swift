@@ -7,14 +7,20 @@
 
 import Foundation
 
-public struct YSwiftError: LocalizedError {
+public struct YSwiftError: LocalizedError, CustomStringConvertible {
     static let unexpectedCase = YSwiftError("Unexpected Case.")
     static let unexpectedContentType = YSwiftError("Unexpected Case.")
     static let lengthExceeded = YSwiftError("Unexpected Content Type.")
     static let integretyCheckFail = YSwiftError("Integrety Check Fail")
     static let originDocGC = YSwiftError("origin Doc must not be garbage collected")
     
-    public let errorDescription: String
+    public let message: String
+    let backtrace: Backtrace
     
-    public init(_ message: String) { self.errorDescription = message }
+    public var description: String { "\(message)\n\(backtrace)" }
+    
+    public init(_ message: String) {
+        self.message = message
+        self.backtrace = Backtrace(dropFirstSymbols: 1)
+    }
 }

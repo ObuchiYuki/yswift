@@ -66,4 +66,15 @@ final class YMapSwiftyTests: XCTestCase {
         XCTAssertEqual(values, [120, 200, 100])
     }
     
+    func testMapNil() throws {
+        let test = try YTest<Any>(docs: 1)
+        let map = test.swiftyMap(Optional<Int>.self, 0)
+        
+        XCTAssertFalse(map.contains("apple"))
+        
+        map["apple"] = nil
+        XCTAssertTrue(map.contains("apple"))
+        
+        XCTAssertEqual(map["apple"], nil)
+    }
 }

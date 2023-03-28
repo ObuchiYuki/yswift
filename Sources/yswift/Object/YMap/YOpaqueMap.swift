@@ -61,11 +61,11 @@ final public class YOpaqueMap: YOpaqueObject {
         }
     }
     
-    public override func clone() throws -> YOpaqueMap {
+    public override func copy() throws -> YOpaqueMap {
         let map = YOpaqueMap()
         for (key, value) in self {
             if let value = value as? YOpaqueObject {
-                try map.setThrowingError(key, value: value.clone())
+                try map.setThrowingError(key, value: value.copy())
             } else {
                 try map.setThrowingError(key, value: value)
             }
