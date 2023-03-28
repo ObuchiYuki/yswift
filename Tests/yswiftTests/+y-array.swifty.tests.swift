@@ -4,9 +4,7 @@ import Combine
 @testable import yswift
 
 final class YArraySwiftyTests: XCTestCase {
-    
-    private var objectBag = Set<AnyCancellable>()
-        
+            
     func testArrayPrimitiveType() throws {
         let test = try YTest<Any>(docs: 1)
         let array = test.swiftyArray(Int.self, 0)
