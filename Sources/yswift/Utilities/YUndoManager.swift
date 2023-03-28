@@ -8,25 +8,25 @@
 import Foundation
 
 public protocol Object_or_ObjectArray {}
-extension YObject: Object_or_ObjectArray {}
-extension [YObject]: Object_or_ObjectArray {}
+extension YOpaqueObject: Object_or_ObjectArray {}
+extension [YOpaqueObject]: Object_or_ObjectArray {}
 
 extension Object_or_ObjectArray {
     var doc: YDocument? {
-        if let type = self as? YObject {
+        if let type = self as? YOpaqueObject {
             return type.doc
         }
-        if let typea = self as? [YObject] {
+        if let typea = self as? [YOpaqueObject] {
             return typea[0].doc
         }
         return nil
     }
     
-    var asObjectArray: [YObject] {
-        if let type = self as? YObject {
+    var asObjectArray: [YOpaqueObject] {
+        if let type = self as? YOpaqueObject {
             return [type]
         }
-        if let typea = self as? [YObject] {
+        if let typea = self as? [YOpaqueObject] {
             return typea
         }
         fatalError()
@@ -80,7 +80,7 @@ final public class YUndoManager: LZObservable, JSHashable {
     public private(set) var lastChange: Date
     public private(set) var ignoreRemoteMapChanges: Bool
 
-    private let scope: RefArray<YObject> = []
+    private let scope: RefArray<YOpaqueObject> = []
     private let deleteFilter: (YItem) -> Bool
     private var trackedOrigins: Ref<Set<AnyHashable?>>
     private var captureTransaction: (YTransaction) -> Bool
@@ -359,9 +359,9 @@ extension YUndoManager {
         public var stackItem: StackItem
         public var type: EvnetType
         public var undoStackCleared: Bool?
-        public var changedParentTypes: [YObject: [YEvent]]
+        public var changedParentTypes: [YOpaqueObject: [YEvent]]
         
-        init(origin: Any? = nil, stackItem: StackItem, type: EvnetType, undoStackCleared: Bool? = nil , changedParentTypes: [YObject : [YEvent]]) {
+        init(origin: Any? = nil, stackItem: StackItem, type: EvnetType, undoStackCleared: Bool? = nil , changedParentTypes: [YOpaqueObject : [YEvent]]) {
             self.origin = origin
             self.stackItem = stackItem
             self.type = type

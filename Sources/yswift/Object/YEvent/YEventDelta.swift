@@ -49,12 +49,12 @@ extension NSArray: YEventDeltaInsertType {}
 extension String: YEventDeltaInsertType {}
 extension [Any?]: YEventDeltaInsertType {}
 extension [String: Any?]: YEventDeltaInsertType {}
-extension YObject: YEventDeltaInsertType {}
+extension YOpaqueObject: YEventDeltaInsertType {}
 
 extension YEventDeltaInsertType {
     public func isEqual(to other: any YEventDeltaInsertType) -> Bool {
         if equalJSON(self, other) { return true }
-        if let a = self as? YObject, let b = other as? YObject {
+        if let a = self as? YOpaqueObject, let b = other as? YOpaqueObject {
             return equalJSON(a.toJSON(), b.toJSON())
         }
         return false

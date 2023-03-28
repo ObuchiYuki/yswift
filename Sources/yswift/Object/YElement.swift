@@ -12,6 +12,12 @@ public protocol YElement {
     static func decode(from opaque: Any?) -> Self
 }
 
+
+extension YOpaqueObject: YElement {
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
+}
+
 // ============================================================================== //
 // MARK: - Ex + Codable -
 private let dictionayEncoder = DictionaryEncoder()

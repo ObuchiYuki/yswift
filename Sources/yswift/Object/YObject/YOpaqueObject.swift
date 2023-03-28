@@ -7,13 +7,13 @@
 
 import Foundation
  
-open class YObject: JSHashable {
+open class YOpaqueObject: JSHashable {
         
     // =========================================================================== //
     // MARK: - Property -
     var doc: YDocument? = nil
 
-    public var parent: YObject? { self.item?.parent?.object }
+    public var parent: YOpaqueObject? { self.item?.parent?.object }
     
     var item: YItem? = nil
     
@@ -38,7 +38,7 @@ open class YObject: JSHashable {
 
     public func clone() throws -> Self { fatalError() }
 
-    func _copy() -> YObject { fatalError() }
+    func _copy() -> YOpaqueObject { fatalError() }
 
     // =========================================================================== //
     // MARK: - Methods -
@@ -121,7 +121,7 @@ open class YObject: JSHashable {
     }
 }
 
-extension YObject {
+extension YOpaqueObject {
     func findRootTypeKey() throws -> String {
         for (key, value) in self.doc?.share ?? [:] {
             if value === self { return key }

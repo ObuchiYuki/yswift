@@ -9,15 +9,15 @@ import Foundation
 
 /** YEvent describes the changes on a YType. */
 public class YEvent {
-    public var target: YObject // T
-    public var currentTarget: YObject
+    public var target: YOpaqueObject // T
+    public var currentTarget: YOpaqueObject
     public var transaction: YTransaction
     
     var _changes: YEventChange? = nil
     var _keys: [String: YEventKey]? = nil
     var _delta: [YEventDelta]? = nil
 
-    init(_ target: YObject, transaction: YTransaction) {
+    init(_ target: YOpaqueObject, transaction: YTransaction) {
         self.target = target
         self.currentTarget = target
         self.transaction = transaction
@@ -141,8 +141,8 @@ public protocol PathElement {}
 extension String: PathElement {}
 extension Int: PathElement {}
 
-func getPathTo(parent: YObject, child: YObject) -> [PathElement] {
-    var child: YObject? = child
+func getPathTo(parent: YOpaqueObject, child: YOpaqueObject) -> [PathElement] {
+    var child: YOpaqueObject? = child
     var path: [PathElement] = []
     while let childItem = child?.item, child != parent {
         if let parentKey = childItem.parentKey {

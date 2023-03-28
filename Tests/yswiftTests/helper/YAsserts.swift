@@ -68,7 +68,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [YDocument] {
         if v == nil {
             mapRes[k] = NSNull()
         } else {
-            mapRes[k] = v is YObject ? (v as! YObject).toJSON() : v
+            mapRes[k] = v is YOpaqueObject ? (v as! YOpaqueObject).toJSON() : v
         }
     }
     

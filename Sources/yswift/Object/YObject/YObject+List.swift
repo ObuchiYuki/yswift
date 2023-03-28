@@ -8,7 +8,7 @@
 import Foundation
 
 // list extensions
-extension YObject {
+extension YOpaqueObject {
     func listSlice(start: Int, end: Int) -> [Any?] {
         var start = start, end = end
         
@@ -176,9 +176,9 @@ extension YObject {
                     
                     try left!.integrate(transaction: transaction, offset: 0)
                     
-                } else if content is YObject {
+                } else if content is YOpaqueObject {
                     let id = YID(client: ownClientId, clock: store.getState(ownClientId))
-                    let icontent = YObjectContent(content as! YObject)
+                    let icontent = YObjectContent(content as! YOpaqueObject)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     try left!.integrate(transaction: transaction, offset: 0)
                 } else {

@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension YObject {
+extension YOpaqueObject {
     func mapDelete(_ transaction: YTransaction, key: String) {
         self.storage[key]?.delete(transaction)
     }
@@ -27,8 +27,8 @@ extension YObject {
             } else if value! is YDocument {
                 content = YDocumentContent(value as! YDocument)
             } else {
-                if value! is YObject {
-                    content = YObjectContent(value as! YObject)
+                if value! is YOpaqueObject {
+                    content = YObjectContent(value as! YOpaqueObject)
                 } else {
                     throw YSwiftError.unexpectedContentType
                 }

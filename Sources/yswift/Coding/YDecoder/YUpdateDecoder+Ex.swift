@@ -65,7 +65,7 @@ extension YUpdateDecoder {
                         rightOrigin: (info & 0b0100_0000) == 0b0100_0000 ? self.readRightID() : nil, // right origin
                         parent: cantCopyParentInfo
                         ? (self.readParentInfo()
-                           ? .object(doc.get(YObject.self, name: self.readString(), make: YObject.init))
+                           ? .object(doc.get(YOpaqueObject.self, name: self.readString(), make: YOpaqueObject.init))
                            : .id(self.readLeftID()))
                         : nil, // parent
                         parentSub: cantCopyParentInfo && (info & 0b0010_0000) == 0b0010_0000 ? self.readString() : nil, // parentSub

@@ -17,7 +17,7 @@ final class YArrayEvent: YEvent {
     }
 }
 
-final public class YOpaqueArray: YObject {
+final public class YOpaqueArray: YOpaqueObject {
     public var count: Int {
         return self._prelimContent == nil ? self._length : self._prelimContent!.count
     }
@@ -63,7 +63,7 @@ final public class YOpaqueArray: YObject {
     public override func clone() throws -> YOpaqueArray {
         let array = YOpaqueArray()
         try array.insert(contentsOf: self.map{ element in
-            try element is YObject ? (element as! YObject).clone() : element
+            try element is YOpaqueObject ? (element as! YOpaqueObject).clone() : element
         }, at: 0)
         return array
     }
@@ -79,7 +79,7 @@ final public class YOpaqueArray: YObject {
     
     public override func toJSON() -> Any {
         return self.map{ c -> Any? in
-            c is YObject ? (c as! YObject).toJSON() : c 
+            c is YOpaqueObject ? (c as! YOpaqueObject).toJSON() : c 
         }
     }
 

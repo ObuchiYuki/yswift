@@ -1,52 +1,32 @@
 import XCTest
 import Promise
+@testable import yswift
 
+final class Person: YObject {
+    public var name: String? {
+        get { self.getValue(for: "name") as? String }
+        set { try! self.setValue(newValue, for: "name") }
+    }
+    
+    required init() {}
+    convenience init(name: String) {
+        self.init()
+        self.name = name
+    }
+}
 
-//final class Location: YBindingObject {
-//    @YProperty var x: Double = 0
-//    @YProperty var y: Double = 0
-//    
-//    let storage = YBindStorage()
-//
-//    init() {
-//        self.storage.register(_x, for: "x")
-//        self.storage.register(_y, for: "y")
-//    }
-//}
-// 
-//final class Person: YBindingObject {
-//    @YProperty var name: String = ""
-//    @YProperty var age: Int = 0
-//    
-//    let children = YBindingArray<String>()
-//    let location = Location()
-//    
-//    let storage = YBindStorage()
-//    
-//    init() {
-//        self.storage.register(_name, for: "name")
-//        self.storage.register(_age, for: "age")
-//        self.storage.register(children, for: "children")
-//        self.storage.register(location, for: "location")
-//    }
-//}
-//
-//class Classroom: YBindingObject {
-//    let members = YBindingObjectArray<Person>()
-//    
-//    let storage: YBindStorage
-//
-//    init(storage: YBindStorage) { self.storage = storage }
-//}
-//
-//
-//final class BindingTests: XCTestCase {
-//    func testBinding() throws {
-//        let test = try YTest<Any>(docs: 1)
-//        let doc = test.docs[0]
-//        
-//        let classroom = try doc.makeBindingRoot(Classroom.init)
-//        
-//        
-//    }
-//}
+final class BindingTests: XCTestCase {
+    func testBinding() throws {
+        let test = try YTest<Any>(docs: 2)
+        let map0 = test.swiftyMap(Person.self, 0)
+        let map1 = test.swiftyMap(Person.self, 1)
+        
+        Person.register(7)
+        
+        map0["alice"] = Person(name: "Alice")
+        
+        try test.connector.flushAllMessages()
+        
+        print(map1["alice"]?.name)
+    }
+}

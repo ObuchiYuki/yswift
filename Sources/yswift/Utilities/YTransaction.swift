@@ -46,9 +46,9 @@ final public class YTransaction {
 
     public var afterState: [Int: Int] = [:]
 
-    public var changed: [YObject: Set<String?>] = [:] // Map<Object_<YEvent<any>>, Set<String?>>
+    public var changed: [YOpaqueObject: Set<String?>] = [:] // Map<Object_<YEvent<any>>, Set<String?>>
 
-    public var changedParentTypes: [YObject: [YEvent]] = [:] //[Object_<YEvent<any>>: YEvent<any][]> = [:]
+    public var changedParentTypes: [YOpaqueObject: [YEvent]] = [:] //[Object_<YEvent<any>>: YEvent<any][]> = [:]
 
     public var meta: [AnyHashable: Any] = [:]
 
@@ -84,7 +84,7 @@ final public class YTransaction {
         return YID(client: y.clientID, clock: y.store.getState(y.clientID))
     }
 
-    func addChangedType(_ type: YObject, parentSub: String?) {
+    func addChangedType(_ type: YOpaqueObject, parentSub: String?) {
         let item = type.item
         if item == nil || (item!.id.clock < (self.beforeState[item!.id.client] ?? 0) && !item!.deleted) {
             var changed = self.changed.setIfUndefined(type, Set())
@@ -198,7 +198,7 @@ final public class YTransaction {
             
             let fs: RefArray<() throws -> Void> = []
             
-            transaction.changed.forEach{ (itemtype: YObject, subs: Set<String?>) in
+            transaction.changed.forEach{ (itemtype: YOpaqueObject, subs: Set<String?>) in
                 fs.append{
                     if itemtype.item == nil || !itemtype.item!.deleted {
                         try itemtype._callObserver(transaction, _parentSubs: subs)

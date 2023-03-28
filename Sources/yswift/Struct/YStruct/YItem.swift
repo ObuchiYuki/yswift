@@ -9,11 +9,11 @@ extension YItem {
     enum Parent {
         case string(String)
         case id(YID)
-        case object(YObject)
+        case object(YOpaqueObject)
         
         var string: String? { if case .string(let parent) = self { return parent }; return nil }
         var id: YID? { if case .id(let parent) = self { return parent }; return nil }
-        var object: YObject? { if case .object(let parent) = self { return parent }; return nil }
+        var object: YOpaqueObject? { if case .object(let parent) = self { return parent }; return nil }
     }
 }
 
@@ -434,7 +434,7 @@ extension YItem {
             
         }
         
-        let parentType: YObject
+        let parentType: YOpaqueObject
         
         if let parentContent = parentItem?.content as? YObjectContent {
             parentType = parentContent.object

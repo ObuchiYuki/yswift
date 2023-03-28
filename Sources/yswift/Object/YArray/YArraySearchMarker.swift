@@ -51,7 +51,7 @@ final class YArraySearchMarker {
      * A maximum of `maxSearchMarker` objects are created.
      * This function always returns a refreshed marker (updated timestamp)
      */
-    static func find(_ yarray: YObject, index: Int) -> YArraySearchMarker? {
+    static func find(_ yarray: YOpaqueObject, index: Int) -> YArraySearchMarker? {
         guard let _ = yarray._start, let arraySearchMarkers = yarray.serchMarkers, index != 0 else {
             return nil
         }

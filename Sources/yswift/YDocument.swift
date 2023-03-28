@@ -13,7 +13,7 @@ public class YDocument: LZObservable, JSHashable {
     public internal(set) var guid: String
     public internal(set) var clientID: Int
     public internal(set) var collectionid: String?
-    public internal(set) var share: [String: YObject]
+    public internal(set) var share: [String: YOpaqueObject]
     public internal(set) var store: YStructStore
     public internal(set) var subdocs: Set<YDocument>
     public internal(set) var shouldLoad: Bool
@@ -101,15 +101,15 @@ public class YDocument: LZObservable, JSHashable {
         try YTransaction.transact(self, origin: origin, local: local, body)
     }
 
-    public func get<T: YObject>(_: T.Type, name: String = "", make: () -> T) throws -> T {
+    public func get<T: YOpaqueObject>(_: T.Type, name: String = "", make: () -> T) throws -> T {
         let type_ = try self.share.setIfUndefined(name, {
             let t = make()
             try t._integrate(self, item: nil)
             return t
         }())
         
-        if T.self != YObject.self && !(type_ is T) {
-            if type(of: type_) == YObject.self {
+        if T.self != YOpaqueObject.self && !(type_ is T) {
+            if type(of: type_) == YOpaqueObject.self {
                 let t = make()
                 t.storage = type_.storage
                 type_.storage.forEach({ _, n in

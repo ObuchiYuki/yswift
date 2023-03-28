@@ -16,7 +16,7 @@ final public class YMapEvent: YEvent {
     }
 }
 
-final public class YOpaqueMap: YObject {
+final public class YOpaqueMap: YOpaqueObject {
     private var _prelimContent: [String: Any?]?
 
     public init(_ dict: [String: Any?]? = nil) {
@@ -64,7 +64,7 @@ final public class YOpaqueMap: YObject {
     public override func clone() throws -> YOpaqueMap {
         let map = YOpaqueMap()
         for (key, value) in self {
-            if let value = value as? YObject {
+            if let value = value as? YOpaqueObject {
                 try map.setThrowingError(key, value: value.clone())
             } else {
                 try map.setThrowingError(key, value: value)
@@ -79,7 +79,7 @@ final public class YOpaqueMap: YObject {
             let v = item.content.values[item.length - 1]
             if v == nil {
                 map[key] = NSNull()
-            } else if let v = v as? YObject {
+            } else if let v = v as? YOpaqueObject {
                 map[key] = v.toJSON()
             } else {
                 map[key] = v

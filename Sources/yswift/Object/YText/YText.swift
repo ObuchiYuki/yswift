@@ -100,7 +100,7 @@ final class ItemTextListPosition {
         return self
     }
 
-    static func find(_ transaction: YTransaction, parent: YObject, index: Int) throws -> ItemTextListPosition {
+    static func find(_ transaction: YTransaction, parent: YOpaqueObject, index: Int) throws -> ItemTextListPosition {
         let currentAttributes: YTextAttributes = [:]
         let marker = YArraySearchMarker.find(parent, index: index)
         
@@ -122,7 +122,7 @@ final class ItemTextListPosition {
 
 func insertNegatedAttributes(
     transaction: YTransaction,
-    parent: YObject,
+    parent: YOpaqueObject,
     currPos: ItemTextListPosition,
     negatedAttributes: YTextAttributes
 ) throws {
@@ -196,7 +196,7 @@ func minimizeAttributeChanges(currPos: ItemTextListPosition, attributes: YTextAt
 
 func insertAttributes(
     transaction: YTransaction,
-    parent: YObject,
+    parent: YOpaqueObject,
     currPos: ItemTextListPosition,
     attributes: YTextAttributes
 ) throws -> YTextAttributes {
@@ -237,7 +237,7 @@ func insertAttributes(
 
 func insertText(
     transaction: YTransaction,
-    parent: YObject,
+    parent: YOpaqueObject,
     currPos: ItemTextListPosition,
     text: YEventDeltaInsertType,
     attributes: YTextAttributes
@@ -255,8 +255,8 @@ func insertText(
     // insert content
     let content = text is String
         ? YStringContent((text as! String as NSString)) as any YContent
-        : (text is YObject
-           ? YObjectContent(text as! YObject) as any YContent
+        : (text is YOpaqueObject
+           ? YObjectContent(text as! YOpaqueObject) as any YContent
            : YEmbedContent(text as! [String: Any?]) as any YContent
         )
     
@@ -285,7 +285,7 @@ func insertText(
  
 func formatText(
     transaction: YTransaction,
-    parent: YObject,
+    parent: YOpaqueObject,
     currPos: ItemTextListPosition,
     length: Int,
     attributes: YTextAttributes
@@ -696,7 +696,7 @@ final public class YTextEvent: YEvent {
 }
 
 
-final public class YText: YObject {
+final public class YText: YOpaqueObject {
     public var _pending: [(() throws -> Void)]?
 
     public init(_ string: String? = nil) {
@@ -722,7 +722,7 @@ final public class YText: YObject {
         self._pending = nil
     }
 
-    override func _copy() -> YObject {
+    override func _copy() -> YOpaqueObject {
         return YText()
     }
 
@@ -790,7 +790,7 @@ final public class YText: YObject {
                         if item is YGC {
                             return
                         }
-                        if ((item as! YItem).parent?.object as? YObject) === self {
+                        if ((item as! YItem).parent?.object as? YOpaqueObject) === self {
                             cleanupContextlessFormattingGap(transaction: t, item: (item as! YItem))
                         }
                     })
