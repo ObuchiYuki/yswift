@@ -127,7 +127,7 @@ func insertNegatedAttributes(
     parent: YOpaqueObject,
     currPos: ItemTextListPosition,
     negatedAttributes: YTextAttributes
-) throws {
+) {
     // check if we really need to remove attributes
     while (
         currPos.right != nil && (
@@ -150,7 +150,7 @@ func insertNegatedAttributes(
     let doc = transaction.doc
     let ownClientId = doc.clientID
         
-    try negatedAttributes.forEach({ key, val in
+    negatedAttributes.forEach({ key, val in
         let left = currPos.left
         let right = currPos.right
         let nextFormat = YItem(
@@ -163,7 +163,7 @@ func insertNegatedAttributes(
             parentSub: nil,
             content: YFormatContent(key: key, value: val)
         )
-        try nextFormat.integrate(transaction: transaction, offset: 0)
+        nextFormat.integrate(transaction: transaction, offset: 0)
         currPos.right = nextFormat
         currPos.forward()
     })
@@ -201,7 +201,7 @@ func insertAttributes(
     parent: YOpaqueObject,
     currPos: ItemTextListPosition,
     attributes: YTextAttributes
-) throws -> YTextAttributes {
+) -> YTextAttributes {
     let doc = transaction.doc
     let ownClientId = doc.clientID
     let negatedAttributes: YTextAttributes = [:]
@@ -228,7 +228,7 @@ func insertAttributes(
                 parentSub: nil,
                 content: YFormatContent(key: key, value: val)
             )
-            try currPos.right!.integrate(transaction: transaction, offset: 0)
+            currPos.right!.integrate(transaction: transaction, offset: 0)
             currPos.forward()
         }
     }
@@ -243,7 +243,7 @@ func insertText(
     currPos: ItemTextListPosition,
     text: YEventDeltaInsertType,
     attributes: YTextAttributes
-) throws {
+) {
     currPos.currentAttributes.forEach({ key, _ in
         if attributes.value[key] == nil {
             attributes.value[key] = NSNull()
@@ -253,7 +253,7 @@ func insertText(
     let doc = transaction.doc
     let ownClientId = doc.clientID
     minimizeAttributeChanges(currPos: currPos, attributes: attributes)
-    let negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
+    let negatedAttributes = insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
     // insert content
     let content = text is String
         ? YStringContent((text as! String as NSString)) as any YContent
@@ -277,12 +277,12 @@ func insertText(
         parentSub: nil,
         content: content
     )
-    try right!.integrate(transaction: transaction, offset: 0)
+    right!.integrate(transaction: transaction, offset: 0)
     currPos.right = right
     currPos.index = index
     currPos.forward()
         
-    try insertNegatedAttributes(transaction: transaction, parent: parent, currPos: currPos, negatedAttributes: negatedAttributes)
+    insertNegatedAttributes(transaction: transaction, parent: parent, currPos: currPos, negatedAttributes: negatedAttributes)
 }
  
 func formatText(
@@ -291,12 +291,12 @@ func formatText(
     currPos: ItemTextListPosition,
     length: Int,
     attributes: YTextAttributes
-) throws {
+) {
     var length = length
     let doc = transaction.doc
     let ownClientId = doc.clientID
     minimizeAttributeChanges(currPos: currPos, attributes: attributes)
-    let negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
+    let negatedAttributes = insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
         
     // iterate until first non-format or nil is found
     // delete all formats with attributes[format.key] != nil
@@ -362,12 +362,12 @@ func formatText(
             parentSub: nil,
             content: YStringContent(newlines as NSString)
         )
-        try currPos.right!.integrate(transaction: transaction, offset: 0)
+        currPos.right!.integrate(transaction: transaction, offset: 0)
         currPos.forward()
         
         length -= 1
     }
-    try insertNegatedAttributes(transaction: transaction, parent: parent, currPos: currPos, negatedAttributes: negatedAttributes)
+    insertNegatedAttributes(transaction: transaction, parent: parent, currPos: currPos, negatedAttributes: negatedAttributes)
 }
 
 func cleanupFormattingGap(
@@ -446,9 +446,9 @@ func cleanupContextlessFormattingGap(transaction: YTransaction, item: YItem?) {
     }
 }
 
-func cleanupYTextFormatting(type: YText) throws -> Int {
+func cleanupYTextFormatting(type: YText) -> Int {
     var res = 0
-    try type.doc?.transact({ transaction in
+    type.doc?.transact({ transaction in
         var start = type._start!
         var end = type._start
         var startAttributes = YTextAttributes()
@@ -475,7 +475,7 @@ func deleteText(
     transaction: YTransaction,
     currPos: ItemTextListPosition,
     length: Int
-) throws -> ItemTextListPosition {
+) -> ItemTextListPosition {
     var length = length
     let startLength = length
     let startAttrs = currPos.currentAttributes.copy()
@@ -538,20 +538,20 @@ final public class YTextEvent: YEvent {
         })
     }
     
-    public override func changes() throws -> YEventChange {
+    public override func changes() -> YEventChange {
         if self._changes == nil {
-            let changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: try self.delta())
+            let changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: self.delta())
             self._changes = changes
         }
         return self._changes!
     }
 
-    public override func delta() throws -> [YEventDelta] {
+    public override func delta() -> [YEventDelta] {
         if (self._delta != nil) { return self._delta! }
         
         let deltas: RefArray<YEventDelta> = []
 
-        try self.target.doc?.transact({ transaction in
+        self.target.doc?.transact({ transaction in
             let currentAttributes = YTextAttributes([:]) // saves all current attributes for insert
             let oldAttributes = YTextAttributes([:])
             var item = self.target._start
@@ -699,28 +699,25 @@ final public class YTextEvent: YEvent {
 
 
 final public class YText: YOpaqueObject {
-    public var _pending: [(() throws -> Void)]?
+    public var _pending: [(() -> Void)]?
 
     public init(_ string: String? = nil) {
         super.init()
         
         self._pending = string != nil ? [{
             // swift add
-            try self.insert(0, text: string!, attributes: nil)
+            self.insert(0, text: string!, attributes: nil)
         }] : []
         self.serchMarkers = []
     }
 
     public var count: Int { return self._length }
 
-    override func _integrate(_ y: YDocument, item: YItem?) throws {
-        try super._integrate(y, item: item)
+    override func _integrate(_ y: YDocument, item: YItem?) {
+        super._integrate(y, item: item)
 
-        do {
-            try (self._pending)?.forEach{ try $0() }
-        } catch {
-            print(error)
-        }
+        (self._pending)?.forEach{ $0() }
+        
         self._pending = nil
     }
 
@@ -728,18 +725,18 @@ final public class YText: YOpaqueObject {
         return YText()
     }
 
-    public override func copy() throws -> YText {
+    public override func copy() -> YText {
         let text = YText()
-        try text.applyDelta(self.toDelta())
+        text.applyDelta(self.toDelta())
         return text
     }
 
-    public override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) throws {
-        try super._callObserver(transaction, _parentSubs: _parentSubs)
+    public override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) {
+        super._callObserver(transaction, _parentSubs: _parentSubs)
         let event = YTextEvent(self, transaction: transaction, subs: _parentSubs)
         let doc = transaction.doc
         
-        try self.callObservers(transaction: transaction, event: event)
+        self.callObservers(transaction: transaction, event: event)
         
         if !transaction.local {
             // check if another formatting item was inserted
@@ -779,11 +776,11 @@ final public class YText: YOpaqueObject {
                 })
             }
 
-            try doc.transact({ t in
+            doc.transact({ t in
                 if foundFormattingItem {
                     // If a formatting item was inserted, we simply clean the whole type.
                     // We need to compute currentAttributes for the current position anyway.
-                    _ = try cleanupYTextFormatting(type: self)
+                    _ = cleanupYTextFormatting(type: self)
                 } else {
                     // If no formatting attribute was inserted, we can make due with contextless
                     // formatting cleanups.
@@ -817,9 +814,9 @@ final public class YText: YOpaqueObject {
         return self.toString()
     }
     
-    public func applyDelta(_ delta: [YEventDelta], sanitize: Bool = true) throws {
+    public func applyDelta(_ delta: [YEventDelta], sanitize: Bool = true) {
         if self.doc != nil {
-            try self.doc!.transact({ transaction in
+            self.doc!.transact({ transaction in
                 let currPos = ItemTextListPosition(left: nil, right: self._start, index: 0, currentAttributes: [:])
                 for i in 0..<delta.count {
                     let op = delta[i]
@@ -830,11 +827,11 @@ final public class YText: YOpaqueObject {
                                 : op.insert!
                         
                         if !(ins is String) || (ins as! String).count > 0 {
-                            try insertText(transaction: transaction, parent: self, currPos: currPos, text: ins, attributes: op.attributes ?? [:])
+                            insertText(transaction: transaction, parent: self, currPos: currPos, text: ins, attributes: op.attributes ?? [:])
                         }
                     } else if op.retain != nil {
                         // swift add
-                        try formatText(
+                        formatText(
                             transaction: transaction,
                             parent: self,
                             currPos: currPos,
@@ -842,13 +839,13 @@ final public class YText: YOpaqueObject {
                             attributes: op.attributes ?? [:]
                         )
                     } else if op.delete != nil {
-                        _ = try deleteText(transaction: transaction, currPos: currPos, length: Int(op.delete!))
+                        _ = deleteText(transaction: transaction, currPos: currPos, length: op.delete!)
                     }
                 }
             })
         } else {
             self._pending?.append{
-                try self.applyDelta(delta)
+                self.applyDelta(delta)
             }
         }
     }
@@ -858,7 +855,7 @@ final public class YText: YOpaqueObject {
         _ snapshot: YSnapshot? = nil,
         prevSnapshot: YSnapshot? = nil,
         computeYChange: ((YChangeAction, YID) -> YTextAttributeValue)? = nil
-    ) throws -> [YEventDelta] {
+    ) -> [YEventDelta] {
         var ops: [YEventDelta] = []
         let currentAttributes: YTextAttributes = [:]
         
@@ -886,7 +883,7 @@ final public class YText: YOpaqueObject {
         
         // snapshots are merged again after the transaction, so we need to keep the
         // transalive until we are done
-        try doc.transact(origin: "cleanup") { transaction in
+        doc.transact(origin: "cleanup") { transaction in
             if snapshot != nil {
                 snapshot!.splitAffectedStructs(transaction)
             }
@@ -952,15 +949,15 @@ final public class YText: YOpaqueObject {
     }
 
 
-    public func insert(_ index: Int, text: String, attributes: YTextAttributes? = nil) throws {
+    public func insert(_ index: Int, text: String, attributes: YTextAttributes? = nil) {
         if text.count <= 0 { return }
         
         guard let doc = self.doc else {
-            self._pending?.append{ try self.insert(index, text: text, attributes: attributes) }
+            self._pending?.append{ self.insert(index, text: text, attributes: attributes) }
             return
         }
         
-        try doc.transact({ transaction in
+        doc.transact({ transaction in
             let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
                         
             var attributes = attributes
@@ -971,84 +968,78 @@ final public class YText: YOpaqueObject {
                 }
             }
 
-            try insertText(transaction: transaction, parent: self, currPos: pos, text: text, attributes: attributes!)
+            insertText(transaction: transaction, parent: self, currPos: pos, text: text, attributes: attributes!)
         })
     }
 
     // OLD: insertEmbed(_ index: Int, embed: Object|object, attributes: YTextAttributes = {})
-    public func insertEmbed(_ index: Int, embed: YEventDeltaInsertType, attributes: YTextAttributes?) throws {
+    public func insertEmbed(_ index: Int, embed: YEventDeltaInsertType, attributes: YTextAttributes?) {
         if self.doc != nil {
-            try self.doc!.transact({ transaction in
+            self.doc!.transact{ transaction in
                 let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
-                try insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: attributes ?? [:])
-            })
+                insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: attributes ?? [:])
+            }
         } else {
             (self._pending)?.append{
-                try self.insertEmbed(index, embed: embed, attributes: attributes)
+                self.insertEmbed(index, embed: embed, attributes: attributes)
             }
         }
     }
 
-    public func delete(_ index: Int, length: Int) throws {
+    public func delete(_ index: Int, length: Int) {
         if length == 0 {
             return
         }
         if self.doc != nil {
-            try self.doc!.transact({ transaction in
-                _ = try deleteText(
+            self.doc!.transact({ transaction in
+                _ = deleteText(
                     transaction: transaction,
                     currPos: ItemTextListPosition.find(transaction, parent: self, index: index),
                     length: length
                 )
             })
         } else {
-            (self._pending)?.append {
-                try self.delete(index, length: length)
-            }
+            (self._pending)?.append{ self.delete(index, length: length) }
         }
     }
 
-    public func format(_ index: Int, length: Int, attributes: YTextAttributes) throws {
+    public func format(_ index: Int, length: Int, attributes: YTextAttributes) {
         if length == 0 {
             return
         }
         if self.doc != nil {
-            try self.doc!.transact({ transaction in
+            self.doc!.transact({ transaction in
                 let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
                 if pos.right == nil {
                     return
                 }
                 
-                try formatText(transaction: transaction, parent: self, currPos: pos, length: length, attributes: attributes)
+                formatText(transaction: transaction, parent: self, currPos: pos, length: length, attributes: attributes)
             })
         } else {
             self._pending?.append{
-                try self.format(index, length: length, attributes: attributes)
+                self.format(index, length: length, attributes: attributes)
             }
         }
     }
 
-    public func removeAttribute(_ attributeName: String) throws {
+    public func removeAttribute(_ attributeName: String) {
         if self.doc != nil {
-            try self.doc!.transact({ transaction in
+            self.doc!.transact({ transaction in
                 self.mapDelete(transaction, key: attributeName)
             })
         } else {
-            self._pending?.append {
-                try self.removeAttribute(attributeName)
-            }
+            self._pending?.append{ self.removeAttribute(attributeName) }
         }
     }
 
-    public func setAttribute(_ attributeName: String, attributeValue: YTextAttributeValue) throws {
+    public func setAttribute(_ attributeName: String, attributeValue: YTextAttributeValue) {
         if self.doc != nil {
-            try self.doc!.transact({ transaction in
-                try self.mapSet(transaction, key: attributeName, value: attributeValue)
-            })
-        } else {
-            self._pending?.append {
-                try self.setAttribute(attributeName, attributeValue: attributeValue)
+            self.doc!.transact{ transaction in
+                self.mapSet(transaction, key: attributeName, value: attributeValue)
             }
+        } else {
+            self._pending?.append{ self.setAttribute(attributeName, attributeValue: attributeValue) }
         }
     }
 

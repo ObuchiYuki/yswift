@@ -20,31 +20,31 @@ final public class YArray<Element: YElement> {
     
     public convenience init() { self.init(opaque: YOpaqueArray()) }
     
-    public convenience init<S: Sequence>(_ contents: S) throws where S.Element == Element {
-        self.init(opaque: try YOpaqueArray(contents.lazy.map{ $0.encodeToOpaque() }))
+    public convenience init<S: Sequence>(_ contents: S) where S.Element == Element {
+        self.init(opaque: YOpaqueArray(contents.lazy.map{ $0.encodeToOpaque() }))
     }
     
     
-    public func append(_ content: Element) throws {
-        try self.opaque.append(content.encodeToOpaque())
+    public func append(_ content: Element) {
+        self.opaque.append(content.encodeToOpaque())
     }
-    public func append<S: Sequence>(contentsOf contents: S) throws where S.Element == Element {
-        try self.opaque.append(contentsOf: contents.map{ $0.encodeToOpaque() })
+    public func append<S: Sequence>(contentsOf contents: S) where S.Element == Element {
+        self.opaque.append(contentsOf: contents.map{ $0.encodeToOpaque() })
     }
     
-    public func insert(_ content: Element, at index: Int) throws {
-        try self.opaque.insert(content.encodeToOpaque(), at: index)
+    public func insert(_ content: Element, at index: Int) {
+        self.opaque.insert(content.encodeToOpaque(), at: index)
     }
-    public func insert<S: Sequence>(contentsOf contents: S, at index: Int) throws where S.Element == Element {
-        try self.opaque.insert(contents.map{ $0.encodeToOpaque() }, at: index)
+    public func insert<S: Sequence>(contentsOf contents: S, at index: Int) where S.Element == Element {
+        self.opaque.insert(contents.map{ $0.encodeToOpaque() }, at: index)
     }
 
-    public func remove(at index: Int, count: Int = 1) throws {
-        try opaque.remove(index)
+    public func remove(at index: Int, count: Int = 1) {
+        opaque.remove(index)
     }
     
-    public func copy() throws -> YArray<Element> {
-        try YArray(opaque: self.opaque.copy())
+    public func copy() -> YArray<Element> {
+        YArray(opaque: self.opaque.copy())
     }
     
     public func toJSON() -> Any { self.opaque.toJSON() }
@@ -91,7 +91,7 @@ extension YArray: ExpressibleByArrayLiteral {
     public typealias ArrayLiteralElement = Element
     
     public convenience init(arrayLiteral elements: Element...) {
-        try! self.init(elements)
+        self.init(elements)
     }
 }
 
@@ -131,7 +131,7 @@ extension YArray {
             var delete = 0
             var insert = [Element]()
             
-            for delta in try event.changes().delta {
+            for delta in event.changes().delta {
                 if let v = delta.retain { retain += v }
                 if let v = delta.delete { delete += v }
                 if let v = delta.insert { insert.append(contentsOf: v as! [Element]) }

@@ -58,7 +58,7 @@ final public class YStructStore {
         }
     }
 
-    func addStruct(_ struct_: YStruct) throws {
+    func addStruct(_ struct_: YStruct) {
         var structs = self.clients[struct_.id.client]
         if structs == nil {
             structs = []
@@ -66,7 +66,8 @@ final public class YStructStore {
         } else {
             let lastStruct = structs![structs!.count - 1]
             if lastStruct.id.clock + lastStruct.length != struct_.id.clock {
-                throw YSwiftError.unexpectedCase
+                fatalError("Unexpected case")
+//                throw YSwiftError.unexpectedCase
             }
         }
             

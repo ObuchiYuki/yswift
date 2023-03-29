@@ -141,7 +141,7 @@ final class YItem: YStruct, JSHashable {
         return nil
     }
 
-    override func integrate(transaction: YTransaction, offset: Int) throws {
+    override func integrate(transaction: YTransaction, offset: Int) {
         if offset > 0 {
             self.id.clock += offset
             self.left = transaction.doc.store.getItemCleanEnd(
@@ -155,7 +155,7 @@ final class YItem: YStruct, JSHashable {
 
         guard let parent = self.parent?.object else {
             let gc = YGC(id: self.id, length: self.length)
-            try gc.integrate(transaction: transaction, offset: 0)
+            gc.integrate(transaction: transaction, offset: 0)
             return
         }
         
@@ -241,9 +241,9 @@ final class YItem: YStruct, JSHashable {
             parent._length += self.length
         }
         
-        try transaction.doc.store.addStruct(self)
+        transaction.doc.store.addStruct(self)
         
-        try self.content.integrate(with: self, transaction)
+        self.content.integrate(with: self, transaction)
         
         // add parent to transaction.changed
         transaction.addChangedType(parent, parentSub: self.parentKey)
@@ -350,8 +350,10 @@ extension YItem {
     }
 
     func gc(_ store: YStructStore, parentGC: Bool) {
-        assert(!self.deleted, "Deleted")
-//        if { throw YSwiftError.unexpectedCase }
+        if !self.deleted {
+            fatalError("Unexpected case")
+//            throw YSwiftError.unexpectedCase
+        }
         
         self.content.gc(store)
         
@@ -411,7 +413,7 @@ extension YItem {
         return rightItem
     }
 
-    func redo(_ transaction: YTransaction, redoitems: Set<YItem>, itemsToDelete: YDeleteSet, ignoreRemoteMapChanges: Bool) throws -> YItem? {
+    func redo(_ transaction: YTransaction, redoitems: Set<YItem>, itemsToDelete: YDeleteSet, ignoreRemoteMapChanges: Bool) -> YItem? {
         if let redone = self.redone { return YStructStore.getItemCleanStart(transaction, id: redone) }
         
         let doc = transaction.doc
@@ -426,7 +428,7 @@ extension YItem {
             
             if uparentItem.redone == nil {
                 if !redoitems.contains(uparentItem) { return nil }
-                let redo = try uparentItem
+                let redo = uparentItem
                     .redo(transaction, redoitems: redoitems, itemsToDelete: itemsToDelete, ignoreRemoteMapChanges: ignoreRemoteMapChanges)
                 if redo == nil { return nil }
             }
@@ -517,7 +519,7 @@ extension YItem {
         )
         self.redone = nextId
         redoneItem.keepRecursive(keep: true)
-        try redoneItem.integrate(transaction: transaction, offset: 0)
+        redoneItem.integrate(transaction: transaction, offset: 0)
         return redoneItem
     }
 }

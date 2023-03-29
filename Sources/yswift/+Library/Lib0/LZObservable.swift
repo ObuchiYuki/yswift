@@ -18,7 +18,7 @@ public class LZObservable {
         let id = UUID()
     }
     
-    private var _observers: [String: [UUID: (Any) throws -> Void]] = [:]
+    private var _observers: [String: [UUID: (Any) -> Void]] = [:]
     
     public init() {}
     
@@ -27,20 +27,20 @@ public class LZObservable {
     }
 
     @discardableResult
-    public func on<Args>(_ event: EventName<Args>, _ observer: @escaping (Args) throws -> Void) -> Disposer {
+    public func on<Args>(_ event: EventName<Args>, _ observer: @escaping (Args) -> Void) -> Disposer {
         if (self._observers[event.name] == nil) { self._observers[event.name] = [:] }
         let disposer = Disposer()
         self._observers[event.name]![disposer.id] = { value in
-            try observer(value as! Args)
+            observer(value as! Args)
         }
         return disposer
     }
     
     @discardableResult
-    public func once<Args>(_ event: EventName<Args>, _ observer: @escaping (Args) throws -> Void) -> Disposer {
+    public func once<Args>(_ event: EventName<Args>, _ observer: @escaping (Args) -> Void) -> Disposer {
         var disposer: Disposer!
         disposer = self.on(event) {
-            try observer($0)
+            observer($0)
             self.off(event, disposer)
         }
         return disposer
@@ -61,12 +61,12 @@ public class LZObservable {
         }
     }
 
-    public func emit<Args>(_ event: EventName<Args>, _ args: Args) throws {
+    public func emit<Args>(_ event: EventName<Args>, _ args: Args) {
         guard let listeners = self._observers[event.name] else { return }
-        try listeners.forEach{ try $0.value(args) }
+        listeners.forEach{ $0.value(args) }
     }
     
-    public func destroy() throws {
+    public func destroy() {
         self._observers = [:]
     }
 }

@@ -19,9 +19,9 @@ final public class YOpaqueMap: YOpaqueObject {
         }
     }
     
-    public func removeValue(forKey key: String) throws {
+    public func removeValue(forKey key: String) {
         if let doc = self.doc {
-            try doc.transact{ self.mapDelete($0, key: key) }
+            doc.transact{ self.mapDelete($0, key: key) }
         } else {
             self._prelimContent?.removeValue(forKey: key)
         }
@@ -29,12 +29,12 @@ final public class YOpaqueMap: YOpaqueObject {
     
     public subscript(key: String) -> Any? {
         get { self.mapGet(key) }
-        set { try! self.setThrowingError(key, value: newValue) }
+        set { self.setThrowingError(key, value: newValue) }
     }
 
-    public func setThrowingError(_ key: String, value: Any?) throws {
+    public func setThrowingError(_ key: String, value: Any?) {
         if let doc = self.doc {
-            try doc.transact{ try self.mapSet($0, key: key, value: value) }
+            doc.transact{ self.mapSet($0, key: key, value: value) }
         } else {
             self._prelimContent![key] = value
         }
@@ -44,21 +44,21 @@ final public class YOpaqueMap: YOpaqueObject {
         return self.mapHas(key)
     }
 
-    public func removeAll() throws {
+    public func removeAll() {
         if let doc = self.doc {
-            try doc.transact{ for key in self.keys() { self.mapDelete($0, key: key) } }
+            doc.transact{ for key in self.keys() { self.mapDelete($0, key: key) } }
         } else {
             self._prelimContent?.removeAll()
         }
     }
     
-    public override func copy() throws -> YOpaqueMap {
+    public override func copy() -> YOpaqueMap {
         let map = YOpaqueMap()
         for (key, value) in self {
             if let value = value as? YOpaqueObject {
-                try map.setThrowingError(key, value: value.copy())
+                map.setThrowingError(key, value: value.copy())
             } else {
-                try map.setThrowingError(key, value: value)
+                map.setThrowingError(key, value: value)
             }
         }
         return map
@@ -84,11 +84,11 @@ final public class YOpaqueMap: YOpaqueObject {
         encoder.writeTypeRef(YMapRefID)
     }
     
-    override func _integrate(_ y: YDocument, item: YItem?) throws {
-        try super._integrate(y, item: item)
+    override func _integrate(_ y: YDocument, item: YItem?) {
+        super._integrate(y, item: item)
         
         for (key, value) in self._prelimContent ?? [:] {
-            try self.setThrowingError(key, value: value)
+            self.setThrowingError(key, value: value)
         }
         self._prelimContent = nil
     }
@@ -97,8 +97,8 @@ final public class YOpaqueMap: YOpaqueObject {
         return YOpaqueMap()
     }
 
-    override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) throws {
-        try self.callObservers(transaction: transaction, event: YOpaqueMapEvent(self, transaction: transaction, keysChanged: _parentSubs))
+    override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) {
+        self.callObservers(transaction: transaction, event: YOpaqueMapEvent(self, transaction: transaction, keysChanged: _parentSubs))
     }
 }
 

@@ -22,7 +22,7 @@ protocol YContent: AnyObject {
 
     func merge(with right: any YContent) -> Bool
 
-    func integrate(with item: YItem, _ transaction: YTransaction) throws -> Void
+    func integrate(with item: YItem, _ transaction: YTransaction) -> Void
 
     func delete(_ transaction: YTransaction) -> Void
 

@@ -28,8 +28,8 @@ extension YObjectContent {
 
     func merge(with right: YContent) -> Bool { false }
 
-    func integrate(with item: YItem, _ transaction: YTransaction) throws {
-        try self.object._integrate(transaction.doc, item: item)
+    func integrate(with item: YItem, _ transaction: YTransaction) {
+        self.object._integrate(transaction.doc, item: item)
     }
 
     func delete(_ transaction: YTransaction) {

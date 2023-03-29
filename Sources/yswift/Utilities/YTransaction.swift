@@ -16,18 +16,10 @@ func anyMap<K, V>(_ m: [K: V], _ f: (K, V) -> Bool) -> Bool {
     return false
 }
 
-func callAll(_ fs: RefArray<() throws -> Void>) throws {
-    var handleError: Error?
+func callAll(_ fs: RefArray<() -> Void>) {
     var i = 0; while i < fs.count {
-        do {
-            try fs[i]()
-        } catch {
-            handleError = error
-        }
+        fs[i]()
         i += 1
-    }
-    if let handleError = handleError {
-        throw handleError
     }
 }
 
@@ -93,7 +85,7 @@ final public class YTransaction {
         }
     }
 
-    static func cleanup(_ transactions: RefArray<YTransaction>, i: Int) throws {
+    static func cleanup(_ transactions: RefArray<YTransaction>, i: Int) {
         if i >= transactions.count { return }
     
         let transaction = transactions[i]
@@ -102,7 +94,7 @@ final public class YTransaction {
         let ds = transaction.deleteSet
         let mergeStructs = transaction._mergeStructs
         
-        func defering() throws {
+        func defering() {
             // Replace deleted items with ItemDeleted / GC.
             // This is where content is actually remove from the Yjs Doc.
             if doc.gc {
@@ -142,7 +134,7 @@ final public class YTransaction {
                 doc.clientID = YDocument.generateNewClientID()
             }
             
-            try doc.emit(YDocument.On.afterTransactionCleanup, transaction)
+            doc.emit(YDocument.On.afterTransactionCleanup, transaction)
             
             if doc.isObserving(YDocument.On.update) {
                 let encoder = YUpdateEncoderV1()
@@ -150,14 +142,14 @@ final public class YTransaction {
                 let hasContent = transaction.encodeUpdateMessage(encoder)
                 
                 if hasContent {
-                    try doc.emit(YDocument.On.update, (encoder.toUpdate(), transaction.origin, transaction))
+                    doc.emit(YDocument.On.update, (encoder.toUpdate(), transaction.origin, transaction))
                 }
             }
             if doc.isObserving(YDocument.On.updateV2) {
                 let encoder = YUpdateEncoderV2()
                 let hasContent = transaction.encodeUpdateMessage(encoder)
                 if hasContent {
-                    try doc.emit(YDocument.On.updateV2, (
+                    doc.emit(YDocument.On.updateV2, (
                         encoder.toUpdate(), transaction.origin, transaction
                     ))
                 }
@@ -179,72 +171,67 @@ final public class YTransaction {
                 let subdocevent = YDocument.On.SubDocEvent(
                     loaded: subdocsLoaded, added: subdocsAdded, removed: subdocsRemoved
                 )
-                try doc.emit(YDocument.On.subdocs, (subdocevent, transaction))
-                try subdocsRemoved.forEach{ try $0.destroy() }
+                doc.emit(YDocument.On.subdocs, (subdocevent, transaction))
+                subdocsRemoved.forEach{ $0.destroy() }
             }
 
             if transactions.count <= i + 1 {
                 doc._transactionCleanups = []
-                try doc.emit(YDocument.On.afterAllTransactions, transactions.map{ $0 })
+                doc.emit(YDocument.On.afterAllTransactions, transactions.map{ $0 })
             } else {
-                try YTransaction.cleanup(transactions, i: i + 1)
+                YTransaction.cleanup(transactions, i: i + 1)
             }
         }
         
-        do {
-            ds.sortAndMerge()
-            transaction.afterState = transaction.doc.store.getStateVector()
-            try doc.emit(YDocument.On.beforeObserverCalls, transaction)
-            
-            let fs: RefArray<() throws -> Void> = []
-            
-            transaction.changed.forEach{ (itemtype: YOpaqueObject, subs: Set<String?>) in
-                fs.append{
-                    if itemtype.item == nil || !itemtype.item!.deleted {
-                        try itemtype._callObserver(transaction, _parentSubs: subs)
+        ds.sortAndMerge()
+        transaction.afterState = transaction.doc.store.getStateVector()
+        doc.emit(YDocument.On.beforeObserverCalls, transaction)
+        
+        let fs: RefArray<() -> Void> = []
+        
+        transaction.changed.forEach{ (itemtype: YOpaqueObject, subs: Set<String?>) in
+            fs.append{
+                if itemtype.item == nil || !itemtype.item!.deleted {
+                    itemtype._callObserver(transaction, _parentSubs: subs)
+                }
+            }
+        }
+        
+        fs.append({
+            // deep observe events
+            transaction.changedParentTypes.forEach{ type, events in
+                var events = events
+                fs.append{ () -> Void in
+                    // We need to think about the possibility that the user transforms the
+                    // Y.Doc in the event.
+                    if type.item == nil || !type.item!.deleted {
+                        events = events
+                            .filter{ event in event.target.item == nil || !event.target.item!.deleted }
+                        events
+                            .forEach{ event in event.currentTarget = type }
+                        
+                        events
+                            .sort{ event1, event2 in event1.path.count < event2.path.count }
+                        
+                        type._deepEventHandler.callListeners((events: events, transaction))
                     }
                 }
             }
             
-            fs.append({
-                // deep observe events
-                transaction.changedParentTypes.forEach{ type, events in
-                    var events = events
-                    fs.append{ () -> Void in
-                        // We need to think about the possibility that the user transforms the
-                        // Y.Doc in the event.
-                        if type.item == nil || !type.item!.deleted {
-                            events = events
-                                .filter{ event in event.target.item == nil || !event.target.item!.deleted }
-                            events
-                                .forEach{ event in event.currentTarget = type }
-                            
-                            events
-                                .sort{ event1, event2 in event1.path.count < event2.path.count }
-                            
-                            try type._deepEventHandler.callListeners((events: events, transaction))
-                        }
-                    }
-                }
-                
-                fs.append{
-                    try doc.emit(YDocument.On.afterTransaction, transaction)
-                }
-            })
+            fs.append{
+                doc.emit(YDocument.On.afterTransaction, transaction)
+            }
+        })
 
-            // callAll
-            try callAll(fs)
-        } catch {
-            try defering()
-            throw error
-        }
+        // callAll
+        callAll(fs)
         
-        try defering()
+        defering()
     }
     
 
     /** Implements the functionality of `y.transact(()->{..})` */
-    static func transact(_ doc: YDocument, origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) throws {
+    static func transact(_ doc: YDocument, origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) rethrows {
         
         var initialCall = false
         
@@ -254,17 +241,17 @@ final public class YTransaction {
             doc._transactionCleanups.value.append(doc._transaction!)
                         
             if doc._transactionCleanups.count == 1 {
-                try doc.emit(YDocument.On.beforeAllTransactions, ())
+                doc.emit(YDocument.On.beforeAllTransactions, ())
             }
-            try doc.emit(YDocument.On.beforeTransaction, doc._transaction!)
+            doc.emit(YDocument.On.beforeTransaction, doc._transaction!)
         }
         
-        func defering() throws {
+        func defering() {
             if initialCall {
                 let finishCleanup = doc._transaction === doc._transactionCleanups[0]
                 doc._transaction = nil
                 if finishCleanup {
-                    try YTransaction.cleanup(doc._transactionCleanups, i: 0)
+                    YTransaction.cleanup(doc._transactionCleanups, i: 0)
                 }
             }
         }
@@ -272,11 +259,10 @@ final public class YTransaction {
         do {
             try body(doc._transaction!)
         } catch {
-            try defering()
+            defering()
             throw error
         }
-        try defering()
-        
+        defering()
     }
 }
 

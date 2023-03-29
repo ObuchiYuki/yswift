@@ -32,7 +32,7 @@ extension YMap {
     }
 
     public func setThrowingError(_ key: String, value: Value?) throws {
-        try self.opaque.setThrowingError(key, value: value)
+        self.opaque.setThrowingError(key, value: value)
     }
     
     public func keys() -> some Sequence<String> {
@@ -44,7 +44,7 @@ extension YMap {
     }
     
     public func removeValue(forKey key: String) throws {
-        try self.opaque.removeValue(forKey: key)
+        self.opaque.removeValue(forKey: key)
     }
     
     public func contains(_ key: String) -> Bool {
@@ -52,11 +52,11 @@ extension YMap {
     }
 
     public func removeAll() throws {
-        try self.opaque.removeAll()
+        self.opaque.removeAll()
     }
     
     public func copy() throws -> YMap<Value> {
-        try YMap(opaque: self.opaque.copy())
+        YMap(opaque: self.opaque.copy())
     }
     
     public func toJSON() -> Any {

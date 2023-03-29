@@ -12,7 +12,7 @@ extension YOpaqueObject {
         self.storage[key]?.delete(transaction)
     }
 
-    func mapSet(_ transaction: YTransaction, key: String, value: Any?) throws {
+    func mapSet(_ transaction: YTransaction, key: String, value: Any?) {
         let left = self.storage[key]
         let doc = transaction.doc
         let ownClientId = doc.clientID
@@ -30,13 +30,13 @@ extension YOpaqueObject {
                 if let value = value as? YOpaqueObject {
                     content = YObjectContent(value)
                 } else {
-                    throw YSwiftError("Unexpected content type '\(type(of: value!))'")
+                    fatalError("Unexpected content type '\(type(of: value!))'")
                 }
             }
         }
         let id = YID(client: ownClientId, clock: doc.store.getState(ownClientId))
         let item = YItem(id: id, left: left, origin: left?.lastID, right: nil, rightOrigin: nil, parent: .object(self), parentSub: key, content: content)
-        try item.integrate(transaction: transaction, offset: 0)
+        item.integrate(transaction: transaction, offset: 0)
     }
 
     func mapGet(_ key: String) -> Any? {

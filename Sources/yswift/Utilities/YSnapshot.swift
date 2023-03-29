@@ -52,7 +52,7 @@ final public class YSnapshot: JSHashable {
         
         let encoder = YUpdateEncoderV2()
         
-        try originDoc.transact{ transaction in
+        originDoc.transact{ transaction in
             let size = self.stateVectors.lazy.filter{ $0.key > 0 }.count
             
             encoder.restEncoder.writeUInt(UInt(size))

@@ -18,12 +18,12 @@ final class YGC: YStruct {
         return true
     }
 
-    override func integrate(transaction: YTransaction, offset: Int) throws {
+    override func integrate(transaction: YTransaction, offset: Int) {
         if offset > 0 {
             self.id.clock += offset
             self.length -= offset
         }
-        try transaction.doc.store.addStruct(self)
+        transaction.doc.store.addStruct(self)
     }
 
     override func encode(into encoder: YUpdateEncoder, offset: Int) {

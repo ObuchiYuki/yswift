@@ -129,7 +129,7 @@ final public class YUndoManager: LZObservable, JSHashable {
                 self.stopCapturing() // next undo should not be appended to last stack item
             } else if !redoing {
                 // neither undoing nor redoing: delete redoStack
-                try self.clear(false, clearRedoStack: true)
+                self.clear(false, clearRedoStack: true)
             }
             let insertions = YDeleteSet()
             transaction.afterState.forEach({ client, endClock in
@@ -173,13 +173,13 @@ final public class YUndoManager: LZObservable, JSHashable {
             )
 
             if didAdd {
-                try self.emit(Event.stackItemAdded, changeEvent)
+                self.emit(Event.stackItemAdded, changeEvent)
             } else {
-                try self.emit(Event.stackItemUpdated, changeEvent)
+                self.emit(Event.stackItemUpdated, changeEvent)
             }
         }
         self.doc.on(YDocument.On.destroy) {
-            try self.destroy()
+            self.destroy()
         }
     }
 
@@ -193,7 +193,7 @@ final public class YUndoManager: LZObservable, JSHashable {
     }
 
 
-    public func popStackItem(_ stack: Ref<[StackItem]>, eventType: EvnetType) throws -> StackItem? {
+    public func popStackItem(_ stack: Ref<[StackItem]>, eventType: EvnetType) -> StackItem? {
         /** Whether a change happened */
         var result: StackItem? = nil
         /** Keep a reference to the transaction so we can fire the event with the changedParentTypes */
@@ -201,7 +201,7 @@ final public class YUndoManager: LZObservable, JSHashable {
         let doc = self.doc
         let scope = self.scope
         
-        try doc.transact(origin: self) { transaction in
+        doc.transact(origin: self) { transaction in
             while (stack.count > 0 && result == nil) {
                 let store = doc.store
                 let stackItem = stack.value.popLast()!
@@ -235,8 +235,8 @@ final public class YUndoManager: LZObservable, JSHashable {
                         itemsToRedo.insert(struct_ as! YItem)
                     }
                 }
-                try itemsToRedo.forEach({ struct_ in
-                    performedChange = try struct_
+                itemsToRedo.forEach({ struct_ in
+                    performedChange = struct_
                         .redo(transaction, redoitems: itemsToRedo, itemsToDelete: stackItem.insertions, ignoreRemoteMapChanges: self.ignoreRemoteMapChanges) != nil || performedChange
                 })
                 // We want to delete in reverse order so that children are deleted before
@@ -261,7 +261,7 @@ final public class YUndoManager: LZObservable, JSHashable {
         
         if result != nil {
             let changedParentTypes = _tr!.changedParentTypes
-            try self.emit(
+            self.emit(
                 Event.stackItemPopped,
                 ChangeEvent(
                     stackItem: result!,
@@ -291,9 +291,9 @@ final public class YUndoManager: LZObservable, JSHashable {
         self.trackedOrigins.value.remove(origin)
     }
 
-    public func clear(_ clearUndoStack: Bool = true, clearRedoStack: Bool = true) throws {
+    public func clear(_ clearUndoStack: Bool = true, clearRedoStack: Bool = true) {
         if (clearUndoStack && self.canUndo()) || (clearRedoStack && self.canRedo()) {
-            try self.doc.transact({ tr in
+            self.doc.transact({ tr in
                 if clearUndoStack {
                     self.undoStack.forEach({ item in self.clearStackItem(tr, stackItem: item) })
                     self.undoStack = .init(value: [])
@@ -302,7 +302,7 @@ final public class YUndoManager: LZObservable, JSHashable {
                     self.redoStack.forEach({ item in self.clearStackItem(tr, stackItem: item) })
                     self.redoStack = .init(value: [])
                 }
-                try self.emit(Event.stackCleanred, .init(undoStackCleared: clearUndoStack, redoStackCleared: clearRedoStack))
+                self.emit(Event.stackCleanred, .init(undoStackCleared: clearUndoStack, redoStackCleared: clearRedoStack))
             })
         }
     }
@@ -312,25 +312,25 @@ final public class YUndoManager: LZObservable, JSHashable {
     }
 
     @discardableResult
-    public func undo() throws -> StackItem? {
+    public func undo() -> StackItem? {
         self.undoing = true
         var res: StackItem?
         defer {
             self.undoing = false
         }
-        res = try self.popStackItem(self.undoStack, eventType: .undo)
+        res = self.popStackItem(self.undoStack, eventType: .undo)
         return res
     }
 
     @discardableResult
-    public func redo() throws -> StackItem? {
+    public func redo() -> StackItem? {
         self.redoing = true
         var res: StackItem?
 
         defer {
             self.redoing = false
         }
-        res = try self.popStackItem(self.redoStack, eventType: .redo)
+        res = self.popStackItem(self.redoStack, eventType: .redo)
 
         return res
     }
@@ -343,10 +343,10 @@ final public class YUndoManager: LZObservable, JSHashable {
         return self.redoStack.count > 0
     }
 
-    public override func destroy() throws {
+    public override func destroy() {
         self.trackedOrigins.value.remove(self)
         self.doc.off(YDocument.On.afterTransaction, self.afterTransactionDisposer)
-        try super.destroy()
+        super.destroy()
     }
 }
 

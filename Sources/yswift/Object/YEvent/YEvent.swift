@@ -74,8 +74,8 @@ public class YEvent {
         return keys
     }
 
-    public func delta() throws -> [YEventDelta] {
-        return try self.changes().delta
+    public func delta() -> [YEventDelta] {
+        return self.changes().delta
     }
 
     func adds(_ struct_: YStruct) -> Bool {
@@ -85,7 +85,7 @@ public class YEvent {
         return self.transaction.deleteSet.isDeleted(struct_.id)
     }
 
-    public func changes() throws -> YEventChange {
+    public func changes() -> YEventChange {
         if (self._changes != nil) { return self._changes! }
         
         var changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: [])

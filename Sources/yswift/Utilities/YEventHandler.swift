@@ -9,11 +9,11 @@ import Foundation
 import Combine
 
 final class YEventHandler<Args> {
-    private var handlers: [Disposer: (Args) throws -> Void] = [:]
+    private var handlers: [Disposer: (Args) -> Void] = [:]
     
     typealias Disposer = UUID
     
-    func addListener(_ handler: @escaping (Args) throws -> Void) -> Disposer {
+    func addListener(_ handler: @escaping (Args) -> Void) -> Disposer {
         let disposer = UUID()
         self.handlers[disposer] = handler
         return disposer
@@ -27,8 +27,8 @@ final class YEventHandler<Args> {
         self.handlers.removeAll()
     }
     
-    func callListeners(_ args: Args) throws {
-        for (_, handler) in self.handlers { try handler(args) }
+    func callListeners(_ args: Args) {
+        for (_, handler) in self.handlers { handler(args) }
     }
     
     public private(set) lazy var publisher: some Combine.Publisher<Args, Never> = {

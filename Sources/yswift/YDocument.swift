@@ -76,17 +76,15 @@ public class YDocument: LZObservable, JSHashable {
                 self.whenSynced = provideSyncedPromise()
             }
             self.isSynced = isSynced
-            if !self.isLoaded {
-                try self.emit(On.load, ())
-            }
+            if !self.isLoaded { self.emit(On.load, ()) }
         })
         self.whenSynced = provideSyncedPromise()
     }
 
-    public func load() throws {
+    public func load() {
         let item = self._item
         if item != nil && !self.shouldLoad {
-            try item!.parent!.object!.doc?.transact{ transaction in
+            item!.parent!.object!.doc?.transact{ transaction in
                 transaction.subdocsLoaded.insert(self)
             }
         }
@@ -97,14 +95,14 @@ public class YDocument: LZObservable, JSHashable {
 
     public func getSubdocGuids() -> Set<String> { Set(self.subdocs.map{ $0.guid }) }
 
-    public func transact(origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) throws {
+    public func transact(origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) rethrows {
         try YTransaction.transact(self, origin: origin, local: local, body)
     }
 
-    public func get<T: YOpaqueObject>(_: T.Type, name: String = "", make: () -> T) throws -> T {
-        let type_ = try self.share.setIfUndefined(name, {
+    public func get<T: YOpaqueObject>(_: T.Type, name: String = "", make: () -> T) -> T {
+        let type_ = self.share.setIfUndefined(name, {
             let t = make()
-            try t._integrate(self, item: nil)
+            t._integrate(self, item: nil)
             return t
         }())
         
@@ -127,7 +125,7 @@ public class YDocument: LZObservable, JSHashable {
                 }
                 t._length = type_._length
                 self.share[name] = t
-                try t._integrate(self, item: nil)
+                t._integrate(self, item: nil)
                 return t
             } else {
                 // TODO: throw
@@ -137,26 +135,25 @@ public class YDocument: LZObservable, JSHashable {
         return type_ as! T
     }
 
-    public func getMap<T>(_: T.Type, _ name: String = "") throws -> YMap<T> {
-        try YMap(opaque: self.getOpaqueMap(name))
+    public func getMap<T>(_: T.Type, _ name: String = "") -> YMap<T> {
+        YMap(opaque: self.getOpaqueMap(name))
     }
     
-    public func getArray<T>(_: T.Type, name: String = "") throws -> YArray<T> {
-        try YArray(opaque: self.getOpaqueArray(name))
+    public func getArray<T>(_: T.Type, name: String = "") -> YArray<T> {
+        YArray(opaque: self.getOpaqueArray(name))
     }
     
-    public func getOpaqueMap(_ name: String = "") throws -> YOpaqueMap {
-        return try self.get(YOpaqueMap.self, name: name, make: { YOpaqueMap.init(nil) })
+    public func getOpaqueMap(_ name: String = "") -> YOpaqueMap {
+        return self.get(YOpaqueMap.self, name: name, make: { YOpaqueMap.init(nil) })
     }
 
-    public func getOpaqueArray(_ name: String = "") throws -> YOpaqueArray {
-        return try self.get(YOpaqueArray.self, name: name, make: { YOpaqueArray.init() })
+    public func getOpaqueArray(_ name: String = "") -> YOpaqueArray {
+        return self.get(YOpaqueArray.self, name: name, make: { YOpaqueArray.init() })
     }
     
-    public func getText(_ name: String = "") throws -> YText {
-        return try self.get(YText.self, name: name, make: { YText.init() })
+    public func getText(_ name: String = "") -> YText {
+        return self.get(YText.self, name: name, make: { YText.init() })
     }
-    
     
     public func toJSON() -> [String: Any] {
         var doc: [String: Any] = [:]
@@ -166,8 +163,8 @@ public class YDocument: LZObservable, JSHashable {
         return doc
     }
 
-    public override func destroy() throws {
-        try self.subdocs.forEach{ try $0.destroy() }
+    public override func destroy() {
+        self.subdocs.forEach{ $0.destroy() }
         let item = self._item
         if item != nil {
             self._item = nil
@@ -186,15 +183,15 @@ public class YDocument: LZObservable, JSHashable {
             content?.document = subdoc
             content?.document._item = item!
             
-            try item!.parent!.object!.doc?.transact{ transaction in
+            item!.parent!.object!.doc?.transact{ transaction in
                 let doc = subdoc
                 if !item!.deleted { transaction.subdocsAdded.insert(doc) }
                 transaction.subdocsRemoved.insert(self)
             }
         }
-        try self.emit(On.destroyed, true)
-        try self.emit(On.destroy, ())
-        try super.destroy()
+        self.emit(On.destroyed, true)
+        self.emit(On.destroy, ())
+        super.destroy()
     }
 }
 

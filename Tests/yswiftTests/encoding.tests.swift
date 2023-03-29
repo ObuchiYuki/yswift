@@ -38,7 +38,11 @@ final class EncodingTests: XCTestCase {
         var sv: Data? = nil
         try ydoc.getText().insert(0, text: "a")
         ydoc.on(YDocument.On.update) { update, _, _ in
-            sv = try update.encodeStateVectorFromUpdate()
+            do {
+                sv = try update.encodeStateVectorFromUpdate()
+            } catch {
+                XCTFail("\(error)")
+            }
         }
         
         try ydoc.getText().insert(0, text: "a")

@@ -36,7 +36,7 @@ open class YOpaqueObject: JSHashable {
     // =========================================================================== //
     // MARK: - Abstract Methods -
 
-    public func copy() throws -> Self { fatalError() }
+    public func copy() -> Self { fatalError() }
 
     func _copy() -> YOpaqueObject { fatalError() }
 
@@ -64,7 +64,7 @@ open class YOpaqueObject: JSHashable {
         return false
     }
 
-    func callObservers(transaction: YTransaction, event: YEvent) throws {
+    func callObservers(transaction: YTransaction, event: YEvent) {
         var type = self
         let changedType = type
         
@@ -75,20 +75,20 @@ open class YOpaqueObject: JSHashable {
             type = object
         }
         
-        try changedType._eventHandler.callListeners((event, transaction))
+        changedType._eventHandler.callListeners((event, transaction))
     }
 
     // =========================================================================== //
     // MARK: - Private Methods (Temporally public) -
     
-    func _integrate(_ y: YDocument, item: YItem?) throws {
+    func _integrate(_ y: YDocument, item: YItem?) {
         self.doc = y
         self.item = item
     }
 
     func _write(_ _encoder: YUpdateEncoder) {}
 
-    func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) throws {
+    func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) {
         if !transaction.local && self.serchMarkers != nil {
             self.serchMarkers!.value.removeAll()
         }
@@ -96,13 +96,13 @@ open class YOpaqueObject: JSHashable {
 
     /** Observe all events that are created on this type. */
     @discardableResult
-    public func observe(_ f: @escaping (YEvent, YTransaction) throws -> Void) -> UUID {
+    public func observe(_ f: @escaping (YEvent, YTransaction) -> Void) -> UUID {
         self._eventHandler.addListener(f)
     }
 
     /** Observe all events that are created by this type and its children. */
     @discardableResult
-    public func observeDeep(_ f: @escaping ([YEvent], YTransaction) throws -> Void) -> UUID {
+    public func observeDeep(_ f: @escaping ([YEvent], YTransaction) -> Void) -> UUID {
         self._deepEventHandler.addListener(f)
     }
 

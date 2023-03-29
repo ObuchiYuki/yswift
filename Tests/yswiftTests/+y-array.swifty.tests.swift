@@ -14,11 +14,11 @@ final class YArraySwiftyTests: XCTestCase {
         array.eventPublisher
             .sink{ event = $0 }.store(in: &objectBag)
         
-        try array.append(1)
+        array.append(1)
         XCTAssertEqual(event, YArray<Int>.Event(insert: [1]))
-        try array.remove(at: 0)
+        array.remove(at: 0)
         XCTAssertEqual(event, YArray<Int>.Event(delete: 1))
-        try array.append(1)
+        array.append(1)
         XCTAssertEqual(event, YArray<Int>.Event(insert: [1]))
     }
             
@@ -26,9 +26,9 @@ final class YArraySwiftyTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         let array = test.swiftyArray(Int.self, 0)
                 
-        try array.append(1)
-        try array.append(2)
-        try array.append(3)
+        array.append(1)
+        array.append(2)
+        array.append(3)
                 
         XCTAssertEqual(array.count, 3)
         XCTAssertEqual(array[0], 1)
@@ -46,9 +46,9 @@ final class YArraySwiftyTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         let array = test.swiftyArray(YArray<Int>.self, 0)
 
-        try array.append(YArray([ 1 ]))
-        try array.append(YArray([ 1, 2 ]))
-        try array.append(YArray([ 1, 2, 3 ]))
+        array.append(YArray([ 1 ]))
+        array.append(YArray([ 1, 2 ]))
+        array.append(YArray([ 1, 2, 3 ]))
 
         XCTAssertEqual(array.count, 3)
 
@@ -64,9 +64,9 @@ final class YArraySwiftyTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         let array = test.swiftyArray(Point.self, 0)
         
-        try array.append(Point(x: 1, y: 11))
-        try array.append(Point(x: 2, y: 22))
-        try array.append(Point(x: 3, y: 33))
+        array.append(Point(x: 1, y: 11))
+        array.append(Point(x: 2, y: 22))
+        array.append(Point(x: 3, y: 33))
         
         XCTAssertEqual(array[0], Point(x: 1, y: 11))
         XCTAssertEqual(array[1], Point(x: 2, y: 22))
@@ -77,7 +77,7 @@ final class YArraySwiftyTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         let array = test.swiftyArray(YArray<YArray<String>>.self, 0)
         
-        try array.append(YArray([ YArray([ "Hello", "World" ]) ]))
+        array.append(YArray([ YArray([ "Hello", "World" ]) ]))
         
         XCTAssertEqual(array[0][0].toArray(), [ "Hello", "World" ])
     }
@@ -88,10 +88,10 @@ final class YArraySwiftyTests: XCTestCase {
         
         var deltas = [YEventDelta]()
         array.opaqueEventPublisher
-            .sink{ deltas.append(contentsOf: try! $0.delta()) }
+            .sink{ deltas.append(contentsOf: $0.delta()) }
             .store(in: &objectBag)
         
-        try array.append(12876)
+        array.append(12876)
         
         XCTAssertEqual(deltas, [ YEventDelta(insert: [12876]) ])
     }
@@ -101,10 +101,10 @@ final class YArraySwiftyTests: XCTestCase {
         let array = test.swiftyArray(Int.self, 0)
         
         array.eventPublisher
-            .sink{_ in if array.count < 10 { try! array.append(array.count) } }
+            .sink{_ in if array.count < 10 { array.append(array.count) } }
             .store(in: &objectBag)
         
-        try array.append(0)
+        array.append(0)
         
         XCTAssertEqual(array.toArray(), (0..<10).map{ $0 })
     }
@@ -113,7 +113,7 @@ final class YArraySwiftyTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         let doc = test.docs[0]
         
-        let root = try doc.getMap(YArray<Int>.self)
+        let root = doc.getMap(YArray<Int>.self)
         
         root["alice"] = [1, 2, 3]
         root["bob"] = [4, 5, 6]

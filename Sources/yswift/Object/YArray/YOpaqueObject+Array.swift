@@ -136,7 +136,7 @@ extension YOpaqueObject {
         return nil
     }
 
-    func listInsert(_ contents: [Any?], after referenceItem: YItem?, _ transaction: YTransaction) throws {
+    func listInsert(_ contents: [Any?], after referenceItem: YItem?, _ transaction: YTransaction) {
         var left = referenceItem
         let doc = transaction.doc
         let ownClientId = doc.clientID
@@ -145,12 +145,18 @@ extension YOpaqueObject {
 
         var jsonContent: [Any?] = []
 
-        func packJsonContent() throws {
+        func packJsonContent() {
             if (jsonContent.count <= 0) { return }
             let id = YID(client: ownClientId, clock: store.getState(ownClientId))
             let content = YAnyContent(jsonContent)
-            left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: content)
-            try left!.integrate(transaction: transaction, offset: 0)
+            left = YItem(
+                id: id,
+                left: left, origin: left?.lastID,
+                right: right, rightOrigin: right?.id,
+                parent: .object(self), parentSub: nil,
+                content: content
+            )
+            left!.integrate(transaction: transaction, offset: 0)
             jsonContent = []
         }
 
@@ -163,44 +169,48 @@ extension YOpaqueObject {
             if content is NSNumber || content is String || content is NSDictionary || content is NSArray {
                 jsonContent.append(content)
             } else {
-                try packJsonContent()
+                packJsonContent()
                 if (content is Data) {
                     let id = YID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = YBinaryContent(content as! Data)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
-                    try left!.integrate(transaction: transaction, offset: 0)
+                    left!.integrate(transaction: transaction, offset: 0)
                 } else if content is YDocument {
                     let id = YID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = YDocumentContent(content as! YDocument)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     
-                    try left!.integrate(transaction: transaction, offset: 0)
+                    left!.integrate(transaction: transaction, offset: 0)
                     
                 } else if content is YOpaqueObject {
                     let id = YID(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = YObjectContent(content as! YOpaqueObject)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
-                    try left!.integrate(transaction: transaction, offset: 0)
+                    left!.integrate(transaction: transaction, offset: 0)
                 } else {
-                    throw YSwiftError.unexpectedContentType
+                    fatalError("Unexpected content type")
+//                    throw YSwiftError.unexpectedContentType
                 }
             }
         }
         
-        try packJsonContent()
+        packJsonContent()
     }
 
     // this -> parent
-    func listInsert(_ contents: [Any?], at index: Int, _ transaction: YTransaction) throws {
+    func listInsert(_ contents: [Any?], at index: Int, _ transaction: YTransaction) {
         var index = index
-        if index > self._length { throw YSwiftError.lengthExceeded }
+        if index > self._length {
+            fatalError("Out of range")
+//            throw YSwiftError.lengthExceeded
+        }
 
         if index == 0 {
             if self.serchMarkers != nil {
                 YArraySearchMarker.updateChanges(self.serchMarkers!, index: index, len: contents.count)
             }
             
-            try self.listInsert(contents, after: nil, transaction)
+            self.listInsert(contents, after: nil, transaction)
             return
         }
         
@@ -234,10 +244,10 @@ extension YOpaqueObject {
             YArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: contents.count)
         }
         
-        return try self.listInsert(contents, after: n, transaction)
+        return self.listInsert(contents, after: n, transaction)
     }
     
-    func listPush(_ contents: [Any?], _ transaction: YTransaction) throws {
+    func listPush(_ contents: [Any?], _ transaction: YTransaction) {
         let marker = (self.serchMarkers ?? [])
             .reduce(YArraySearchMarker(item: self._start, index: 0)) { maxMarker, currMarker in
                 return currMarker.index > maxMarker.index ? currMarker : maxMarker
@@ -245,7 +255,7 @@ extension YOpaqueObject {
     
         var item = marker.item
         while (item?.right != nil) { item = item!.right as? YItem }
-        return try self.listInsert(contents, after: item, transaction)
+        return self.listInsert(contents, after: item, transaction)
     }
 
 

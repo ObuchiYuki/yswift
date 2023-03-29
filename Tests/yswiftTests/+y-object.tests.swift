@@ -136,11 +136,11 @@ final class ObjectTests: XCTestCase {
         
         XCTAssertEqual(result, [[]])
         
-        try object0.array.append(Inner("Alice"))
+        object0.array.append(Inner("Alice"))
         
         XCTAssertEqual(result, [[], ["Alice"]])
         
-        try object0.array.append(Inner("Bob"))
+        object0.array.append(Inner("Bob"))
         
         XCTAssertEqual(result, [[], ["Alice"], ["Alice", "Bob"]])
     }
@@ -174,7 +174,7 @@ final class ObjectTests: XCTestCase {
         
         do {
             let inner = Inner("Alice")
-            try object0.array.append(inner)
+            object0.array.append(inner)
             
             XCTAssertEqual(latest, ["Alice"])
             inner.name = "Bob"
@@ -183,7 +183,7 @@ final class ObjectTests: XCTestCase {
         
         do {
             let inner = Inner("Alice")
-            try object0.array.append(inner)
+            object0.array.append(inner)
             
             XCTAssertEqual(latest, ["Bob", "Alice"])
             inner.name = "Bob"
@@ -223,8 +223,8 @@ final class ObjectTests: XCTestCase {
         let object = ObjectWithArray()
         map0["object"] = object
         
-        try object.array.append(Inner("Alice"))
-        try object.array.append(Inner("Bob"))
+        object.array.append(Inner("Alice"))
+        object.array.append(Inner("Bob"))
         
         XCTAssertEqual(object.array.count, 2)
         

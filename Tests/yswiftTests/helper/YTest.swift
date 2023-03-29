@@ -54,9 +54,9 @@ struct YTest<T> {
             let doc = try TestDoc(userID: i, connector: connector)
             doc.clientID = i
             docs.append(doc)
-            try array.append(doc.getOpaqueArray("array"))
-            try map.append(doc.getOpaqueMap("map"))
-            try text.append(doc.getText("text"))
+            array.append(doc.getOpaqueArray("array"))
+            map.append(doc.getOpaqueMap("map"))
+            text.append(doc.getText("text"))
         }
         
         try connector.syncAll()

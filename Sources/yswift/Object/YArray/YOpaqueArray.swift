@@ -19,30 +19,30 @@ final public class YOpaqueArray: YOpaqueObject {
         self.serchMarkers = []
     }
     
-    public convenience init<S: Sequence>(_ contents: S) throws {
+    public convenience init<S: Sequence>(_ contents: S) {
         self.init()
-        try self.append(contentsOf: contents.map{ $0 })
+        self.append(contentsOf: contents.map{ $0 })
     }
     
-    public func append(contentsOf contents: [Any?]) throws {
+    public func append(contentsOf contents: [Any?]) {
         if let doc = self.doc {
-            try doc.transact{ try self.listPush(contents, $0) }
+            doc.transact{ self.listPush(contents, $0) }
         } else {
             self._prelimContent?.append(contentsOf: contents)
         }
     }
     
-    public func insert(contentsOf contents: [Any?], at index: Int) throws {
+    public func insert(contentsOf contents: [Any?], at index: Int) {
         if let doc = self.doc {
-            try doc.transact{ try self.listInsert(contents, at: index, $0) }
+            doc.transact{ self.listInsert(contents, at: index, $0) }
         } else {
             self._prelimContent?.insert(contentsOf: contents, at: index)
         }
     }
     
-    public func remove(_ index: Int, count: Int = 1) throws {
+    public func remove(_ index: Int, count: Int = 1) {
         if self.doc != nil {
-            try self.doc!.transact{ transaction in
+            self.doc!.transact{ transaction in
                 self.listDelete(at: index, count: count, transaction)
             }
         } else {
@@ -50,10 +50,10 @@ final public class YOpaqueArray: YOpaqueObject {
         }
     }
 
-    public override func copy() throws -> YOpaqueArray {
+    public override func copy() -> YOpaqueArray {
         let array = YOpaqueArray()
-        try array.insert(contentsOf: self.map{ element in
-            try element is YOpaqueObject ? (element as! YOpaqueObject).copy() : element
+        array.insert(contentsOf: self.map{ element in
+            element is YOpaqueObject ? (element as! YOpaqueObject).copy() : element
         }, at: 0)
         return array
     }
@@ -73,17 +73,17 @@ final public class YOpaqueArray: YOpaqueObject {
         }
     }
 
-    override func _integrate(_ y: YDocument, item: YItem?) throws {
-        try super._integrate(y, item: item)
-        try self.insert(contentsOf: self._prelimContent ?? [], at: 0)
+    override func _integrate(_ y: YDocument, item: YItem?) {
+        super._integrate(y, item: item)
+        self.insert(contentsOf: self._prelimContent ?? [], at: 0)
         self._prelimContent = nil
     }
 
     override func _copy() -> YOpaqueArray { return YOpaqueArray() }
 
-    override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) throws {
-        try super._callObserver(transaction, _parentSubs: _parentSubs)
-        try self.callObservers(transaction: transaction, event: YOpaqueArrayEvent(self, transaction: transaction))
+    override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) {
+        super._callObserver(transaction, _parentSubs: _parentSubs)
+        self.callObservers(transaction: transaction, event: YOpaqueArrayEvent(self, transaction: transaction))
     }
 
     public override func _write(_ encoder: YUpdateEncoder) {
@@ -106,12 +106,12 @@ extension YOpaqueArray: CustomStringConvertible {
 }
 
 extension YOpaqueArray {
-    public func append(_ content: Any?) throws {
-        try self.append(contentsOf: [content])
+    public func append(_ content: Any?) {
+        self.append(contentsOf: [content])
     }
     
-    public func insert(_ content: Any?, at index: Int) throws {
-        try self.insert(contentsOf: [content], at: index)
+    public func insert(_ content: Any?, at index: Int) {
+        self.insert(contentsOf: [content], at: index)
     }
     
     // deprecated

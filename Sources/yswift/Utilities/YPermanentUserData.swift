@@ -15,12 +15,12 @@ final public class YPermanentUserData {
     var dss: [String: YDeleteSet]
 
     public init(doc: YDocument, storeType: YOpaqueMap?) throws {
-        self.yusers = try storeType ?? doc.getOpaqueMap("users")
+        self.yusers = storeType ?? doc.getOpaqueMap("users")
         self.doc = doc
         self.clients = [:]
         self.dss = [String: YDeleteSet]()
         
-        func initUser(user: YOpaqueMap, userDescription: String) throws {
+        func initUser(user: YOpaqueMap, userDescription: String) {
             let ds = user["ds"] as! YOpaqueArray // <Data>
             let ids = user["ids"] as! YOpaqueArray // <Int> ...may be
             func addClientId(clientid: Int) {
@@ -28,26 +28,35 @@ final public class YPermanentUserData {
             }
             
             ds.observe{ event, _ in
-                try event.changes().added.forEach({ item in
-                    try item.content.values.forEach({ encodedDs in
+                event.changes().added.forEach({ item in
+                    item.content.values.forEach({ encodedDs in
                         if encodedDs is Data {
-                            self.dss[userDescription] = YDeleteSet.mergeAll([
-                                self.dss[userDescription] ?? YDeleteSet(),
-                                try YDeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(encodedDs as! Data)))
-                            ])
+                            do {
+                                let deleteSet = try YDeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(encodedDs as! Data)))
+                                self.dss[userDescription] = YDeleteSet.mergeAll([
+                                    self.dss[userDescription] ?? YDeleteSet(), deleteSet
+                                ])
+                            } catch {
+                                print("Decode failed for user ('\(userDescription)').", error)
+                            }
                         }
                     })
                 })
             }
             
             self.dss[userDescription] = YDeleteSet.mergeAll(
-                try ds.map{ data in
-                    try YDeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(data as! Data)))
+                ds.compactMap{ data in
+                    do {
+                        return try YDeleteSet.decode(decoder: YDeleteSetDecoderV1(LZDecoder(data as! Data)))
+                    } catch {
+                        print("Decode failed for user ('\(userDescription)')", error)
+                        return nil
+                    }
                 }
             )
             
             ids.observe{ event, _ in
-                try event.changes().added.forEach({ item in
+                event.changes().added.forEach({ item in
                     item.content.values.forEach{
                         addClientId(clientid: $0 as! Int)
                     }
@@ -60,13 +69,13 @@ final public class YPermanentUserData {
         }
         // observe users
         self.yusers.observe({ event, _ in
-            try (event as! YOpaqueMapEvent).keysChanged.forEach({ userDescription in
-                try initUser(user: self.yusers[userDescription!] as! YOpaqueMap, userDescription: userDescription!)
+            (event as! YOpaqueMapEvent).keysChanged.forEach({ userDescription in
+                initUser(user: self.yusers[userDescription!] as! YOpaqueMap, userDescription: userDescription!)
             })
         })
         // add intial data
-        try self.yusers.forEach{ key, value in
-            try initUser(user: value as! YOpaqueMap, userDescription: key)
+        self.yusers.forEach{ key, value in
+            initUser(user: value as! YOpaqueMap, userDescription: key)
         }
     }
 
@@ -88,7 +97,7 @@ final public class YPermanentUserData {
             users[userDescription] = user!
         }
         
-        try (user!["ids"] as! YOpaqueArray).append(contentsOf: [clientid])
+        (user!["ids"] as! YOpaqueArray).append(contentsOf: [clientid])
         
         users.observe{ _, _ in
             // may be for Dispatch
@@ -97,16 +106,16 @@ final public class YPermanentUserData {
                 if userOverwrite != user {
                     user = userOverwrite
                     
-                    try self.clients.forEach({ clientid, _userDescription in
+                    self.clients.forEach({ clientid, _userDescription in
                         if userDescription == _userDescription {
-                            try (user!["ids"] as? YOpaqueArray)?.append(contentsOf: [clientid])
+                            (user!["ids"] as? YOpaqueArray)?.append(contentsOf: [clientid])
                         }
                     })
                     let encoder = YDeleteSetEncoderV1() as any YDeleteSetEncoder
                     let ds = self.dss[userDescription]
                     if ds != nil {
                         ds!.encode(into: encoder)
-                        try (user!["ds"] as! YOpaqueArray).append(contentsOf: [encoder.toData()])
+                        (user!["ds"] as! YOpaqueArray).append(contentsOf: [encoder.toData()])
                     }
                 }
             }
@@ -120,7 +129,7 @@ final public class YPermanentUserData {
                 if transaction.local && ds.clients.count > 0 && filter(transaction, ds) {
                     let encoder = YDeleteSetEncoderV1()
                     ds.encode(into: encoder)
-                    try yds.append(contentsOf: [encoder.toData()])
+                    yds.append(contentsOf: [encoder.toData()])
                 }
             }.catch{ print($0) }
         }
