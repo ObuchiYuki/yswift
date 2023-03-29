@@ -354,7 +354,7 @@ final class YMapTests: XCTestCase {
         var dmapid: YID?
         map1.observeDeep({ events, _ in
             try events.forEach({ event in
-                let mevent = try XCTUnwrap(event as? YMapEvent)
+                let mevent = try XCTUnwrap(event as? YOpaqueMapEvent)
                 calls += 1
                 
                 XCTAssert(mevent.keysChanged.contains("deepmap"))
@@ -414,7 +414,7 @@ final class YMapTests: XCTestCase {
 
     // TODO: Test events in Map
     private func compareEvent(_ event: YEvent?, keysChanged: Set<String?>, target: AnyObject) {
-        guard let event = event as? YMapEvent else {
+        guard let event = event as? YOpaqueMapEvent else {
             return XCTFail()
         }
         XCTAssertEqual(event.keysChanged, keysChanged)

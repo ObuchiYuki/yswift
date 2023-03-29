@@ -60,7 +60,7 @@ final public class YPermanentUserData {
         }
         // observe users
         self.yusers.observe({ event, _ in
-            try (event as! YMapEvent).keysChanged.forEach({ userDescription in
+            try (event as! YOpaqueMapEvent).keysChanged.forEach({ userDescription in
                 try initUser(user: self.yusers[userDescription!] as! YOpaqueMap, userDescription: userDescription!)
             })
         })

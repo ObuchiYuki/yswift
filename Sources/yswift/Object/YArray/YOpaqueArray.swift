@@ -7,16 +7,6 @@
 
 import Foundation
 
-
-final class YArrayEvent: YEvent {
-    var _transaction: YTransaction
-
-    init(_ yarray: YOpaqueArray, transaction: YTransaction) {
-        self._transaction = transaction
-        super.init(yarray, transaction: transaction)
-    }
-}
-
 final public class YOpaqueArray: YOpaqueObject {
     public var count: Int {
         return self._prelimContent == nil ? self._length : self._prelimContent!.count
@@ -93,7 +83,7 @@ final public class YOpaqueArray: YOpaqueObject {
 
     override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) throws {
         try super._callObserver(transaction, _parentSubs: _parentSubs)
-        try self.callObservers(transaction: transaction, event: YArrayEvent(self, transaction: transaction))
+        try self.callObservers(transaction: transaction, event: YOpaqueArrayEvent(self, transaction: transaction))
     }
 
     public override func _write(_ encoder: YUpdateEncoder) {

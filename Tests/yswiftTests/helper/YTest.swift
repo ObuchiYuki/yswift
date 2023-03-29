@@ -103,3 +103,9 @@ struct YTest<T> {
         try YAssertEqualDocs(docs)
     }
 }
+
+extension YTest {
+    func sync() throws {
+        try self.connector.flushAllMessages()
+    }
+}

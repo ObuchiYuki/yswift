@@ -101,11 +101,56 @@ extension YArray {
         return Just(self).merge(with: eventPublisher)
     }
     
-    public var eventPublisher: some Combine.Publisher<YEvent, Never> {
+    public var opaqueEventPublisher: some Combine.Publisher<YEvent, Never> {
         self.opaque._eventHandler.publisher.map{ event, _ in event }
     }
     
-    public var deepPublisher: some Combine.Publisher<[YEvent], Never> {
+    public var opaqueDeepPublisher: some Combine.Publisher<[YEvent], Never> {
         self.opaque._deepEventHandler.publisher.map{ event, _ in event }
+    }
+}
+
+extension YArray {
+    public var eventPublisher: some Combine.Publisher<Event, Never> {
+        self.opaqueEventPublisher.map{ try! Event($0) }
+    }
+    
+    public struct Event {
+        let retain: Int
+        let delete: Int
+        let insert: [Element]
+        
+        public init(retain: Int = 0, delete: Int = 0, insert: [Element] = []) {
+            self.retain = retain
+            self.delete = delete
+            self.insert = insert
+        }
+        
+        init(_ event: YEvent) throws {
+            var retain = 0
+            var delete = 0
+            var insert = [Element]()
+            
+            for delta in try event.changes().delta {
+                if let v = delta.retain { retain += v }
+                if let v = delta.delete { delete += v }
+                if let v = delta.insert { insert.append(contentsOf: v as! [Element]) }
+            }
+            
+            self.retain = retain
+            self.delete = delete
+            self.insert = insert
+        }
+    }
+}
+
+extension YArray.Event: Equatable where Element: Equatable {}
+extension YArray.Event: CustomStringConvertible {
+    public var description: String {
+        var components = [String]()
+        if retain != 0 { components.append("retain: \(retain)") }
+        if delete != 0 { components.append("delete: \(delete)") }
+        if insert.count != 0 { components.append("insert: \(insert)") }
+        return "YArray.Event(\(components.joined(separator: ", ")))"
     }
 }

@@ -4,6 +4,23 @@ import Combine
 @testable import yswift
 
 final class YArraySwiftyTests: XCTestCase {
+    
+    func testArrayEventCheck() throws {
+        let test = try YTest<Any>(docs: 1)
+        let array = test.swiftyArray(Int.self, 0)
+        
+        var event: YArray<Int>.Event?
+        
+        array.eventPublisher
+            .sink{ event = $0 }.store(in: &objectBag)
+        
+        try array.append(1)
+        XCTAssertEqual(event, YArray<Int>.Event(insert: [1]))
+        try array.remove(at: 0)
+        XCTAssertEqual(event, YArray<Int>.Event(delete: 1))
+        try array.append(1)
+        XCTAssertEqual(event, YArray<Int>.Event(insert: [1]))
+    }
             
     func testArrayPrimitiveType() throws {
         let test = try YTest<Any>(docs: 1)
@@ -70,7 +87,7 @@ final class YArraySwiftyTests: XCTestCase {
         let array = test.swiftyArray(Int.self, 0)
         
         var deltas = [YEventDelta]()
-        array.eventPublisher
+        array.opaqueEventPublisher
             .sink{ deltas.append(contentsOf: try! $0.delta()) }
             .store(in: &objectBag)
         
@@ -83,10 +100,8 @@ final class YArraySwiftyTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         let array = test.swiftyArray(Int.self, 0)
         
-        array.publisher
-            .sink{_ in
-                if array.count < 10 { try! array.append(array.count) }
-            }
+        array.eventPublisher
+            .sink{_ in if array.count < 10 { try! array.append(array.count) } }
             .store(in: &objectBag)
         
         try array.append(0)

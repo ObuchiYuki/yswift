@@ -7,15 +7,6 @@
 
 import Foundation
 
-final public class YMapEvent: YEvent {
-    public var keysChanged: Set<String?>
-
-    init(_ ymap: YOpaqueMap, transaction: YTransaction, keysChanged: Set<String?>) {
-        self.keysChanged = keysChanged
-        super.init(ymap, transaction: transaction)
-    }
-}
-
 final public class YOpaqueMap: YOpaqueObject {
     private var _prelimContent: [String: Any?]?
 
@@ -107,7 +98,7 @@ final public class YOpaqueMap: YOpaqueObject {
     }
 
     override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) throws {
-        try self.callObservers(transaction: transaction, event: YMapEvent(self, transaction: transaction, keysChanged: _parentSubs))
+        try self.callObservers(transaction: transaction, event: YOpaqueMapEvent(self, transaction: transaction, keysChanged: _parentSubs))
     }
 }
 
