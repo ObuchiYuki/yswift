@@ -28,7 +28,7 @@ final class YArrayTests: XCTestCase {
         let doc1 = YDocument()
         let db1 = doc1.getOpaqueMap("root")
         let nestedArray1 = Array([0, 1, 2])
-        db1.setThrowingError("array", value: nestedArray1)
+        db1.set("array", value: nestedArray1)
         // ?
         XCTAssertEqual(nestedArray1, [0, 1, 2])
     }
@@ -62,11 +62,8 @@ final class YArrayTests: XCTestCase {
         XCTAssert(arr.count == arr.toArray().count)
     }
 
-    /**
-     * Debugging yjs#314
-     *
-     * @param {t.TestCase} tc
-     */
+    // in swift remove empty array must be fatalError
+
     func testLengthIssue2() throws {
         let doc = YDocument()
         let next = doc.getOpaqueArray()
@@ -91,7 +88,6 @@ final class YArrayTests: XCTestCase {
             next.insert("ellipse2", at: 3)
         })
         
-        // in swift remove empty array must be fatalError
         
 //        doc.transact({ _ in
 //            doc.transact({ _ in
@@ -106,13 +102,14 @@ final class YArrayTests: XCTestCase {
         print(next.toArray())
     }
 
+    // in swift remove empty array must be fatalError
+
     func testDeleteInsert() throws {
-        let test = try YTest<Any>(docs: 2)
-        let docs = test.docs, array0 = test.array[0]
+//        let test = try YTest<Any>(docs: 2)
+//        let docs = test.docs, array0 = test.array[0]
+//
+//        array0.remove(0, count: 0)
         
-        array0.remove(0, count: 0)
-        
-        // in swift remove empty array must be fatalError
         
 //        print("Does not throw when deleting zero elements with position 0")
 //        XCTAssertThrowsError(array0.remove(1, count: 1))
@@ -317,7 +314,7 @@ final class YArrayTests: XCTestCase {
         array0.insert(YOpaqueMap(), at: 0)
         
         try docs[0].transact{ _ in
-            try XCTUnwrap(array0[0] as? YOpaqueMap).setThrowingError("a", value: "a")
+            try XCTUnwrap(array0[0] as? YOpaqueMap).set("a", value: "a")
             array0.insert(0, at: 0)
         }
         
@@ -393,7 +390,7 @@ final class YArrayTests: XCTestCase {
             let newMap = YOpaqueMap()
             newMap.observe{ _, _ in fired = true }
             array0.insert(newMap, at: 0)
-            newMap.setThrowingError("tst", value: 42)
+            newMap.set("tst", value: 42)
         }
         
         XCTAssertFalse(fired, "Event does not trigger")
@@ -455,7 +452,7 @@ final class YArrayTests: XCTestCase {
         let numItems = 10
         for i in 0..<numItems {
             let map = YOpaqueMap()
-            map.setThrowingError("value", value: i)
+            map.set("value", value: i)
             arr.append(contentsOf: [map])
         }
         var cnt = 0
@@ -509,9 +506,9 @@ final class YArrayTests: XCTestCase {
             
             yarray.insert(YOpaqueMap(), at: pos)
             let map = try XCTUnwrap(yarray[pos] as? YOpaqueMap)
-            map.setThrowingError("someprop", value: 42)
-            map.setThrowingError("someprop", value: 43)
-            map.setThrowingError("someprop", value: 44)
+            map.set("someprop", value: 42)
+            map.set("someprop", value: 43)
+            map.set("someprop", value: 44)
         },
         { doc, test, _ in // insertTypeNull
             let yarray = doc.getOpaqueArray("array")

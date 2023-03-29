@@ -5,6 +5,23 @@ import Combine
 
 final class YArraySwiftyTests: XCTestCase {
     
+    func testArrayPrimitiveTypeSync() throws {
+        let test = try YTest<Any>(docs: 2)
+        let array0 = test.swiftyArray(Int.self, 0), array1 = test.swiftyArray(Int.self, 1)
+        
+        array0.append(1)
+        array1.append(2)
+        
+        try test.sync()
+        XCTAssertEqual(array0, array1)
+        
+        array1.insert(0, at: 0)
+        try test.sync()
+        
+        XCTAssert(array0.starts(with: [0]))
+        XCTAssert(array1.starts(with: [0]))
+    }
+    
     func testArrayEventCheck() throws {
         let test = try YTest<Any>(docs: 1)
         let array = test.swiftyArray(Int.self, 0)

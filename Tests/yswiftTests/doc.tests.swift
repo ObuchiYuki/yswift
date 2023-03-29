@@ -78,10 +78,10 @@ final class DocTests: XCTestCase {
         arr.append(contentsOf: ["test1"])
 
         let map = doc.getOpaqueMap("map")
-        map.setThrowingError("k1", value: "v1")
+        map.set("k1", value: "v1")
         let map2 = YOpaqueMap()
-        map.setThrowingError("k2", value: map2)
-        map2.setThrowingError("m2k1", value: "m2v1")
+        map.set("k2", value: map2)
+        map2.set("m2k1", value: "m2v1")
 
         XCTAssertEqual(doc.toJSON() as NSDictionary, [
             "array": [ "test1" ],
@@ -114,7 +114,7 @@ final class DocTests: XCTestCase {
             let subdocs = doc.getOpaqueMap("mysubdocs")
             let docA = YDocument(.init(guid: "a"))
             docA.load()
-            subdocs.setThrowingError("a", value: docA)
+            subdocs.set("a", value: docA)
             
             XCTAssertEqual(event, [["a"], [], ["a"]])
 
@@ -128,14 +128,14 @@ final class DocTests: XCTestCase {
             (subdocs["a"] as! YDocument).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
-            subdocs.setThrowingError("b", value: YDocument(.init(guid: "a", shouldLoad: false)))
+            subdocs.set("b", value: YDocument(.init(guid: "a", shouldLoad: false)))
             XCTAssertEqual(event, [["a"], [], []])
             (subdocs["b"] as! YDocument).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
             let docC = YDocument(.init(guid: "c"))
             docC.load()
-            subdocs.setThrowingError("c", value: docC)
+            subdocs.set("c", value: docC)
             XCTAssertEqual(event, [["c"], [], ["c"]])
 
             XCTAssertEqual(doc.getSubdocGuids(), ["a", "c"])

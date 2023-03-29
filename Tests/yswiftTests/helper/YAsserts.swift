@@ -46,9 +46,9 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [YDocument] {
     var docs = docs as [YDocument]
     
     docs.append(contentsOf: mergedDocs)
-    let userArrayValues = try XCTUnwrap(docs.map{ try $0.getOpaqueArray("array").toJSON() } as? [[Any]])
-    let userMapValues = try XCTUnwrap(docs.map{ try $0.getOpaqueMap("map").toJSON() } as? [[String: Any]])
-    let userTextValues = try XCTUnwrap(docs.map{ try $0.getText("text").toDelta() })
+    let userArrayValues = try XCTUnwrap(docs.map{ $0.getOpaqueArray("array").toJSON() } as? [[Any]])
+    let userMapValues = try XCTUnwrap(docs.map{ $0.getOpaqueMap("map").toJSON() } as? [[String: Any]])
+    let userTextValues = try XCTUnwrap(docs.map{ $0.getText("text").toDelta() })
         
     for doc in docs {
         XCTAssertNil(doc.store.pendingDs)
@@ -56,7 +56,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [YDocument] {
     }
     
     // Test Map iterator
-    let ymapkeys = try docs[0].getOpaqueMap("map").keys().map{ $0 }
+    let ymapkeys = docs[0].getOpaqueMap("map").keys().map{ $0 }
     XCTAssertEqual(ymapkeys.count, userMapValues[0].count)
     
     ymapkeys.forEach{ key in
@@ -64,7 +64,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [YDocument] {
     }
     
     var mapRes: [String: Any] = [:]
-    for (k, v) in try docs[0].getOpaqueMap("map") {
+    for (k, v) in docs[0].getOpaqueMap("map") {
         if v == nil {
             mapRes[k] = NSNull()
         } else {
@@ -76,7 +76,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [YDocument] {
         
     // Compare all users
     for i in 0..<docs.count-1 {
-        try XCTAssertEqual(userArrayValues[i].count, docs[i].getOpaqueArray("array").count)
+        XCTAssertEqual(userArrayValues[i].count, docs[i].getOpaqueArray("array").count)
         
         XCTAssertEqualJSON(userArrayValues[i], userArrayValues[i + 1], "comparing client '\(i)' and '\(i+1)'")
         XCTAssertEqualJSON(userMapValues[i], userMapValues[i + 1], "comparing client '\(i)' and '\(i+1)'")
@@ -84,7 +84,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [YDocument] {
             userTextValues[i].map{ a in
                 a.insert is String ? a.insert as! String : " "
             }.joined().count,
-            try docs[i].getText("text").count
+            docs[i].getText("text").count
         )
         
         for (a, b) in zip(userTextValues[i], userTextValues[i+1]) {
@@ -99,7 +99,7 @@ func YAssertEqualDocs(_ docs: [TestDoc]) throws -> [YDocument] {
         try YAssertEqualStructStore(docs[i].store, docs[i+1].store)
     }
     
-    try docs.forEach{ try $0.destroy() }
+    docs.forEach{ $0.destroy() }
     
     return docs
 }

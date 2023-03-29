@@ -32,7 +32,7 @@ extension YMap {
     }
 
     public func setThrowingError(_ key: String, value: Value?) throws {
-        self.opaque.setThrowingError(key, value: value)
+        self.opaque.set(key, value: value)
     }
     
     public func keys() -> some Sequence<String> {

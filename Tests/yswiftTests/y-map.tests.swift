@@ -17,7 +17,7 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let map0 = test.map[0], map1 = test.map[1]
         
-        map0.setThrowingError("map", value: YOpaqueMap(["nil": nil]))
+        map0.set("map", value: YOpaqueMap(["nil": nil]))
         
         try test.sync()
         
@@ -35,7 +35,7 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let docs = test.docs, map0 = test.map[0], map1 = test.map[1]
         
-        map0.setThrowingError("nil", value: nil)
+        map0.set("nil", value: nil)
         
         try test.sync()
 
@@ -53,7 +53,7 @@ final class YMapTests: XCTestCase {
         let map0 = test.map[0]
         
         let m1 = YOpaqueMap([ "int": 1, "string": "hello" ])
-        map0.setThrowingError("m1", value: m1)
+        map0.set("m1", value: m1)
         XCTAssertEqual(try XCTUnwrap(m1["int"] as? Int), 1)
         XCTAssertEqual(try XCTUnwrap(m1["string"] as? String), "hello")
         
@@ -62,13 +62,13 @@ final class YMapTests: XCTestCase {
             "boolean": true
         ])
         
-        map0.setThrowingError("m2", value: m2)
+        map0.set("m2", value: m2)
         XCTAssertEqual(try XCTUnwrap(m2["object"] as? [String: Int])["x"], 1)
         XCTAssertEqual(try XCTUnwrap(m2["boolean"] as? Bool), true)
         
         let dict = Dictionary(uniqueKeysWithValues: m1.map{ $0 } + m2)
         let m3 = YOpaqueMap(dict)
-        map0.setThrowingError("m3", value: m3)
+        map0.set("m3", value: m3)
         XCTAssertEqual(try XCTUnwrap(m3["int"] as? Int), 1)
         XCTAssertEqual(try XCTUnwrap(m3["string"] as? String), "hello")
         XCTAssertEqual(try XCTUnwrap(m3["object"] as? [String: Int]), ["x": 1])
@@ -81,15 +81,15 @@ final class YMapTests: XCTestCase {
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1], map2 = test.map[2]
         docs[2].disconnect()
         
-        map0.setThrowingError("nil", value: nil)
-        map0.setThrowingError("number", value: 1)
-        map0.setThrowingError("string", value: "hello Y")
-        map0.setThrowingError("object", value: ["key": [ "key2": "value" ]])
-        map0.setThrowingError("y-map", value: YOpaqueMap())
-        map0.setThrowingError("boolean1", value: true)
-        map0.setThrowingError("boolean0", value: false)
+        map0.set("nil", value: nil)
+        map0.set("number", value: 1)
+        map0.set("string", value: "hello Y")
+        map0.set("object", value: ["key": [ "key2": "value" ]])
+        map0.set("y-map", value: YOpaqueMap())
+        map0.set("boolean1", value: true)
+        map0.set("boolean0", value: false)
         let map = try XCTUnwrap(map0["y-map"] as? YOpaqueMap)
-        map.setThrowingError("y-array", value: YOpaqueArray())
+        map.set("y-array", value: YOpaqueArray())
         let array = try XCTUnwrap(map["y-array"] as? YOpaqueArray)
         array.insert(0, at: 0)
         array.insert(-1, at: 0)
@@ -133,9 +133,9 @@ final class YMapTests: XCTestCase {
         
         let connector = test.connector, docs = test.docs, map0 = test.map[0]
         
-        map0.setThrowingError("stuff", value: "stuffy")
+        map0.set("stuff", value: "stuffy")
 //        map0.set("undefined", value: undefined) // No undefined in Swift
-        map0.setThrowingError("nil", value: nil)
+        map0.set("nil", value: nil)
         
         XCTAssertEqualJSON(map0["stuff"], "stuffy")
 
@@ -156,10 +156,10 @@ final class YMapTests: XCTestCase {
         
         let docs = test.docs, map0 = test.map[0]
         let map = YOpaqueMap()
-        map0.setThrowingError("map", value: map)
+        map0.set("map", value: map)
         
         XCTAssert(map0["map"] as? AnyObject === map)
-        map.setThrowingError("one", value: 1)
+        map.set("one", value: 1)
         XCTAssertEqualJSON(map["one"], 1)
         
         try YAssertEqualDocs(docs)
@@ -171,7 +171,7 @@ final class YMapTests: XCTestCase {
         let docs = test.docs, map0 = test.map[0]
         let array = YOpaqueArray()
         
-        map0.setThrowingError("array", value: array)
+        map0.set("array", value: array)
         XCTAssert(map0["array"] as? AnyObject === array)
         
         array.insert(contentsOf: [1, 2, 3], at: 0)
@@ -185,7 +185,7 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let connector = test.connector, docs = test.docs, map0 = test.map[0]
         
-        map0.setThrowingError("stuff", value: "stuffy")
+        map0.set("stuff", value: "stuffy")
         XCTAssertEqualJSON(map0["stuff"], "stuffy")
         try connector.flushAllMessages()
         
@@ -201,8 +201,8 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 3)
         
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1]
-        map0.setThrowingError("stuff", value: "c0")
-        map1.setThrowingError("stuff", value: "c1")
+        map0.set("stuff", value: "c0")
+        map1.set("stuff", value: "c1")
         try connector.flushAllMessages()
         
         for doc in docs {
@@ -217,8 +217,8 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         let map0 = test.map[0]
         
-        map0.setThrowingError("stuff", value: "c0")
-        map0.setThrowingError("otherstuff", value: "c1")
+        map0.set("stuff", value: "c0")
+        map0.set("otherstuff", value: "c1")
         XCTAssertEqual(map0.count, 2, "map size is \(map0.count) expected 2")
         
         map0.removeValue(forKey: "stuff")
@@ -232,8 +232,8 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 3)
         
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1]
-        map0.setThrowingError("stuff", value: "c0")
-        map1.setThrowingError("stuff", value: "c1")
+        map0.set("stuff", value: "c0")
+        map1.set("stuff", value: "c1")
         map1.removeValue(forKey: "stuff")
         
         try connector.flushAllMessages()
@@ -250,8 +250,8 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         
         let connector = test.connector, docs = test.docs, map0 = test.map[0]
-        map0.setThrowingError("stuff", value: "c0")
-        map0.setThrowingError("otherstuff", value: "c1")
+        map0.set("stuff", value: "c0")
+        map0.set("otherstuff", value: "c1")
         map0.removeAll()
         
         try connector.flushAllMessages()
@@ -272,17 +272,17 @@ final class YMapTests: XCTestCase {
         let connector = test.connector, docs = test.docs,
         map0 = test.map[0], map1 = test.map[1], map2 = test.map[2], map3 = test.map[3]
         
-        map0.setThrowingError("stuff", value: "c0")
-        map1.setThrowingError("stuff", value: "c1")
-        map1.setThrowingError("stuff", value: "c2")
-        map2.setThrowingError("stuff", value: "c3")
+        map0.set("stuff", value: "c0")
+        map1.set("stuff", value: "c1")
+        map1.set("stuff", value: "c2")
+        map2.set("stuff", value: "c3")
         
         try connector.flushAllMessages()
         
-        map0.setThrowingError("otherstuff", value: "c0")
-        map1.setThrowingError("otherstuff", value: "c1")
-        map2.setThrowingError("otherstuff", value: "c2")
-        map3.setThrowingError("otherstuff", value: "c3")
+        map0.set("otherstuff", value: "c0")
+        map1.set("otherstuff", value: "c1")
+        map2.set("otherstuff", value: "c2")
+        map3.set("otherstuff", value: "c3")
         map3.removeAll()
         
         try connector.flushAllMessages()
@@ -301,10 +301,10 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 3)
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1], map2 = test.map[2]
         
-        map0.setThrowingError("stuff", value: "c0")
-        map1.setThrowingError("stuff", value: "c1")
-        map1.setThrowingError("stuff", value: "c2")
-        map2.setThrowingError("stuff", value: "c3")
+        map0.set("stuff", value: "c0")
+        map1.set("stuff", value: "c1")
+        map1.set("stuff", value: "c2")
+        map2.set("stuff", value: "c3")
         
         try connector.flushAllMessages()
         
@@ -320,17 +320,17 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 4)
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1], map2 = test.map[2], map3 = test.map[3]
         
-        map0.setThrowingError("stuff", value: "c0")
-        map1.setThrowingError("stuff", value: "c1")
-        map1.setThrowingError("stuff", value: "c2")
-        map2.setThrowingError("stuff", value: "c3")
+        map0.set("stuff", value: "c0")
+        map1.set("stuff", value: "c1")
+        map1.set("stuff", value: "c2")
+        map2.set("stuff", value: "c3")
         
         try connector.flushAllMessages()
         
-        map0.setThrowingError("stuff", value: "deleteme")
-        map1.setThrowingError("stuff", value: "c1")
-        map2.setThrowingError("stuff", value: "c2")
-        map3.setThrowingError("stuff", value: "c3")
+        map0.set("stuff", value: "deleteme")
+        map1.set("stuff", value: "c1")
+        map2.set("stuff", value: "c2")
+        map3.set("stuff", value: "c3")
         map3.removeValue(forKey: "stuff")
         
         try connector.flushAllMessages()
@@ -348,7 +348,7 @@ final class YMapTests: XCTestCase {
         let connector = test.connector, docs = test.docs, map1 = test.map[1], map2 = test.map[2], map3 = test.map[3]
         
         let _map1 = YOpaqueMap()
-        map1.setThrowingError("map", value: _map1)
+        map1.set("map", value: _map1)
         
         var calls = 0
         var dmapid: YID?
@@ -372,11 +372,11 @@ final class YMapTests: XCTestCase {
         try connector.flushAllMessages()
         
         let _map3 = try XCTUnwrap(map3["map"] as? YOpaqueMap)
-        _map3.setThrowingError("deepmap", value: YOpaqueMap())
+        _map3.set("deepmap", value: YOpaqueMap())
         try connector.flushAllMessages()
         
         let _map2 = try XCTUnwrap(map2["map"] as? YOpaqueMap)
-        _map2.setThrowingError("deepmap", value: YOpaqueMap())
+        _map2.set("deepmap", value: YOpaqueMap())
         try connector.flushAllMessages()
         
         let dmap1 = try XCTUnwrap(_map1["deepmap"] as? YOpaqueMap)
@@ -405,9 +405,9 @@ final class YMapTests: XCTestCase {
             calls += 1
         }
         
-        map0.setThrowingError("map", value: YOpaqueMap())
+        map0.set("map", value: YOpaqueMap())
         let _map = try XCTUnwrap(map0["map"] as? YOpaqueMap)
-        _map.setThrowingError("array", value: YOpaqueArray())
+        _map.set("array", value: YOpaqueArray())
         try XCTUnwrap(_map["array"] as? YOpaqueArray).insert("content", at: 0)
         
         XCTAssertEqual(calls, 3)
@@ -433,15 +433,15 @@ final class YMapTests: XCTestCase {
         var event: YEvent?
         map0.observe{ e, _ in event = e }
         
-        map0.setThrowingError("stuff", value: 4)
+        map0.set("stuff", value: 4)
         compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
         
         // update, oldValue is in contents
-        map0.setThrowingError("stuff", value: YOpaqueArray())
+        map0.set("stuff", value: YOpaqueArray())
         compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
         
         // update, oldValue is in opContents
-        map0.setThrowingError("stuff", value: 5)
+        map0.set("stuff", value: 5)
         // delete
         map0.removeValue(forKey: "stuff")
         compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
@@ -457,8 +457,8 @@ final class YMapTests: XCTestCase {
         map0.observe{ e, _ in event = e }
         
         // set values
-        map0.setThrowingError("stuff", value: 4)
-        map0.setThrowingError("otherstuff", value: YOpaqueArray())
+        map0.set("stuff", value: 4)
+        map0.set("otherstuff", value: YOpaqueArray())
         // clear
         map0.removeAll()
         
@@ -476,21 +476,21 @@ final class YMapTests: XCTestCase {
         
         map0.observe{ e, _ in changes = e.changes() }
         
-        map0.setThrowingError("a", value: 1)
+        map0.set("a", value: 1)
         keyChange = changes?.keys["a"]
         XCTAssertNotNil(changes)
         XCTAssertEqual(keyChange?.action, .add)
         XCTAssertNil(keyChange?.oldValue)
         
-        map0.setThrowingError("a", value: 2)
+        map0.set("a", value: 2)
         keyChange = changes?.keys["a"]
         XCTAssertNotNil(changes)
         XCTAssertEqual(keyChange?.action, .update)
         XCTAssertEqualJSON(keyChange?.oldValue, 1)
         
         docs[0].transact{ _ in
-            map0.setThrowingError("a", value: 3)
-            map0.setThrowingError("a", value: 4)
+            map0.set("a", value: 3)
+            map0.set("a", value: 4)
         }
         
         keyChange = changes?.keys["a"]
@@ -499,8 +499,8 @@ final class YMapTests: XCTestCase {
         XCTAssertEqualJSON(keyChange?.oldValue, 2)
         
         docs[0].transact{ _ in
-            map0.setThrowingError("b", value: 1)
-            map0.setThrowingError("b", value: 2)
+            map0.set("b", value: 1)
+            map0.set("b", value: 2)
         }
         
         keyChange = changes?.keys["b"]
@@ -509,15 +509,15 @@ final class YMapTests: XCTestCase {
         XCTAssertNil(keyChange?.oldValue)
         
         docs[0].transact{ _ in
-            map0.setThrowingError("c", value: 1)
+            map0.set("c", value: 1)
             map0.removeValue(forKey: "c")
         }
         XCTAssertNotNil(changes)
         XCTAssertEqual(changes?.keys.count, 0)
         
         docs[0].transact{ _ in
-            map0.setThrowingError("d", value: 1)
-            map0.setThrowingError("d", value: 2)
+            map0.set("d", value: 1)
+            map0.set("d", value: 2)
         }
         
         keyChange = changes?.keys["d"]
@@ -576,16 +576,16 @@ final class YMapTests: XCTestCase {
         { doc, test, _ in // set
             let key = test.gen.oneOf(["one", "two"])
             let value = test.gen.string()
-            doc.getOpaqueMap("map").setThrowingError(key, value: value)
+            doc.getOpaqueMap("map").set(key, value: value)
         },
         { doc, test, _ in // setType
             let key = test.gen.oneOf(["one", "two"])
             let type = test.gen.oneOf([YOpaqueArray(), YOpaqueMap()])
-            doc.getOpaqueMap("map").setThrowingError(key, value: type)
+            doc.getOpaqueMap("map").set(key, value: type)
             if let type = type as? YOpaqueArray {
                 type.insert(contentsOf: [1, 2, 3, 4], at: 0)
             } else if let type = type as? YOpaqueMap {
-                type.setThrowingError("deepkey", value: "deepvalue")
+                type.set("deepkey", value: "deepvalue")
             }
         },
         { doc, test, _ in // delete

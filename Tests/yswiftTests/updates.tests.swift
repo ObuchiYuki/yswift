@@ -8,15 +8,15 @@ final class UpdatesTests: XCTestCase {
         
         let docs = test.docs, array0 = test.array[0], array1 = test.array[1]
 
-        try array0.insert(1, at: 0)
-        try array1.insert(2, at: 0)
+        array0.insert(1, at: 0)
+        array1.insert(2, at: 0)
 
         let ndocs = try YAssertEqualDocs(docs)
 
         for env in YUpdateEnvironment.encoders {
             let merged = try env.docFromUpdates(ndocs.map{ $0 })
         
-            try XCTAssertEqualJSON(
+            XCTAssertEqualJSON(
                 array0.map{ $0 }, merged.getOpaqueArray("array").map{ $0 }
             )
         }
@@ -27,15 +27,15 @@ final class UpdatesTests: XCTestCase {
         
         let docs = test.docs, text0 = test.text[0], text1 = test.text[1]
 
-        try text0.insert(0, text: "a", attributes: ["i": true])
-        try text0.insert(0, text: "b")
-        try text0.insert(0, text: "c", attributes: ["i": true])
+        text0.insert(0, text: "a", attributes: ["i": true])
+        text0.insert(0, text: "b")
+        text0.insert(0, text: "c", attributes: ["i": true])
         
         let update = try docs[0].encodeStateAsUpdateV2()
         
         try docs[1].applyUpdateV2(update)
 
-        try XCTAssertEqual(text1.toDelta(), [
+        XCTAssertEqual(text1.toDelta(), [
             YEventDelta(insert: "c", attributes: ["i": true]),
             YEventDelta(insert: "b"),
             YEventDelta(insert: "a", attributes: ["i": true]),
@@ -52,11 +52,11 @@ final class UpdatesTests: XCTestCase {
             var updates = [YUpdate]()
             ydoc.on(env.updateEventName) { update, _, _ in updates.append(update) }
 
-            let array = try ydoc.getOpaqueArray()
-            try array.insert(1, at: 0)
-            try array.insert(2, at: 0)
-            try array.insert(3, at: 0)
-            try array.insert(4, at: 0)
+            let array = ydoc.getOpaqueArray()
+            array.insert(1, at: 0)
+            array.insert(2, at: 0)
+            array.insert(3, at: 0)
+            array.insert(4, at: 0)
 
             try checkUpdateCases(ydoc: ydoc, updates: updates, enc: env, hasDeletes: false)
         }
@@ -72,11 +72,11 @@ final class UpdatesTests: XCTestCase {
                 update, _, _ in updates.append(update)
             }
 
-            let array = try ydoc.getOpaqueArray()
-            try array.insert(contentsOf: [1, 2], at: 0)
-            try array.remove(1, count: 1)
-            try array.insert(contentsOf: [3, 4], at: 0)
-            try array.remove(1, count: 2)
+            let array = ydoc.getOpaqueArray()
+            array.insert(contentsOf: [1, 2], at: 0)
+            array.remove(1, count: 1)
+            array.insert(contentsOf: [3, 4], at: 0)
+            array.remove(1, count: 2)
             
             try checkUpdateCases(ydoc: ydoc, updates: updates, enc: env, hasDeletes: true)
         }
@@ -88,12 +88,12 @@ final class UpdatesTests: XCTestCase {
         yDoc.on(YDocument.On.update) { update, _, _ in
             serverUpdates.insert(update, at: serverUpdates.count)
         }
-        let yText = try yDoc.getText("textBlock")
-        try yText.applyDelta([ YEventDelta(insert: "r") ])
-        try yText.applyDelta([ YEventDelta(insert: "o") ])
-        try yText.applyDelta([ YEventDelta(insert: "n") ])
-        try yText.applyDelta([ YEventDelta(insert: "e") ])
-        try yText.applyDelta([ YEventDelta(insert: "n") ])
+        let yText = yDoc.getText("textBlock")
+        yText.applyDelta([ YEventDelta(insert: "r") ])
+        yText.applyDelta([ YEventDelta(insert: "o") ])
+        yText.applyDelta([ YEventDelta(insert: "n") ])
+        yText.applyDelta([ YEventDelta(insert: "e") ])
+        yText.applyDelta([ YEventDelta(insert: "n") ])
 
         let yDoc1 = YDocument()
         try yDoc1.applyUpdate(serverUpdates[0])
@@ -119,7 +119,7 @@ final class UpdatesTests: XCTestCase {
         try yDoc5.applyUpdate(serverUpdates[4])
         _ = try yDoc5.encodeStateAsUpdate()
 
-        let yText5 = try yDoc5.getText("textBlock")
+        let yText5 = yDoc5.getText("textBlock")
         XCTAssertEqual(yText5.toString(), "nenor")
     }
     
@@ -156,7 +156,7 @@ final class UpdatesTests: XCTestCase {
         for mergedUpdates in cases {
             let merged = YDocument(YDocument.Options(gc: false))
             try enc.applyUpdate(merged, mergedUpdates, nil)
-            try XCTAssertEqualJSON(merged.getOpaqueArray().map{ $0 }, ydoc.getOpaqueArray().map{ $0 })
+            XCTAssertEqualJSON(merged.getOpaqueArray().map{ $0 }, ydoc.getOpaqueArray().map{ $0 })
             
             try XCTAssertEqual(
                 enc.encodeStateVector_Doc(merged).map{ $0 },

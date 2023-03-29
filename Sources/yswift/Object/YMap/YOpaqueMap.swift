@@ -29,10 +29,10 @@ final public class YOpaqueMap: YOpaqueObject {
     
     public subscript(key: String) -> Any? {
         get { self.mapGet(key) }
-        set { self.setThrowingError(key, value: newValue) }
+        set { self.set(key, value: newValue) }
     }
 
-    public func setThrowingError(_ key: String, value: Any?) {
+    public func set(_ key: String, value: Any?) {
         if let doc = self.doc {
             doc.transact{ self.mapSet($0, key: key, value: value) }
         } else {
@@ -56,9 +56,9 @@ final public class YOpaqueMap: YOpaqueObject {
         let map = YOpaqueMap()
         for (key, value) in self {
             if let value = value as? YOpaqueObject {
-                map.setThrowingError(key, value: value.copy())
+                map.set(key, value: value.copy())
             } else {
-                map.setThrowingError(key, value: value)
+                map.set(key, value: value)
             }
         }
         return map
@@ -88,7 +88,7 @@ final public class YOpaqueMap: YOpaqueObject {
         super._integrate(y, item: item)
         
         for (key, value) in self._prelimContent ?? [:] {
-            self.setThrowingError(key, value: value)
+            self.set(key, value: value)
         }
         self._prelimContent = nil
     }
