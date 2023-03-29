@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol Content: AnyObject {
+protocol YContent: AnyObject {
     var count: Int { get }
     
     var typeid: UInt8 { get }
@@ -20,7 +20,7 @@ protocol Content: AnyObject {
     
     func splice(_ offset: Int) -> Self
 
-    func merge(with right: any Content) -> Bool
+    func merge(with right: any YContent) -> Bool
 
     func integrate(with item: YItem, _ transaction: YTransaction) throws -> Void
 
@@ -33,21 +33,21 @@ protocol Content: AnyObject {
     static func decode(from decoder: YUpdateDecoder) throws -> Self
 }
 
-func decodeContent(from decoder: YUpdateDecoder, info: UInt8) throws -> any Content {
+func decodeContent(from decoder: YUpdateDecoder, info: UInt8) throws -> any YContent {
     return try contentDecoders_[Int(info & 0b0001_1111)](decoder)
 }
 
 /** A lookup map for reading Item content. */
-fileprivate let contentDecoders_: [(YUpdateDecoder) throws -> any Content] = [
+fileprivate let contentDecoders_: [(YUpdateDecoder) throws -> any YContent] = [
     {_ in throw YSwiftError.unexpectedCase }, // GC is not ItemContent
-    DeletedContent.decode(from:), // 1
-    JSONContent.decode(from:), // 2
-    BinaryContent.decode(from:), // 3
-    StringContent.decode(from:), // 4
-    EmbedContent.decode(from:), // 5
-    FormatContent.decode(from:), // 6
-    TypeContent.decode(from:), // 7
-    AnyContent.decode(from:), // 8
-    DocumentContent.decode(from:), // 9
+    YDeletedContent.decode(from:), // 1
+    YJSONContent.decode(from:), // 2
+    YBinaryContent.decode(from:), // 3
+    YStringContent.decode(from:), // 4
+    YEmbedContent.decode(from:), // 5
+    YFormatContent.decode(from:), // 6
+    YObjectContent.decode(from:), // 7
+    YAnyContent.decode(from:), // 8
+    YDocumentContent.decode(from:), // 9
     {_ in throw YSwiftError.unexpectedCase }, // 10 - Skip is not ItemContent
 ]

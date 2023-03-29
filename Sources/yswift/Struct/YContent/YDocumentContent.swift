@@ -8,10 +8,10 @@
 import Foundation
 
 final class YDocumentContent: YContent {
-    var document: Doc
+    var document: YDocument
     var options: Options
 
-    init(_ doc: Doc) {
+    init(_ doc: YDocument) {
         if doc._item != nil { print("This document was already integrated as a sub-document.") }
         
         self.document = doc
@@ -30,7 +30,7 @@ extension YDocumentContent {
     
     func copy() -> YDocumentContent {
         let options = self.options.documentOptions(guid: self.document.guid)
-        return YDocumentContent(Doc(opts: options))
+        return YDocumentContent(YDocument(options))
     }
 
     func splice(_ offset: Int) -> YDocumentContent { fatalError() }
@@ -63,7 +63,7 @@ extension YDocumentContent {
     static func decode(from decoder: YUpdateDecoder) throws -> YDocumentContent {
         let guid = try decoder.readString()
         let options = try Options.decode(decoder.readAny()).documentOptions(guid: guid)
-        return YDocumentContent(Doc(opts: options))
+        return YDocumentContent(YDocument(options))
     }
 }
 
@@ -84,8 +84,8 @@ extension YDocumentContent {
             return dict
         }
         
-        func documentOptions(guid: String) -> DocOpts {
-            var options = DocOpts()
+        func documentOptions(guid: String) -> YDocument.Options {
+            var options = YDocument.Options()
             options.guid = guid
             if let gc = self.gc { options.gc = gc }
             if let meta = self.meta { options.meta = meta }
@@ -105,7 +105,7 @@ extension YDocumentContent {
         }
         
         init() {}
-        init(copyFrom doc: Doc) {
+        init(copyFrom doc: YDocument) {
             if !doc.gc { self.gc = false }
             if doc.autoLoad { self.autoLoad = true }
             if doc.meta != nil { self.meta = doc.meta }
