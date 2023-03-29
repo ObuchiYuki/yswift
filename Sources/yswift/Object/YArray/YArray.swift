@@ -96,7 +96,12 @@ extension YArray: ExpressibleByArrayLiteral {
 }
 
 extension YArray {
-    public var publisher: some Combine.Publisher<YEvent, Never> {
+    public var publisher: some Combine.Publisher<YArray<Element>, Never> {
+        let eventPublisher = self.eventPublisher.map{[unowned self] _ in self}
+        return Just(self).merge(with: eventPublisher)
+    }
+    
+    public var eventPublisher: some Combine.Publisher<YEvent, Never> {
         self.opaque._eventHandler.publisher.map{ event, _ in event }
     }
     

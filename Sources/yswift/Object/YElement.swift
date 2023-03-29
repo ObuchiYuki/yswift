@@ -22,17 +22,17 @@ extension YOpaqueObject: YElement {
 private let dictionayEncoder = DictionaryEncoder()
 private let dictionayDecoder = DictionaryDecoder()
 
-//extension YElement where Self: Encodable {
-//    public func encodeToOpaque() -> Any? {
-//        try! dictionayEncoder.encode(self) as NSDictionary
-//    }
-//}
-//
-//extension YElement where Self: Decodable {
-//    public static func decode(from opaque: Any?) -> Self {
-//        try! dictionayDecoder.decode(Self.self, from: opaque as! NSDictionary)
-//    }
-//}
+extension YElement where Self: Encodable {
+    public func encodeToOpaque() -> Any? {
+        try! dictionayEncoder.encode(self) as NSDictionary
+    }
+}
+
+extension YElement where Self: Decodable {
+    public static func decode(from opaque: Any?) -> Self {
+        try! dictionayDecoder.decode(Self.self, from: opaque as! NSDictionary)
+    }
+}
 
 // ============================================================================== //
 // MARK: - Ex + Primitive -
@@ -103,15 +103,11 @@ extension Data: YPrimitive, YElement {
 }
 
 extension Array: YElement where Element: YPrimitive {
-    public func encodeToOpaque() -> Any? {
-        self.map{ $0.encodeToOpaque() }
-    }
-    public static func decode(from opaque: Any?) -> Self {
-        (opaque as! [Any?]).map{ Element.decode(from: $0) }
-    }
+    public func encodeToOpaque() -> Any? { self }
+    public static func decode(from opaque: Any?) -> Self { opaque as! Self }
 }
 
-extension Optional: YElement where Wrapped: YPrimitive {
+extension Optional: YElement where Wrapped: YElement {
     public func encodeToOpaque() -> Any? {
         switch self {
         case .none: return NSNull()

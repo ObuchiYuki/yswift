@@ -109,6 +109,129 @@ final class ObjectTests: XCTestCase {
         InitialValue.unregister()
     }
     
+    func testObjectWithArrayPropertyNestedPublisherSync() throws {
+        class Inner: YObject {
+            @Property var name: String = "Alice"
+            required init() { super.init(); self.register(_name, for: "name") }
+            convenience init(_ name: String) { self.init(); self.name = name }
+        }
+        class Object: YObject {
+            let array = YArray<Inner>()
+            required init() { super.init(); self.register(array, for: "array") }
+        }
+        Inner.registerAuto()
+        Object.registerAuto()
+        
+        
+        let test = try YTest<Any>(docs: 1)
+        let map0 = test.swiftyMap(Object.self, 0)
+        
+        let object0 = Object()
+        map0["object"] = object0
+                
+        var result = [[String]]()
+        
+        object0.array.publisher
+            .sink{ result.append($0.map{ $0.name }) }.store(in: &objectBag)
+        
+        XCTAssertEqual(result, [[]])
+        
+        try object0.array.append(Inner("Alice"))
+        
+        XCTAssertEqual(result, [[], ["Alice"]])
+        
+        try object0.array.append(Inner("Bob"))
+        
+        XCTAssertEqual(result, [[], ["Alice"], ["Alice", "Bob"]])
+    }
+    
+    func testObjectWithArrayPropertyNestedPublisherSyncInner() throws {
+        class Inner: YObject {
+            @Property var name: String = "Alice"
+            required init() { super.init(); self.register(_name, for: "name") }
+            convenience init(_ name: String) { self.init(); self.name = name }
+        }
+        class Object: YObject {
+            let array = YArray<Inner>()
+            required init() { super.init(); self.register(array, for: "array") }
+        }
+        Inner.registerAuto()
+        Object.registerAuto()
+        
+        
+        let test = try YTest<Any>(docs: 1)
+        let map0 = test.swiftyMap(Object.self, 0)
+        
+        let object0 = Object()
+        map0["object"] = object0
+                
+        var latest = [String]()
+        
+        object0.array.publisher.map{ $0.map{ $0.$name }.combineLatestHandleEmpty }.switchToLatest()
+            .sink{ latest = $0.map{ $0 } }.store(in: &objectBag)
+        
+        XCTAssertEqual(latest, [])
+        
+        do {
+            let inner = Inner("Alice")
+            try object0.array.append(inner)
+            
+            XCTAssertEqual(latest, ["Alice"])
+            inner.name = "Bob"
+            XCTAssertEqual(latest, ["Bob"])
+        }
+        
+        do {
+            let inner = Inner("Alice")
+            try object0.array.append(inner)
+            
+            XCTAssertEqual(latest, ["Bob", "Alice"])
+            inner.name = "Bob"
+            XCTAssertEqual(latest, ["Bob", "Bob"])
+        }
+        
+        
+    }
+    
+    func testObjectWithArrayPropertyNestedLocal() throws {
+        class Inner: YObject {
+            @Property var name: String = "Alice"
+            
+            required init() {
+                super.init()
+                self.register(_name, for: "name")
+            }
+            convenience init(_ name: String) {
+                self.init()
+                self.name = name
+            }
+        }
+        class ObjectWithArray: YObject {
+            let array = YArray<Inner>()
+            
+            required init() {
+                super.init()
+                self.register(array, for: "array")
+            }
+        }
+        Inner.registerAuto()
+        ObjectWithArray.registerAuto()
+        
+        let test = try YTest<Any>(docs: 1)
+        let map0 = test.swiftyMap(ObjectWithArray.self, 0)
+        
+        let object = ObjectWithArray()
+        map0["object"] = object
+        
+        try object.array.append(Inner("Alice"))
+        try object.array.append(Inner("Bob"))
+        
+        XCTAssertEqual(object.array.count, 2)
+        
+        XCTAssertEqual(object.array[0].name, "Alice")
+        XCTAssertEqual(object.array[1].name, "Bob")
+    }
+    
     func testObjectWithArrayPropertyBasic() throws {
         final class ObjectWithArray: YObject {
             @Property var array: [Int] = []

@@ -70,7 +70,7 @@ final class YArraySwiftyTests: XCTestCase {
         let array = test.swiftyArray(Int.self, 0)
         
         var deltas = [YEventDelta]()
-        array.publisher
+        array.eventPublisher
             .sink{ deltas.append(contentsOf: try! $0.delta()) }
             .store(in: &objectBag)
         
