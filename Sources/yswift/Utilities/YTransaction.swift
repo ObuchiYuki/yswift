@@ -65,7 +65,7 @@ final public class YTransaction {
         self.local = local
     }
 
-    func encodeUpdateMessage(_ encoder: YUpdateEncoder) throws -> Bool {
+    func encodeUpdateMessage(_ encoder: YUpdateEncoder) -> Bool {
         let hasContent = anyMap(self.afterState, { client, clock in
             self.beforeState[client] != clock
         })
@@ -74,8 +74,8 @@ final public class YTransaction {
             return false
         }
         self.deleteSet.sortAndMerge()
-        try encoder.writeStructs(from: self)
-        try self.deleteSet.encode(into: encoder)
+        encoder.writeStructs(from: self)
+        self.deleteSet.encode(into: encoder)
         return true
     }
 
@@ -106,18 +106,18 @@ final public class YTransaction {
             // Replace deleted items with ItemDeleted / GC.
             // This is where content is actually remove from the Yjs Doc.
             if doc.gc {
-                try ds.tryGCDeleteSet(store, gcFilter: doc._gcFilter)
+                ds.tryGCDeleteSet(store, gcFilter: doc._gcFilter)
             }
-            try ds.tryMerge(store)
+            ds.tryMerge(store)
             
             
             // on all affected store.clients props, try to merge
-            try transaction.afterState.forEach({ client, clock in
+            transaction.afterState.forEach({ client, clock in
                 let beforeClock = transaction.beforeState[client] ?? 0
                 if beforeClock != clock {
                     let structs = store.clients[client]!
                     // we iterate from right to left so we can safely remove entries
-                    let firstChangePos = try max(YStructStore.findIndexSS(structs: structs, clock: beforeClock), 1)
+                    let firstChangePos = max(YStructStore.findIndexSS(structs: structs, clock: beforeClock), 1)
 
                     for i in (firstChangePos..<structs.count).reversed() {
                         YStruct.tryMerge(withLeft: structs, pos: i)
@@ -129,7 +129,7 @@ final public class YTransaction {
             for i in 0..<mergeStructs.count {
                 let client = mergeStructs[i].id.client, clock = mergeStructs[i].id.clock
                 let structs = store.clients[client]!
-                let replacedStructPos = try YStructStore.findIndexSS(structs: structs, clock: clock)
+                let replacedStructPos = YStructStore.findIndexSS(structs: structs, clock: clock)
                 if replacedStructPos + 1 < structs.count {
                     YStruct.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
                 }
@@ -147,7 +147,7 @@ final public class YTransaction {
             if doc.isObserving(YDocument.On.update) {
                 let encoder = YUpdateEncoderV1()
                 
-                let hasContent = try transaction.encodeUpdateMessage(encoder)
+                let hasContent = transaction.encodeUpdateMessage(encoder)
                 
                 if hasContent {
                     try doc.emit(YDocument.On.update, (encoder.toUpdate(), transaction.origin, transaction))
@@ -155,7 +155,7 @@ final public class YTransaction {
             }
             if doc.isObserving(YDocument.On.updateV2) {
                 let encoder = YUpdateEncoderV2()
-                let hasContent = try transaction.encodeUpdateMessage(encoder)
+                let hasContent = transaction.encodeUpdateMessage(encoder)
                 if hasContent {
                     try doc.emit(YDocument.On.updateV2, (
                         encoder.toUpdate(), transaction.origin, transaction

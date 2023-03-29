@@ -18,7 +18,7 @@ public protocol YUpdateEncoder: YDeleteSetEncoder {
     func writeLen(_ len: Int)
     func writeAny(_ any: Any?)
     func writeBuf(_ buf: Data)
-    func writeJSON(_ embed: Any?) throws
+    func writeJSON(_ embed: Any?)
     func writeKey(_ key: String)
 }
 
@@ -66,11 +66,9 @@ public class YUpdateEncoderV1: YDeleteSetEncoderV1, YUpdateEncoder {
         self.restEncoder.writeData(buf)
     }
 
-    public func writeJSON(_ embed: Any?) throws {
+    public func writeJSON(_ embed: Any?) {
         if let embed = embed {
-            self.restEncoder.writeData(
-                try JSONSerialization.data(withJSONObject: embed, options: [.fragmentsAllowed])
-            )
+            self.restEncoder.writeData(try! JSONSerialization.data(withJSONObject: embed, options: [.fragmentsAllowed]))
         } else {
             self.restEncoder.writeString("null")
         }

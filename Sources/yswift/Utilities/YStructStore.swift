@@ -74,21 +74,21 @@ final public class YStructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func find(_ id: YID) throws -> YStruct {
+    func find(_ id: YID) -> YStruct {
         let structs = self.clients[id.client]!
-        return structs.value[try YStructStore.findIndexSS(structs: structs, clock: id.clock)]
+        return structs.value[YStructStore.findIndexSS(structs: structs, clock: id.clock)]
     }
 
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func getItem(_ id: YID) throws -> YItem {
-        return try self.find(id) as! YItem
+    func getItem(_ id: YID) -> YItem {
+        return self.find(id) as! YItem
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
     @discardableResult
-    static func getItemCleanStart(_ transaction: YTransaction, id: YID) throws -> YItem {
-        let index = try self.findIndexCleanStart(
+    static func getItemCleanStart(_ transaction: YTransaction, id: YID) -> YItem {
+        let index = self.findIndexCleanStart(
             transaction: transaction,
             structs: transaction.doc.store.clients[id.client]!,
             clock: Int(id.clock)
@@ -98,10 +98,10 @@ final public class YStructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func getItemCleanEnd(_ transaction: YTransaction, id: YID) throws -> YStruct {
+    func getItemCleanEnd(_ transaction: YTransaction, id: YID) -> YStruct {
         let structs = self.clients[id.client]!
         
-        let index = try YStructStore.findIndexSS(structs: structs, clock: id.clock)
+        let index = YStructStore.findIndexSS(structs: structs, clock: id.clock)
         let struct_ = structs[index]
         if id.clock != struct_.id.clock + struct_.length - 1 && !(struct_ is YGC) {            
             structs.value
@@ -111,23 +111,23 @@ final public class YStructStore {
     }
 
     /** Replace `item` with `newitem` in store */
-    func replaceStruct(_ struct_: YStruct, newStruct: YStruct) throws {
+    func replaceStruct(_ struct_: YStruct, newStruct: YStruct) {
         self.clients[struct_.id.client]![
-            try YStructStore.findIndexSS(structs: self.clients[struct_.id.client]!, clock: struct_.id.clock)
+            YStructStore.findIndexSS(structs: self.clients[struct_.id.client]!, clock: struct_.id.clock)
         ] = newStruct
     }
 
     /** Iterate over a range of structs */
-    static func iterateStructs(transaction: YTransaction, structs: RefArray<YStruct>, clockStart: Int, len: Int, f: (YStruct) throws -> Void) throws {
+    static func iterateStructs(transaction: YTransaction, structs: RefArray<YStruct>, clockStart: Int, len: Int, f: (YStruct) throws -> Void) rethrows {
         if len == 0 { return }
         let clockEnd = clockStart + len
-        var index = try self.findIndexCleanStart(transaction: transaction, structs: structs, clock: clockStart)
+        var index = self.findIndexCleanStart(transaction: transaction, structs: structs, clock: clockStart)
         var struct_: YStruct
         repeat {
             struct_ = structs.value[index]
             index += 1
             if clockEnd < struct_.id.clock + struct_.length {
-                _ = try self.findIndexCleanStart(transaction: transaction, structs: structs, clock: clockEnd)
+                _ = self.findIndexCleanStart(transaction: transaction, structs: structs, clock: clockEnd)
             }
             try f(struct_)
         } while (index < structs.count && structs[index].id.clock < clockEnd)
@@ -135,7 +135,7 @@ final public class YStructStore {
 
 
     /** Perform a binary search on a sorted array */
-    static func findIndexSS(structs: RefArray<YStruct>, clock: Int) throws -> Int {
+    static func findIndexSS(structs: RefArray<YStruct>, clock: Int) -> Int {
         var left = 0
         var right = structs.count - 1
         var mid = structs[right]
@@ -160,13 +160,14 @@ final public class YStructStore {
             }
             midindex = (left + right) / 2
         }
+        fatalError("unexpectedCase")
         // Always check state before looking for a struct in StructStore
         // Therefore the case of not finding a struct is unexpected
-        throw YSwiftError.unexpectedCase
+//        throw YSwiftError.unexpectedCase
     }
 
-    static func findIndexCleanStart(transaction: YTransaction, structs: RefArray<YStruct>, clock: Int) throws -> Int {
-        let index = try YStructStore.findIndexSS(structs: structs, clock: clock)
+    static func findIndexCleanStart(transaction: YTransaction, structs: RefArray<YStruct>, clock: Int) -> Int {
+        let index = YStructStore.findIndexSS(structs: structs, clock: clock)
         let struct_ = structs[index]
         if struct_.id.clock < clock && struct_ is YItem {
             structs.value
@@ -253,7 +254,7 @@ extension YStructStore {
                     // hid a dead wall, add all items from stack to restSS
                     addStackToRestSS()
                 } else {
-                    let missing = try stackHead.getMissing(transaction, store: store)
+                    let missing = stackHead.getMissing(transaction, store: store)
                     if missing != nil {
                         stack.append(stackHead)
                         
@@ -295,7 +296,7 @@ extension YStructStore {
         
         if restStructs.clients.count > 0 {
             let encoder = YUpdateEncoderV2()
-            try encoder.writeClientsStructs(store: restStructs, stateVector: [:])
+            encoder.writeClientsStructs(store: restStructs, stateVector: [:])
             // write empty deleteset
             // writeDeleteSet(encoder, DeleteSet())
             encoder.restEncoder.writeUInt(0) // -> no need for an extra function call, just write 0 deletes

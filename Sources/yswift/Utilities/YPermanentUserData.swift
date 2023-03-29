@@ -105,7 +105,7 @@ final public class YPermanentUserData {
                     let encoder = YDeleteSetEncoderV1() as any YDeleteSetEncoder
                     let ds = self.dss[userDescription]
                     if ds != nil {
-                        try ds!.encode(into: encoder)
+                        ds!.encode(into: encoder)
                         try (user!["ds"] as! YOpaqueArray).append(contentsOf: [encoder.toData()])
                     }
                 }
@@ -119,7 +119,7 @@ final public class YPermanentUserData {
                 let ds = transaction.deleteSet
                 if transaction.local && ds.clients.count > 0 && filter(transaction, ds) {
                     let encoder = YDeleteSetEncoderV1()
-                    try ds.encode(into: encoder)
+                    ds.encode(into: encoder)
                     try yds.append(contentsOf: [encoder.toData()])
                 }
             }.catch{ print($0) }

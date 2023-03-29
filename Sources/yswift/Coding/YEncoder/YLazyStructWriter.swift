@@ -50,7 +50,7 @@ extension YLazyStructWriter {
             // write startClock
             self.encoder.restEncoder.writeUInt(UInt(struct_.id.clock + offset))
         }
-        try struct_.encode(into: self.encoder, offset: offset)
+        struct_.encode(into: self.encoder, offset: offset)
         self.written += 1
     }
 

@@ -27,7 +27,7 @@ final public class YSnapshot: JSHashable {
         )
     }
    
-    public func splitAffectedStructs(_ transaction: YTransaction) throws {
+    public func splitAffectedStructs(_ transaction: YTransaction) {
         enum __ { static let marker = UUID() }
         
         var meta = transaction.meta.setIfUndefined(__.marker, Set<AnyHashable>()) as! Set<AnyHashable>
@@ -36,9 +36,9 @@ final public class YSnapshot: JSHashable {
         // check if we already split for this snapshot
         if !meta.contains(self) {
             for (client, clock) in self.stateVectors where clock < store.getState(client) {
-                try YStructStore.getItemCleanStart(transaction, id: YID(client: client, clock: clock))
+                YStructStore.getItemCleanStart(transaction, id: YID(client: client, clock: clock))
             }
-            try self.deleteSet.iterate(transaction, body: {_ in })
+            self.deleteSet.iterate(transaction, body: {_ in })
             _ = meta.insert(self)
         }
         
@@ -59,20 +59,21 @@ final public class YSnapshot: JSHashable {
 
             for (client, clock) in self.stateVectors where clock != 0 {
                 if clock < originDoc.store.getState(client) {
-                    try YStructStore.getItemCleanStart(transaction, id: YID(client: client, clock: clock))
+                    YStructStore.getItemCleanStart(transaction, id: YID(client: client, clock: clock))
                 }
                 let structs = originDoc.store.clients[client] ?? []
-                let lastStructIndex = try YStructStore.findIndexSS(structs: structs, clock: clock - 1)
+                let lastStructIndex = YStructStore.findIndexSS(structs: structs, clock: clock - 1)
                 // write # encoded structs
                 encoder.restEncoder.writeUInt(UInt(lastStructIndex + 1))
                 encoder.writeClient(client)
                 // first clock written is 0
                 encoder.restEncoder.writeUInt(0)
                 for i in 0..<lastStructIndex {
-                    try structs[i].encode(into: encoder, offset: 0)
+                    structs[i].encode(into: encoder, offset: 0)
                 }
             }
-            try deleteSet.encode(into: encoder)
+            
+            deleteSet.encode(into: encoder)
             
         }
     
@@ -85,7 +86,7 @@ final public class YSnapshot: JSHashable {
 // Coding
 extension YSnapshot {
     public func encodeV2(_ encoder: YDeleteSetEncoder = YDeleteSetEncoderV2()) throws -> Data {
-        try self.deleteSet.encode(into: encoder)
+        self.deleteSet.encode(into: encoder)
         try encoder.writeStateVector(from: self.stateVectors)
         return encoder.toData()
     }

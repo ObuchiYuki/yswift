@@ -18,11 +18,11 @@ class YStruct {
 
     func merge(with right: YStruct) -> Bool { return false }
 
-    func encode(into encoder: any YUpdateEncoder, offset: Int) throws { fatalError() }
+    func encode(into encoder: any YUpdateEncoder, offset: Int) { fatalError() }
 
     func integrate(transaction: YTransaction, offset: Int) throws -> Void { fatalError() }
     
-    func getMissing(_ transaction: YTransaction, store: YStructStore) throws -> Int? { nil }
+    func getMissing(_ transaction: YTransaction, store: YStructStore) -> Int? { nil }
 }
 
 extension YStruct {

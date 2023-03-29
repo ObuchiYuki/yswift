@@ -10,7 +10,7 @@ import Foundation
 final public class YDeleteSet {
     var clients: [Int: RefArray<YDeleteItem>] = [:]
 
-    func iterate(_ transaction: YTransaction, body: (YStruct) throws -> Void) throws {
+    func iterate(_ transaction: YTransaction, body: (YStruct) throws -> Void) rethrows {
         
         return try self.clients.forEach{ clientid, deletes in
             for i in 0..<deletes.count {
@@ -57,11 +57,11 @@ final public class YDeleteSet {
         self.clients[client]!.value.append(YDeleteItem(clock: clock, len: length))
     }
     
-    public func encode(into encoder: any YDeleteSetEncoder) throws {
+    public func encode(into encoder: any YDeleteSetEncoder) {
         encoder.restEncoder.writeUInt(UInt(self.clients.count))
     
         // Ensure that the delete set is written in a deterministic order
-        try self.clients
+        self.clients
             .sorted(by: { $0.key > $1.key })
             .forEach({ client, dsitems in
                 encoder.resetDeleteSetValue()
@@ -71,12 +71,12 @@ final public class YDeleteSet {
                 for i in 0..<len {
                     let item = dsitems[i]
                     encoder.writeDeleteSetClock(item.clock)
-                    try encoder.writeDeleteSetLen(item.len)
+                    encoder.writeDeleteSetLen(item.len)
                 }
             })
     }
 
-    func tryGCDeleteSet(_ store: YStructStore, gcFilter: (YItem) -> Bool) throws {
+    func tryGCDeleteSet(_ store: YStructStore, gcFilter: (YItem) -> Bool) {
         for (client, deleteItems) in self.clients {
             let structs = store.clients[client]!
             
@@ -84,7 +84,7 @@ final public class YDeleteSet {
                 let deleteItem = deleteItems[di]
                 let endDeleteItemClock = deleteItem.clock + deleteItem.len
                 
-                var si = try YStructStore.findIndexSS(structs: structs, clock: deleteItem.clock)
+                var si = YStructStore.findIndexSS(structs: structs, clock: deleteItem.clock)
                 var struct_ = structs[si]
                 
                 while si < structs.count && struct_.id.clock < endDeleteItemClock {
@@ -93,7 +93,7 @@ final public class YDeleteSet {
                         break
                     }
                     if type(of: struct__) == YItem.self && struct__.deleted && !(struct__ as! YItem).keep && gcFilter(struct__ as! YItem) {
-                        try (struct__ as! YItem).gc(store, parentGC: false)
+                        (struct__ as! YItem).gc(store, parentGC: false)
                     }
                     
                     struct_ = structs.value[si]
@@ -103,8 +103,8 @@ final public class YDeleteSet {
         }
     }
 
-    func tryMerge(_ store: YStructStore) throws {
-        try self.clients.forEach({ client, deleteItems in
+    func tryMerge(_ store: YStructStore) {
+        self.clients.forEach({ client, deleteItems in
             let structs = store.clients[client]!
             
             for di in (0..<deleteItems.count).reversed() {
@@ -112,7 +112,7 @@ final public class YDeleteSet {
                 // start with merging the item next to the last deleted item
                 let mostRightIndexToCheck = min(
                     structs.count - 1,
-                    try 1 + YStructStore.findIndexSS(structs: structs, clock: deleteItem.clock + deleteItem.len - 1)
+                    1 + YStructStore.findIndexSS(structs: structs, clock: deleteItem.clock + deleteItem.len - 1)
                 )
                 var si = mostRightIndexToCheck, struct_ = structs[si];
                 
@@ -125,9 +125,9 @@ final public class YDeleteSet {
         })
     }
 
-    func tryGC(_ store: YStructStore, gcFilter: (YItem) -> Bool) throws {
-        try self.tryGCDeleteSet(store, gcFilter: gcFilter)
-        try self.tryMerge(store)
+    func tryGC(_ store: YStructStore, gcFilter: (YItem) -> Bool) {
+        self.tryGCDeleteSet(store, gcFilter: gcFilter)
+        self.tryMerge(store)
     }
     
     static func mergeAll(_ dss: [YDeleteSet]) -> YDeleteSet {
@@ -224,7 +224,7 @@ final public class YDeleteSet {
                     if state < clockEnd {
                         unappliedDS.add(client: client, clock: state, length: clockEnd - state)
                     }
-                    var index = try YStructStore.findIndexSS(structs: structs, clock: clock)
+                    var index = YStructStore.findIndexSS(structs: structs, clock: clock)
                     var struct_ = structs[index]
                     // split the first item if necessary
                     if !struct_.deleted && struct_.id.clock < clock {
@@ -257,7 +257,7 @@ final public class YDeleteSet {
         if unappliedDS.clients.count > 0 {
             let ds = YUpdateEncoderV2()
             ds.restEncoder.writeUInt(0) // encode 0 structs
-            try unappliedDS.encode(into: ds)
+            unappliedDS.encode(into: ds)
             return ds.toUpdate()
         }
         

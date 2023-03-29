@@ -222,7 +222,7 @@ extension YOpaqueObject {
                 if index <= n!.length {
                     if index < n!.length {
                         let id = YID(client: n!.id.client, clock: n!.id.clock + index)
-                        try YStructStore.getItemCleanStart(transaction, id: id)
+                        YStructStore.getItemCleanStart(transaction, id: id)
                     }
                     break
                 }
@@ -249,7 +249,7 @@ extension YOpaqueObject {
     }
 
 
-    func listDelete(at index: Int, count: Int, _ transaction: YTransaction) throws {
+    func listDelete(at index: Int, count: Int, _ transaction: YTransaction) {
         var index = index, length = count
         
         if length == 0 { return }
@@ -266,7 +266,7 @@ extension YOpaqueObject {
             if !item!.deleted && item!.countable {
                 if index < item!.length {
                     let id = YID(client: item!.id.client, clock: item!.id.clock + index)
-                    _ = try YStructStore.getItemCleanStart(transaction, id: id)
+                    _ = YStructStore.getItemCleanStart(transaction, id: id)
                 }
                 index -= item!.length
             }
@@ -278,7 +278,7 @@ extension YOpaqueObject {
             if !item!.deleted {
                 if length < item!.length {
                     let id = YID(client: item!.id.client, clock: item!.id.clock + length)
-                    _ = try YStructStore.getItemCleanStart(transaction, id: id)
+                    _ = YStructStore.getItemCleanStart(transaction, id: id)
                 }
                 item!.delete(transaction)
                 length -= item!.length
@@ -286,7 +286,8 @@ extension YOpaqueObject {
             item = item!.right as? YItem
         }
         if length > 0 {
-            throw YSwiftError.lengthExceeded
+            fatalError("Length Exceeded")
+//            throw YSwiftError.lengthExceeded
         }
         if (self.serchMarkers != nil) {
             YArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: length - startLength)

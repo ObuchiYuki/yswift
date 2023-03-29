@@ -43,7 +43,7 @@ final class StructRedone {
     }
 }
 
-func followRedone(store: YStructStore, id: YID) throws -> StructRedone {
+func followRedone(store: YStructStore, id: YID) -> StructRedone {
     var nextID: YID? = id
     var diff = 0
     var item: YStruct? = nil
@@ -51,7 +51,7 @@ func followRedone(store: YStructStore, id: YID) throws -> StructRedone {
         if diff > 0 {
             nextID = YID(client: nextID!.client, clock: nextID!.clock + diff)
         }
-        item = try store.find(nextID!)
+        item = store.find(nextID!)
         diff = Int(nextID!.clock - item!.id.clock)
         nextID = (item as? YItem)?.redone
     } while (nextID != nil && item is YItem)
@@ -158,7 +158,7 @@ final public class YUndoManager: LZObservable, JSHashable {
                 self.lastChange = now
             }
             // make sure that deleted structs are not gc'd
-            try transaction.deleteSet.iterate(transaction, body: { item in
+            transaction.deleteSet.iterate(transaction, body: { item in
                 if item is YItem && self.scope.contains(where: { type in type.isParentOf(child: (item as! YItem)) }) {
                     (item as? YItem)?.keepRecursive(keep: true)
                 }
@@ -184,8 +184,8 @@ final public class YUndoManager: LZObservable, JSHashable {
     }
 
 
-    public func clearStackItem(_ tr: YTransaction, stackItem: StackItem) throws {
-        try stackItem.deletions.iterate(tr) { item in
+    public func clearStackItem(_ tr: YTransaction, stackItem: StackItem) {
+        stackItem.deletions.iterate(tr) { item in
             if item is YItem && self.scope.contains(where: { type in type.isParentOf(child: (item as! YItem)) }) {
                 (item as? YItem)?.keepRecursive(keep: false)
             }
@@ -209,14 +209,14 @@ final public class YUndoManager: LZObservable, JSHashable {
                 var itemsToDelete: [YItem] = []
 
                 var performedChange = false
-                try stackItem.insertions.iterate(transaction) { struct_ in
+                stackItem.insertions.iterate(transaction) { struct_ in
                     var struct_ = struct_
                     if struct_ is YItem {
                         if (struct_ as! YItem).redone != nil {
-                            let redone = try followRedone(store: store, id: struct_.id)
+                            let redone = followRedone(store: store, id: struct_.id)
                             var item = redone.item, diff = redone.diff
                             if diff > 0 {
-                                item = try YStructStore.getItemCleanStart(transaction, id: YID(client: item.id.client, clock: item.id.clock + diff))
+                                item = YStructStore.getItemCleanStart(transaction, id: YID(client: item.id.client, clock: item.id.clock + diff))
                             }
                             struct_ = item
                         }
@@ -225,7 +225,7 @@ final public class YUndoManager: LZObservable, JSHashable {
                         }
                     }
                 }
-                try stackItem.deletions.iterate(transaction) { struct_ in
+                stackItem.deletions.iterate(transaction) { struct_ in
                     if (
                         struct_ is YItem &&
                         scope.contains(where: { type in type.isParentOf(child: (struct_ as! YItem)) }) &&
@@ -295,11 +295,11 @@ final public class YUndoManager: LZObservable, JSHashable {
         if (clearUndoStack && self.canUndo()) || (clearRedoStack && self.canRedo()) {
             try self.doc.transact({ tr in
                 if clearUndoStack {
-                    try self.undoStack.forEach({ item in try self.clearStackItem(tr, stackItem: item) })
+                    self.undoStack.forEach({ item in self.clearStackItem(tr, stackItem: item) })
                     self.undoStack = .init(value: [])
                 }
                 if clearRedoStack {
-                    try self.redoStack.forEach({ item in try self.clearStackItem(tr, stackItem: item) })
+                    self.redoStack.forEach({ item in self.clearStackItem(tr, stackItem: item) })
                     self.redoStack = .init(value: [])
                 }
                 try self.emit(Event.stackCleanred, .init(undoStackCleared: clearUndoStack, redoStackCleared: clearRedoStack))

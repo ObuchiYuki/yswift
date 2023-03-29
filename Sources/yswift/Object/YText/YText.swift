@@ -60,8 +60,9 @@ final class ItemTextListPosition {
         self.currentAttributes = currentAttributes
     }
 
-    func forward() throws {
-        if self.right == nil { throw YSwiftError.unexpectedCase }
+    func forward() {
+        assert(self.right != nil)
+//        if self.right == nil { throw YSwiftError.unexpectedCase }
         
         if self.right!.content is YFormatContent {
             if !self.right!.deleted {
@@ -76,7 +77,7 @@ final class ItemTextListPosition {
         self.right = self.right!.right as? YItem
     }
 
-    func findNext(_ transaction: YTransaction, count: Int) throws -> ItemTextListPosition {
+    func findNext(_ transaction: YTransaction, count: Int) -> ItemTextListPosition {
         var count = count
         
         while (self.right != nil && count > 0) {
@@ -88,7 +89,8 @@ final class ItemTextListPosition {
                 if !self.right!.deleted {
                     if count < self.right!.length {
                         // split right
-                        try YStructStore.getItemCleanStart(transaction, id: YID(client: self.right!.id.client, clock: self.right!.id.clock + count))
+                        let id = YID(client: self.right!.id.client, clock: self.right!.id.clock + count)
+                        YStructStore.getItemCleanStart(transaction, id: id)
                     }
                     self.index += self.right!.length
                     count -= self.right!.length
@@ -100,7 +102,7 @@ final class ItemTextListPosition {
         return self
     }
 
-    static func find(_ transaction: YTransaction, parent: YOpaqueObject, index: Int) throws -> ItemTextListPosition {
+    static func find(_ transaction: YTransaction, parent: YOpaqueObject, index: Int) -> ItemTextListPosition {
         let currentAttributes: YTextAttributes = [:]
         let marker = YArraySearchMarker.find(parent, index: index)
         
@@ -111,10 +113,10 @@ final class ItemTextListPosition {
                 index: marker!.index,
                 currentAttributes: currentAttributes
             )
-            return try pos.findNext(transaction, count: index - marker!.index)
+            return pos.findNext(transaction, count: index - marker!.index)
         } else {
             let pos = ItemTextListPosition(left: nil, right: parent._start, index: 0, currentAttributes: currentAttributes)
-            return try pos.findNext(transaction, count: index)
+            return pos.findNext(transaction, count: index)
         }
     }
 
@@ -143,7 +145,7 @@ func insertNegatedAttributes(
         if !currPos.right!.deleted {
             negatedAttributes.value.removeValue(forKey: (currPos.right!.content as! YFormatContent).key)
         }
-        try currPos.forward()
+        currPos.forward()
     }
     let doc = transaction.doc
     let ownClientId = doc.clientID
@@ -163,7 +165,7 @@ func insertNegatedAttributes(
         )
         try nextFormat.integrate(transaction: transaction, offset: 0)
         currPos.right = nextFormat
-        try currPos.forward()
+        currPos.forward()
     })
 }
 
@@ -176,7 +178,7 @@ func updateCurrentAttributes(currentAttributes: YTextAttributes, format: YFormat
     }
 }
 
-func minimizeAttributeChanges(currPos: ItemTextListPosition, attributes: YTextAttributes) throws {
+func minimizeAttributeChanges(currPos: ItemTextListPosition, attributes: YTextAttributes) {
     // go right while attributes[right.key] == right.value (or right is deleted)
     while (true) {
         if currPos.right == nil {
@@ -190,7 +192,7 @@ func minimizeAttributeChanges(currPos: ItemTextListPosition, attributes: YTextAt
         } else {
             break
         }
-        try currPos.forward()
+        currPos.forward()
     }
 }
 
@@ -227,7 +229,7 @@ func insertAttributes(
                 content: YFormatContent(key: key, value: val)
             )
             try currPos.right!.integrate(transaction: transaction, offset: 0)
-            try currPos.forward()
+            currPos.forward()
         }
     }
         
@@ -250,7 +252,7 @@ func insertText(
     
     let doc = transaction.doc
     let ownClientId = doc.clientID
-    try minimizeAttributeChanges(currPos: currPos, attributes: attributes)
+    minimizeAttributeChanges(currPos: currPos, attributes: attributes)
     let negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
     // insert content
     let content = text is String
@@ -278,7 +280,7 @@ func insertText(
     try right!.integrate(transaction: transaction, offset: 0)
     currPos.right = right
     currPos.index = index
-    try currPos.forward()
+    currPos.forward()
         
     try insertNegatedAttributes(transaction: transaction, parent: parent, currPos: currPos, negatedAttributes: negatedAttributes)
 }
@@ -293,7 +295,7 @@ func formatText(
     var length = length
     let doc = transaction.doc
     let ownClientId = doc.clientID
-    try minimizeAttributeChanges(currPos: currPos, attributes: attributes)
+    minimizeAttributeChanges(currPos: currPos, attributes: attributes)
     let negatedAttributes = try insertAttributes(transaction: transaction, parent: parent, currPos: currPos, attributes: attributes)
         
     // iterate until first non-format or nil is found
@@ -332,7 +334,7 @@ func formatText(
                 
             default:
                 if length < currPos.right!.length {
-                    try YStructStore.getItemCleanStart(
+                    YStructStore.getItemCleanStart(
                         transaction,
                         id: YID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
                     )
@@ -341,7 +343,7 @@ func formatText(
                 
             }
         }
-        try currPos.forward()
+        currPos.forward()
     }
         
     if length > 0 {
@@ -361,7 +363,7 @@ func formatText(
             content: YStringContent(newlines as NSString)
         )
         try currPos.right!.integrate(transaction: transaction, offset: 0)
-        try currPos.forward()
+        currPos.forward()
         
         length -= 1
     }
@@ -485,7 +487,7 @@ func deleteText(
                 currPos.right!.content is YEmbedContent ||
                 currPos.right!.content is YStringContent {
                 if length < currPos.right!.length {
-                    try YStructStore.getItemCleanStart(
+                    YStructStore.getItemCleanStart(
                         transaction, id: YID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
                     )
                 }
@@ -494,7 +496,7 @@ func deleteText(
                 break
             }
         }
-        try currPos.forward()
+        currPos.forward()
     }
     
     if start != nil {
@@ -749,7 +751,7 @@ final public class YText: YOpaqueObject {
                     continue
                 }
                 
-                try YStructStore.iterateStructs(
+                YStructStore.iterateStructs(
                     transaction: transaction,
                     structs: doc.store.clients[client]!,
                     clockStart: clock,
@@ -767,7 +769,7 @@ final public class YText: YOpaqueObject {
             }
             
             if !foundFormattingItem {
-                try transaction.deleteSet.iterate(transaction, body: { item in
+                transaction.deleteSet.iterate(transaction, body: { item in
                     if item is YGC || foundFormattingItem {
                         return
                     }
@@ -786,7 +788,7 @@ final public class YText: YOpaqueObject {
                     // If no formatting attribute was inserted, we can make due with contextless
                     // formatting cleanups.
                     // Contextless: it is not necessary to compute currentAttributes for the affected position.
-                    try t.deleteSet.iterate(t, body: { item in
+                    t.deleteSet.iterate(t, body: { item in
                         if item is YGC {
                             return
                         }
@@ -886,10 +888,10 @@ final public class YText: YOpaqueObject {
         // transalive until we are done
         try doc.transact(origin: "cleanup") { transaction in
             if snapshot != nil {
-                try snapshot!.splitAffectedStructs(transaction)
+                snapshot!.splitAffectedStructs(transaction)
             }
             if prevSnapshot != nil {
-                try prevSnapshot!.splitAffectedStructs(transaction)
+                prevSnapshot!.splitAffectedStructs(transaction)
             }
             while n != nil {
                 if n!.isVisible(snapshot) || (prevSnapshot != nil && n!.isVisible(prevSnapshot)) {
@@ -959,7 +961,7 @@ final public class YText: YOpaqueObject {
         }
         
         try doc.transact({ transaction in
-            let pos = try ItemTextListPosition.find(transaction, parent: self, index: index)
+            let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
                         
             var attributes = attributes
             if attributes == nil {
@@ -977,7 +979,7 @@ final public class YText: YOpaqueObject {
     public func insertEmbed(_ index: Int, embed: YEventDeltaInsertType, attributes: YTextAttributes?) throws {
         if self.doc != nil {
             try self.doc!.transact({ transaction in
-                let pos = try ItemTextListPosition.find(transaction, parent: self, index: index)
+                let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
                 try insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: attributes ?? [:])
             })
         } else {
@@ -1012,7 +1014,7 @@ final public class YText: YOpaqueObject {
         }
         if self.doc != nil {
             try self.doc!.transact({ transaction in
-                let pos = try ItemTextListPosition.find(transaction, parent: self, index: index)
+                let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
                 if pos.right == nil {
                     return
                 }

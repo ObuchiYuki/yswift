@@ -13,7 +13,7 @@ public protocol YDeleteSetEncoder {
     
     func resetDeleteSetValue()
     func writeDeleteSetClock(_ clock: Int)
-    func writeDeleteSetLen(_ len: Int) throws
+    func writeDeleteSetLen(_ len: Int)
     func toData() -> Data
 }
 
@@ -66,10 +66,11 @@ public class YDeleteSetEncoderV2: YDeleteSetEncoder {
         self.restEncoder.writeUInt(UInt(diff))
     }
 
-    public func writeDeleteSetLen(_ len: Int) throws {
-        if len == 0 {
-            throw YSwiftError.unexpectedCase
-        }
+    public func writeDeleteSetLen(_ len: Int) {
+        assert(len != 0, "Unexpected case")
+//        if len == 0 {
+//            throw YSwiftError.unexpectedCase
+//        }
         self.restEncoder.writeUInt(UInt(len - 1))
         self.dsCurrVal += len
     }

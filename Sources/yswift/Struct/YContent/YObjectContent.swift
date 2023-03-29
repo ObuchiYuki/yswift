@@ -52,10 +52,10 @@ extension YObjectContent {
         transaction.changed.removeValue(forKey: self.object)
     }
 
-    func gc(_ store: YStructStore) throws {
+    func gc(_ store: YStructStore) {
         var item = self.object._start
         while let uitem = item {
-            try uitem.gc(store, parentGC: true)
+            uitem.gc(store, parentGC: true)
             item = uitem.right as? YItem
         }
         
@@ -63,7 +63,7 @@ extension YObjectContent {
         for (_, item) in self.object.storage {
             var item: YItem? = item
             while let uitem = item {
-                try uitem.gc(store, parentGC: true)
+                uitem.gc(store, parentGC: true)
                 item = uitem.left as? YItem
             }
         }

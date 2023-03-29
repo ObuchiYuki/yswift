@@ -83,7 +83,7 @@ extension YUpdate {
         
         lazyWriter.finish()
         let ds = try YDeleteSet.decode(decoder: updateDecoder)
-        try ds.encode(into: updateEncoder)
+        ds.encode(into: updateEncoder)
         return updateEncoder.toUpdate()
     }
     
@@ -124,7 +124,7 @@ extension YUpdate {
         lazyStructWriter.finish()
         // write ds
         let ds = try YDeleteSet.decode(decoder: decoder)
-        try ds.encode(into: encoder)
+        ds.encode(into: encoder)
         return encoder.toUpdate()
     }
 
@@ -331,7 +331,7 @@ extension YUpdate {
 
         let dss = try updateDecoders.map{ try YDeleteSet.decode(decoder: $0) }
         let ds = YDeleteSet.mergeAll(dss)
-        try ds.encode(into: updateEncoder)
+        ds.encode(into: updateEncoder)
         return updateEncoder.toUpdate()
     }
 

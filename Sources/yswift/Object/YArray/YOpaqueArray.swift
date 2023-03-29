@@ -43,7 +43,7 @@ final public class YOpaqueArray: YOpaqueObject {
     public func remove(_ index: Int, count: Int = 1) throws {
         if self.doc != nil {
             try self.doc!.transact{ transaction in
-                try self.listDelete(at: index, count: count, transaction)
+                self.listDelete(at: index, count: count, transaction)
             }
         } else {
             self._prelimContent?.removeSubrange(index..<index+count)

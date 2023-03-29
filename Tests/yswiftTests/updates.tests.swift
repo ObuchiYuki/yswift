@@ -180,7 +180,7 @@ final class UpdatesTests: XCTestCase {
                         let ds = try YDeleteSet.decode(decoder: updateDecoder)
                         let updateEncoder = YUpdateEncoderV2()
                         updateEncoder.restEncoder.writeUInt(0) // 0 structs
-                        try ds.encode(into: updateEncoder)
+                        ds.encode(into: updateEncoder)
                         let deletesUpdate = updateEncoder.toUpdate()
                         let mergedDeletes = try YUpdate.mergedV2([deletesUpdate, partMerged])
                         if !hasDeletes || enc !== YUpdateEnvironment.doc {

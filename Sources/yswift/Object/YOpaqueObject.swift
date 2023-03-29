@@ -122,10 +122,11 @@ open class YOpaqueObject: JSHashable {
 }
 
 extension YOpaqueObject {
-    func findRootTypeKey() throws -> String {
+    func findRootTypeKey() -> String {
         for (key, value) in self.doc?.share ?? [:] {
             if value === self { return key }
         }
-        throw YSwiftError.unexpectedCase
+        fatalError("Key not found.")
+//        throw YSwiftError.unexpectedCase
     }
 }

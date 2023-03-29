@@ -41,19 +41,22 @@ extension YJSONContent {
     
     func gc(_ store: YStructStore) {}
     
-    func encode(into encoder: YUpdateEncoder, offset: Int) throws {
+    func encode(into encoder: YUpdateEncoder, offset: Int) {
         let len = self.array.count
         encoder.writeLen(len - offset)
         for i in offset..<len {
             let c = self.array[i]
             if let c = c {
-                let jsonData = try JSONSerialization.data(withJSONObject: c, options: [.fragmentsAllowed])
-                let jsonString = String(data: jsonData, encoding: .utf8)!
-                encoder.writeString(jsonString)
+                let jsonData = try! JSONSerialization.data(withJSONObject: c, options: [.fragmentsAllowed])
+                encoder.writeBuf(jsonData)
             } else {
                 encoder.writeString("undefined")
             }
-            encoder.writeString(c == nil ? "undefined" : String(data: try JSONSerialization.data(withJSONObject: c!, options: [.fragmentsAllowed]), encoding: .utf8)!)
+            if let c = c {
+                encoder.writeBuf(try! JSONSerialization.data(withJSONObject: c, options: [.fragmentsAllowed]))
+            } else {
+                encoder.writeString("undefined")
+            }
         }
     }
 

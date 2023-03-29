@@ -40,9 +40,9 @@ extension YFormatContent {
     
     func gc(_ store: YStructStore) {}
     
-    func encode(into encoder: YUpdateEncoder, offset: Int) throws {
+    func encode(into encoder: YUpdateEncoder, offset: Int) {
         encoder.writeKey(self.key)
-        try encoder.writeJSON(self.value)
+        encoder.writeJSON(self.value)
     }
 
     static func decode(from decoder: YUpdateDecoder) throws -> YFormatContent {

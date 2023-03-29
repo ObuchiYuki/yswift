@@ -97,7 +97,7 @@ final class YItem: YStruct, JSHashable {
     // =========================================================================== //
     // MARK: - Methods -
     
-    override func getMissing(_ transaction: YTransaction, store: YStructStore) throws -> Int? {
+    override func getMissing(_ transaction: YTransaction, store: YStructStore) -> Int? {
         if let origin = self.origin, origin.client != self.id.client, origin.clock >= store.getState(origin.client) {
             return origin.client
         }
@@ -110,11 +110,11 @@ final class YItem: YStruct, JSHashable {
 
         // We have all missing ids, now find the items
         if let origin = self.origin {
-            self.left = try store.getItemCleanEnd(transaction, id: origin)
+            self.left = store.getItemCleanEnd(transaction, id: origin)
             self.origin = (self.left as? YItem)?.lastID
         }
         if let rightOrigin = self.rightOrigin {
-            self.right = try YStructStore.getItemCleanStart(transaction, id: rightOrigin)
+            self.right = YStructStore.getItemCleanStart(transaction, id: rightOrigin)
             self.rightOrigin = self.right!.id
         }
         if self.left is YGC || self.right is YGC {
@@ -131,7 +131,7 @@ final class YItem: YStruct, JSHashable {
                 self.parentKey = rightItem.parentKey
             }
         } else if let parent = self.parent?.id {
-            let parentItem = try store.find(parent)
+            let parentItem = store.find(parent)
             if let content = (parentItem as? YItem)?.content as? YObjectContent {
                 self.parent = .object(content.object)
             } else {
@@ -144,7 +144,7 @@ final class YItem: YStruct, JSHashable {
     override func integrate(transaction: YTransaction, offset: Int) throws {
         if offset > 0 {
             self.id.clock += offset
-            self.left = try transaction.doc.store.getItemCleanEnd(
+            self.left = transaction.doc.store.getItemCleanEnd(
                 transaction,
                 id: YID(client: self.id.client, clock: self.id.clock - 1)
             )
@@ -154,7 +154,8 @@ final class YItem: YStruct, JSHashable {
         }
 
         guard let parent = self.parent?.object else {
-            try YGC(id: self.id, length: self.length).integrate(transaction: transaction, offset: 0)
+            let gc = YGC(id: self.id, length: self.length)
+            try gc.integrate(transaction: transaction, offset: 0)
             return
         }
         
@@ -191,9 +192,9 @@ final class YItem: YStruct, JSHashable {
                     } else if self.rightOrigin == uitem.rightOrigin {
                         break
                     }
-                } else if let origin = uitem.origin, try itemsBeforeOrigin.contains(transaction.doc.store.getItem(origin)) {
+                } else if let origin = uitem.origin, itemsBeforeOrigin.contains(transaction.doc.store.getItem(origin)) {
                     // case 2
-                    if !conflictingItems.contains(try transaction.doc.store.getItem(origin)) {
+                    if !conflictingItems.contains(transaction.doc.store.getItem(origin)) {
                         left = uitem
                         conflictingItems.removeAll()
                     }
@@ -283,7 +284,7 @@ final class YItem: YStruct, JSHashable {
         return true
     }
 
-    override func encode(into encoder: YUpdateEncoder, offset: Int) throws {
+    override func encode(into encoder: YUpdateEncoder, offset: Int) {
         let origin = offset > 0 ? YID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
         let rightOrigin = self.rightOrigin
         let parentSub = self.parentKey
@@ -304,7 +305,7 @@ final class YItem: YStruct, JSHashable {
             case .object(let parent):
                 let parentItem = parent.item
                 if parentItem == nil {
-                    let ykey = try parent.findRootTypeKey()
+                    let ykey = parent.findRootTypeKey()
                     encoder.writeParentInfo(true)
                     encoder.writeString(ykey)
                 } else {
@@ -318,13 +319,14 @@ final class YItem: YStruct, JSHashable {
                 encoder.writeParentInfo(true)
                 encoder.writeString(parent)
             case .none:
-                throw YSwiftError.unexpectedCase
+                fatalError("Unexpected case")
+//                throw YSwiftError.unexpectedCase
             }
             
             if parentSub != nil { encoder.writeString(parentSub!) }
         }
         
-        try self.content.encode(into: encoder, offset: offset)
+        self.content.encode(into: encoder, offset: offset)
     }
 }
 
@@ -347,13 +349,14 @@ extension YItem {
         self.content.delete(transaction)
     }
 
-    func gc(_ store: YStructStore, parentGC: Bool) throws {
-        if !self.deleted { throw YSwiftError.unexpectedCase }
+    func gc(_ store: YStructStore, parentGC: Bool) {
+        assert(!self.deleted, "Deleted")
+//        if { throw YSwiftError.unexpectedCase }
         
-        try self.content.gc(store)
+        self.content.gc(store)
         
         if parentGC {
-            try store.replaceStruct(self, newStruct: YGC(id: self.id, length: self.length))
+            store.replaceStruct(self, newStruct: YGC(id: self.id, length: self.length))
         } else {
             self.content = YDeletedContent(self.length)
         }
@@ -409,7 +412,7 @@ extension YItem {
     }
 
     func redo(_ transaction: YTransaction, redoitems: Set<YItem>, itemsToDelete: YDeleteSet, ignoreRemoteMapChanges: Bool) throws -> YItem? {
-        if let redone = self.redone { return try YStructStore.getItemCleanStart(transaction, id: redone) }
+        if let redone = self.redone { return YStructStore.getItemCleanStart(transaction, id: redone) }
         
         let doc = transaction.doc
         let store = doc.store
@@ -429,7 +432,7 @@ extension YItem {
             }
             
             while let redone = uparentItem.redone {
-                parentItem = try YStructStore.getItemCleanStart(transaction, id: redone)
+                parentItem = YStructStore.getItemCleanStart(transaction, id: redone)
             }
             
         }
@@ -453,7 +456,7 @@ extension YItem {
                 
                 while let uleftTrace = leftTrace, uleftTrace.parent?.object?.item !== parentItem {
                     guard let redone = uleftTrace.redone else { leftTrace = nil; break }
-                    leftTrace = try YStructStore.getItemCleanStart(transaction, id: redone)
+                    leftTrace = YStructStore.getItemCleanStart(transaction, id: redone)
                 }
                 if let uleftTrace = leftTrace, uleftTrace.parent?.object?.item === parentItem {
                     left = uleftTrace; break
@@ -467,7 +470,7 @@ extension YItem {
                 
                 while let urightTrace = rightTrace, urightTrace.parent?.object?.item !== parentItem {
                     if let redone = urightTrace.redone {
-                        rightTrace = try YStructStore.getItemCleanStart(transaction, id: redone)
+                        rightTrace = YStructStore.getItemCleanStart(transaction, id: redone)
                     } else {
                         rightTrace = nil
                         break
@@ -489,7 +492,7 @@ extension YItem {
                     left = uleft.right
                 }
                 while let redone = (left as? YItem)?.redone {
-                    left = try YStructStore.getItemCleanStart(transaction, id: redone)
+                    left = YStructStore.getItemCleanStart(transaction, id: redone)
                 }
                 if let uleft = left as? YItem, uleft.right != nil {
                     return nil

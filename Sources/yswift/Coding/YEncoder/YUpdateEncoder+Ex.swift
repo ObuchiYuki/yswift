@@ -31,10 +31,10 @@ extension YDocument {
 }
 
 extension YUpdateEncoder {
-    func writeStructs(structs: RefArray<YStruct>, client: Int, clock: Int) throws {
+    func writeStructs(structs: RefArray<YStruct>, client: Int, clock: Int) {
         // write first id
         let clock = max(clock, structs[0].id.clock) // make sure the first id exists
-        let startNewStructs = try YStructStore.findIndexSS(structs: structs, clock: clock)
+        let startNewStructs = YStructStore.findIndexSS(structs: structs, clock: clock)
             
         // write # encoded structs
         self.restEncoder.writeUInt(UInt(structs.count - startNewStructs))
@@ -43,13 +43,13 @@ extension YUpdateEncoder {
             
         let firstStruct = structs[startNewStructs]
         // write first struct with an offset
-        try firstStruct.encode(into: self, offset: clock - firstStruct.id.clock)
+        firstStruct.encode(into: self, offset: clock - firstStruct.id.clock)
         for i in (startNewStructs + 1)..<structs.count {
-            try structs[i].encode(into: self, offset: 0)
+            structs[i].encode(into: self, offset: 0)
         }
     }
     
-    func writeClientsStructs(store: YStructStore, stateVector: [Int: Int]) throws {
+    func writeClientsStructs(store: YStructStore, stateVector: [Int: Int]) {
         // we filter all valid _sm entries into sm
         var _stateVector = [Int: Int]()
         
@@ -64,17 +64,17 @@ extension YUpdateEncoder {
         
         for (client, clock) in _stateVector.sorted(by: { $0.key > $1.key }) {
             guard let structs = store.clients[client] else { continue }
-            try self.writeStructs(structs: structs, client: client, clock: clock)
+            self.writeStructs(structs: structs, client: client, clock: clock)
         }
     }
     
-    func writeStructs(from transaction: YTransaction) throws {
-        try self.writeClientsStructs(store: transaction.doc.store, stateVector: transaction.beforeState)
+    func writeStructs(from transaction: YTransaction) {
+        self.writeClientsStructs(store: transaction.doc.store, stateVector: transaction.beforeState)
     }
     
-    func writeStateAsUpdate(doc: YDocument, targetStateVector: [Int: Int] = [:]) throws {
-        try self.writeClientsStructs(store: doc.store, stateVector: targetStateVector)
-        try YDeleteSet.createFromStructStore(doc.store).encode(into: self)
+    func writeStateAsUpdate(doc: YDocument, targetStateVector: [Int: Int] = [:]) {
+        self.writeClientsStructs(store: doc.store, stateVector: targetStateVector)
+        YDeleteSet.createFromStructStore(doc.store).encode(into: self)
     }
 
     public func encodeStateAsUpdate(doc: YDocument, encodedStateVector: Data? = nil) throws -> YUpdate {
@@ -84,7 +84,7 @@ extension YUpdateEncoder {
         
         let targetStateVector = try YDeleteSetDecoderV1(encodedStateVector).readStateVector()
         
-        try encoder.writeStateAsUpdate(doc: doc, targetStateVector: targetStateVector)
+        encoder.writeStateAsUpdate(doc: doc, targetStateVector: targetStateVector)
             
         var updates = [encoder.toUpdate()]
         // also add the pending updates (if there are any)
