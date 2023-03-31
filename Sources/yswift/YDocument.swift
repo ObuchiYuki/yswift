@@ -7,48 +7,47 @@
 
 import Foundation
 import Promise
+import Combine
 
 public class YDocument: LZObservable, JSHashable {
-    public internal(set) var gc: Bool
-    public internal(set) var guid: String
-    public internal(set) var clientID: Int
+    public let guid: String
+    public let gc: Bool
+    
     public internal(set) var collectionid: String?
-    public internal(set) var share: [String: YOpaqueObject]
-    public internal(set) var store: YStructStore
-    public internal(set) var subdocs: Set<YDocument>
-    public internal(set) var shouldLoad: Bool
-    public internal(set) var autoLoad: Bool
-    public internal(set) var meta: Any?
-    public internal(set) var isLoaded: Bool
-    public internal(set) var isSynced: Bool
+    public internal(set) var clientID: Int
+    
+    public var subdocs: Set<YDocument> = []
+    
+    public var shouldLoad: Bool
+    public var autoLoad: Bool
+    
+    public var meta: Any?
+    public var isLoaded: Bool = false
+    public var isSynced: Bool = false
     
     public internal(set) var whenLoaded: Promise<Void, Never>!
     public internal(set) var whenSynced: Promise<Void, Never>!
     
+    var share: [String: YOpaqueObject] = [:]
+    let store = YStructStore()
+    
     var _gcFilter: (YItem) -> Bool
     var _item: YItem?
     var _transaction: YTransaction?
-    var _transactionCleanups: RefArray<YTransaction>
+    var _transactionCleanups: RefArray<YTransaction> = []
+    
+    var _subdocGuids: Set<String> { Set(self.subdocs.map{ $0.guid }) }
 
-    public init(_ opts: Options = Options()) {
+    public init(_ options: Options = Options()) {
+        self.gc = options.gc
+        self.clientID = options.cliendID ?? YDocument.generateNewClientID()
+        self.guid = options.guid ?? YDocument.generateDocGuid()
+        self.collectionid = options.collectionid
+        self.shouldLoad = options.shouldLoad
+        self.autoLoad = options.autoLoad
+        self.meta = options.meta
         
-        self.gc = opts.gc
-        self.clientID = opts.cliendID ?? YDocument.generateNewClientID()
-        self.guid = opts.guid ?? YDocument.generateDocGuid()
-        self.collectionid = opts.collectionid
-        self.share = [:]
-        self.store = YStructStore()
-        self.subdocs = Set()
-        self.shouldLoad = opts.shouldLoad
-        self.autoLoad = opts.autoLoad
-        self.meta = opts.meta
-        self.isLoaded = false
-        self.isSynced = false
-        
-        self._gcFilter = opts.gcFilter
-        self._item = nil
-        self._transaction = nil
-        self._transactionCleanups = []
+        self._gcFilter = options.gcFilter
         
         super.init()
         
@@ -71,13 +70,13 @@ public class YDocument: LZObservable, JSHashable {
             }
         }
         
-        self.on(On.sync, { isSynced in
+        self.on(On.sync) { isSynced in
             if isSynced == false && self.isSynced {
                 self.whenSynced = provideSyncedPromise()
             }
             self.isSynced = isSynced
             if !self.isLoaded { self.emit(On.load, ()) }
-        })
+        }
         self.whenSynced = provideSyncedPromise()
     }
 
@@ -91,68 +90,61 @@ public class YDocument: LZObservable, JSHashable {
         self.shouldLoad = true
     }
 
-    public func getSubdocs() -> Set<YDocument> { return self.subdocs }
-
-    public func getSubdocGuids() -> Set<String> { Set(self.subdocs.map{ $0.guid }) }
-
     public func transact(origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) rethrows {
         try YTransaction.transact(self, origin: origin, local: local, body)
     }
 
-    public func get<T: YOpaqueObject>(_: T.Type, name: String = "", make: () -> T) -> T {
-        let type_ = self.share.setIfUndefined(name, {
-            let t = make()
-            t._integrate(self, item: nil)
-            return t
+    public func get<T: YOpaqueObject>(_ name: String = "", _ make: () -> T) -> T {
+        let object = self.share.setIfUndefined(name, {
+            let object = make()
+            object._integrate(self, item: nil)
+            return object
         }())
         
-        if T.self != YOpaqueObject.self && !(type_ is T) {
-            if type(of: type_) == YOpaqueObject.self {
-                let t = make()
-                t.storage = type_.storage
-                type_.storage.forEach({ _, n in
-                    var n: YItem? = n
-                    while n != nil {
-                        n!.parent = .object(t)
-                        n = n!.left as? YItem
-                    }
-                    
-                })
-                t._start = type_._start
-                var n = t._start; while n != nil {
-                    n!.parent = .object(t)
-                    n = n!.right as? YItem
-                }
-                t._length = type_._length
-                self.share[name] = t
-                t._integrate(self, item: nil)
-                return t
-            } else {
-                // TODO: throw
-                fatalError("Type with the name '\(name)' has already been defined with a different constructor")
+        if T.self != YOpaqueObject.self && !(object is T) {
+            guard type(of: object) == YOpaqueObject.self else {
+                fatalError("Type with the name '\(name)' has already been defined with a '\(type(of: object).self)'")
             }
+            
+            let newObject = make()
+            newObject.storage = object.storage
+            for item in object.storage.values {
+                for item in item.leftSequence() {
+                    item.parent = .object(newObject)
+                }
+            }
+            newObject._start = object._start
+            for item in YItem.RightSequence(start: newObject._start) {
+                item.parent = .object(newObject)
+            }
+            
+            newObject._length = object._length
+            self.share[name] = newObject
+            newObject._integrate(self, item: nil)
+            return newObject
         }
-        return type_ as! T
+        
+        return object as! T
     }
 
-    public func getMap<T>(_: T.Type, _ name: String = "") -> YMap<T> {
+    public func getMap<T: YElement>(_: T.Type, _ name: String = "") -> YMap<T> {
         YMap(opaque: self.getOpaqueMap(name))
     }
     
-    public func getArray<T>(_: T.Type, name: String = "") -> YArray<T> {
+    public func getArray<T: YElement>(_: T.Type, _ name: String = "") -> YArray<T> {
         YArray(opaque: self.getOpaqueArray(name))
     }
     
     public func getOpaqueMap(_ name: String = "") -> YOpaqueMap {
-        return self.get(YOpaqueMap.self, name: name, make: { YOpaqueMap.init(nil) })
+        self.get(name) { YOpaqueMap.init() }
     }
 
     public func getOpaqueArray(_ name: String = "") -> YOpaqueArray {
-        return self.get(YOpaqueArray.self, name: name, make: { YOpaqueArray.init() })
+        self.get(name) { YOpaqueArray.init() }
     }
     
     public func getText(_ name: String = "") -> YText {
-        return self.get(YText.self, name: name, make: { YText.init() })
+        self.get(name) { YText.init() }
     }
     
     public func toJSON() -> [String: Any] {
@@ -196,6 +188,13 @@ public class YDocument: LZObservable, JSHashable {
 }
 
 extension YDocument {
+    public var updatePublisher: some Publisher<YUpdate, Never> {
+        self.publisher(for: On.update).map{ $0.update }
+    }
+    public var updateV2Publisher: some Publisher<YUpdate, Never> {
+        self.publisher(for: On.updateV2).map{ $0.update }
+    }
+    
     public enum On {
         public static let load = YDocument.EventName<Void>("load")
         public static let sync = YDocument.EventName<Bool>("sync")

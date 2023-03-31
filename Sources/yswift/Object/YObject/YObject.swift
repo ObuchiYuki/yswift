@@ -39,11 +39,7 @@ open class YObject: YOpaqueObject {
         if !YObject.decodingFromContent { self._setValue(property.initialValue().encodeToOpaque(), for: key) }
     }
     
-    public func register<T: YElement>(_ property: YArray<T>, for key: String) {
-        self._setValue(property.opaque, for: key)
-    }
-    
-    public func register<T: YElement>(_ property: YMap<T>, for key: String) {
+    public func register<T: YWrapperObject>(_ property: T, for key: String) {
         self._setValue(property.opaque, for: key)
     }
 

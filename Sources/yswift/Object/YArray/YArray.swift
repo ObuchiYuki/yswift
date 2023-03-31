@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-final public class YArray<Element: YElement> {
+final public class YArray<Element: YElement>: YWrapperObject {
     public let opaque: YOpaqueArray
     
     public var count: Int { self.opaque.count }
@@ -36,11 +36,15 @@ final public class YArray<Element: YElement> {
         self.opaque.insert(content.encodeToOpaque(), at: index)
     }
     public func insert<S: Sequence>(contentsOf contents: S, at index: Int) where S.Element == Element {
-        self.opaque.insert(contents.map{ $0.encodeToOpaque() }, at: index)
+        self.opaque.insert(contentsOf: contents.map{ $0.encodeToOpaque() }, at: index)
     }
 
-    public func remove(at index: Int, count: Int = 1) {
-        opaque.remove(index)
+    public func remove(at index: Int) {
+        opaque.remove(index, count: 1)
+    }
+    public func remove<R: _RangeExpression>(at range: R) {
+        let range = range.relative(to: self.count)
+        opaque.remove(range.lowerBound, count: range.count)
     }
     
     public func copy() -> YArray<Element> {
@@ -83,7 +87,7 @@ extension YArray: CustomStringConvertible {
 
 extension YArray: Sequence {
     public func makeIterator() -> some IteratorProtocol<Element> {
-        self.opaque.lazy.map{ Element.decode(from: $0) }.makeIterator()
+        return self.opaque.lazy.map{ Element.decode(from: $0) }.makeIterator()
     }
 }
 

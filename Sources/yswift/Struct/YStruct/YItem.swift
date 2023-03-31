@@ -412,114 +412,34 @@ extension YItem {
         self.length = diff
         return rightItem
     }
+}
 
-    func redo(_ transaction: YTransaction, redoitems: Set<YItem>, itemsToDelete: YDeleteSet, ignoreRemoteMapChanges: Bool) -> YItem? {
-        if let redone = self.redone { return YStructStore.getItemCleanStart(transaction, id: redone) }
+extension YItem {
+    // TODO: Fix
+    struct RightSequence: Sequence {
+        let start: YItem?
         
-        let doc = transaction.doc
-        let store = doc.store
-        let ownClientID = doc.clientID
-        
-        var parentItem = self.parent!.object!.item
-        var left: YStruct? = nil
-        var right: YStruct? = nil
-
-        if let uparentItem = parentItem, uparentItem.deleted {
-            
-            if uparentItem.redone == nil {
-                if !redoitems.contains(uparentItem) { return nil }
-                let redo = uparentItem
-                    .redo(transaction, redoitems: redoitems, itemsToDelete: itemsToDelete, ignoreRemoteMapChanges: ignoreRemoteMapChanges)
-                if redo == nil { return nil }
+        func makeIterator() -> some IteratorProtocol<YItem> {
+            struct Iterator: IteratorProtocol {
+                var item: YItem?
+                mutating func next() -> YItem? { defer{ item = item?.right as? YItem }; return item }
             }
-            
-            while let redone = uparentItem.redone {
-                parentItem = YStructStore.getItemCleanStart(transaction, id: redone)
-            }
-            
+            return Iterator(item: start)
         }
-        
-        let parentType: YOpaqueObject
-        
-        if let parentContent = parentItem?.content as? YObjectContent {
-            parentType = parentContent.object
-        } else if let parentObject = self.parent?.object {
-            parentType = parentObject
-        } else {
-            return nil
-        }
-        
-        if self.parentKey == nil {
-            left = self.left
-            right = self
-            
-            while let uleft = left as? YItem {
-                var leftTrace: YItem? = uleft
-                
-                while let uleftTrace = leftTrace, uleftTrace.parent?.object?.item !== parentItem {
-                    guard let redone = uleftTrace.redone else { leftTrace = nil; break }
-                    leftTrace = YStructStore.getItemCleanStart(transaction, id: redone)
-                }
-                if let uleftTrace = leftTrace, uleftTrace.parent?.object?.item === parentItem {
-                    left = uleftTrace; break
-                }
-                
-                left = uleft.left
-            }
-            
-            while let uright = right as? YItem {
-                var rightTrace: YItem? = uright
-                
-                while let urightTrace = rightTrace, urightTrace.parent?.object?.item !== parentItem {
-                    if let redone = urightTrace.redone {
-                        rightTrace = YStructStore.getItemCleanStart(transaction, id: redone)
-                    } else {
-                        rightTrace = nil
-                        break
-                    }
-                }
-                if let urightTrace = rightTrace, urightTrace.parent?.object?.item === parentItem {
-                    right = urightTrace
-                    break
-                }
-                right = uright.right
-            }
-            
-        } else {
-            right = nil
-            if self.right != nil && !ignoreRemoteMapChanges {
-                left = self
-                
-                while let uleft = left as? YItem, let leftRight = uleft.right, itemsToDelete.isDeleted(leftRight.id) {
-                    left = uleft.right
-                }
-                while let redone = (left as? YItem)?.redone {
-                    left = YStructStore.getItemCleanStart(transaction, id: redone)
-                }
-                if let uleft = left as? YItem, uleft.right != nil {
-                    return nil
-                }
-            } else if let parentKey = self.parentKey {
-                left = parentType.storage[parentKey]
-            } else {
-                assertionFailure()
-            }
-        }
-        let nextClock = store.getState(ownClientID)
-        let nextId = YID(client: ownClientID, clock: nextClock)
-        let redoneItem = YItem(
-            id: nextId,
-            left: left,
-            origin: (left as? YItem)?.lastID,
-            right: right,
-            rightOrigin: right?.id,
-            parent: .object(parentType),
-            parentSub: self.parentKey,
-            content: self.content.copy()
-        )
-        self.redone = nextId
-        redoneItem.keepRecursive(keep: true)
-        redoneItem.integrate(transaction: transaction, offset: 0)
-        return redoneItem
     }
+    
+    struct LeftSequence: Sequence {
+        let start: YItem?
+                
+        func makeIterator() -> some IteratorProtocol<YItem> {
+            struct Iterator: IteratorProtocol {
+                var item: YItem?
+                mutating func next() -> YItem? { defer{ item = item?.left as? YItem }; return item }
+            }
+            return Iterator(item: start)
+        }
+    }
+    
+    func rightSequence() -> some Sequence<YItem> { RightSequence(start: self) }
+    func leftSequence() -> some Sequence<YItem> { LeftSequence(start: self) }
 }

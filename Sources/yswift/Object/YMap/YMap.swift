@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-final public class YMap<Value: YElement> {
+final public class YMap<Value: YElement>: YWrapperObject {
     public let opaque: YOpaqueMap
     
     public init(opaque: YOpaqueMap) { self.opaque = opaque }

@@ -520,10 +520,9 @@ final class YTextTests: XCTestCase {
     }
 
     func testSnapshot() throws {
-        let test = try YTest<Any>(docs: 1)
+        let test = try YTest<Any>(docs: 1, gc: false)
         let text0 = test.text[0], doc0 = test.docs[0]
         
-        doc0.gc = false;
         text0.applyDelta([
             YEventDelta(insert: "abcd"),
         ])
@@ -561,10 +560,9 @@ final class YTextTests: XCTestCase {
     }
 
     func testSnapshotDeleteAfter() throws {
-        let test = try YTest<Any>(docs: 1)
+        let test = try YTest<Any>(docs: 1, gc: false)
         let text0 = test.text[0], doc0 = test.docs[0]
         
-        doc0.gc = false
         text0.applyDelta([
             YEventDelta(insert: "abcd"),
         ])

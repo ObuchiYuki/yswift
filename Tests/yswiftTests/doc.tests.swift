@@ -138,12 +138,12 @@ final class DocTests: XCTestCase {
             subdocs.set("c", value: docC)
             XCTAssertEqual(event, [["c"], [], ["c"]])
 
-            XCTAssertEqual(doc.getSubdocGuids(), ["a", "c"])
+            XCTAssertEqual(doc._subdocGuids, ["a", "c"])
         }
 
         let doc2 = YDocument()
         do {
-            XCTAssertTrue(doc2.getSubdocs().isEmpty)
+            XCTAssertTrue(doc2.subdocs.isEmpty)
             var event: [Set<String>]? = nil
             
             doc2.on(YDocument.On.subdocs) { subdocs, _ in
@@ -160,11 +160,11 @@ final class DocTests: XCTestCase {
             (doc2.getOpaqueMap("mysubdocs")["a"] as! YDocument).load()
             XCTAssertEqual(event, [[], [], ["a"]])
 
-            XCTAssertEqual(doc2.getSubdocGuids(), ["a", "c"])
+            XCTAssertEqual(doc2._subdocGuids, ["a", "c"])
 
             doc2.getOpaqueMap("mysubdocs").removeValue(forKey: "a")
             XCTAssertEqual(event, [[], ["a"], []])
-            XCTAssertEqual(doc2.getSubdocGuids(), ["a", "c"])
+            XCTAssertEqual(doc2._subdocGuids, ["a", "c"])
         }
     }
 
@@ -258,7 +258,7 @@ final class DocTests: XCTestCase {
     func testSubdocsUndo() throws {
         let ydoc = YDocument()
         let elems = ydoc.getOpaqueArray()
-        let undoManager = YUndoManager(typeScope: elems, options: .init())
+        let undoManager = YUndoManager(elems)
         let subdoc = YDocument()
         elems.insert(subdoc, at: 0)
         undoManager.undo()

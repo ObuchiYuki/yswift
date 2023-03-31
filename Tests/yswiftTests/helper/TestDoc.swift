@@ -15,11 +15,11 @@ class TestDoc: YDocument {
     var receiving: [TestDoc: Ref<[Data]>] = [:]
     var updates: Ref<[YUpdate]> = Ref(value: [])
     
-    init(userID: Int, connector: TestConnector) throws {
+    init(userID: Int, connector: TestConnector, gc: Bool) throws {
         self.userID = userID
         self.connector = connector
         
-        super.init()
+        super.init(Options(gc: gc))
         
         connector.connections.insert(self)
         

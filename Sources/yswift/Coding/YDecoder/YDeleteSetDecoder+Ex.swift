@@ -12,10 +12,10 @@ extension YDeleteSetDecoder {
         var ss = [Int:Int]()
         let ssLength = try self.restDecoder.readUInt()
         for _ in 0..<ssLength {
-            let client = try self.restDecoder.readUInt()
-            let clock = try self.restDecoder.readUInt()
+            let client = try Int(self.restDecoder.readUInt())
+            let clock = try Int(self.restDecoder.readUInt())
             
-            ss[Int(client)] = Int(clock)
+            ss[client] = clock
         }
         return ss
     }

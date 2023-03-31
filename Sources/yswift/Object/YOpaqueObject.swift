@@ -130,3 +130,11 @@ extension YOpaqueObject {
 //        throw YSwiftError.unexpectedCase
     }
 }
+
+public protocol YWrapperObject {
+    associatedtype Opaque: YOpaqueObject
+    
+    var opaque: Opaque { get }
+    
+    init(opaque: Opaque)
+}

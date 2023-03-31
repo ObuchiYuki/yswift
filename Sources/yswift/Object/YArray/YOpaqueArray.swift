@@ -25,6 +25,8 @@ final public class YOpaqueArray: YOpaqueObject {
     }
     
     public func append(contentsOf contents: [Any?]) {
+        assert(!contents.contains(where: { $0 is any YWrapperObject }), "You should not put wrapper directory to opaque object.")
+        
         if let doc = self.doc {
             doc.transact{ self.listPush(contents, $0) }
         } else {
@@ -33,6 +35,8 @@ final public class YOpaqueArray: YOpaqueObject {
     }
     
     public func insert(contentsOf contents: [Any?], at index: Int) {
+        assert(!contents.contains(where: { $0 is any YWrapperObject }), "You should not put wrapper directory to opaque object.")
+        
         if let doc = self.doc {
             doc.transact{ self.listInsert(contents, at: index, $0) }
         } else {
@@ -63,7 +67,7 @@ final public class YOpaqueArray: YOpaqueObject {
     }
         
     public func slice(_ start: Int = 0, end: Int? = nil) -> [Any?] {
-        let end = end ?? Int(self.count)
+        let end = end ?? self.count
         return self.listSlice(start: start, end: end)
     }
     

@@ -32,21 +32,21 @@ final public class YTransaction {
     
     public let origin: Any?
     
-    public var deleteSet: YDeleteSet = YDeleteSet()
+    var deleteSet: YDeleteSet = YDeleteSet()
     
-    public var beforeState: [Int: Int] = [:]
+    var beforeState: [Int: Int] = [:]
 
-    public var afterState: [Int: Int] = [:]
+    var afterState: [Int: Int] = [:]
 
-    public var changed: [YOpaqueObject: Set<String?>] = [:] // Map<Object_<YEvent<any>>, Set<String?>>
+    var changed: [YOpaqueObject: Set<String?>] = [:] // Map<Object_<YEvent<any>>, Set<String?>>
 
-    public var changedParentTypes: [YOpaqueObject: [YEvent]] = [:] //[Object_<YEvent<any>>: YEvent<any][]> = [:]
+    var changedParentTypes: [YOpaqueObject: [YEvent]] = [:] //[Object_<YEvent<any>>: YEvent<any][]> = [:]
 
     public var meta: [AnyHashable: Any] = [:]
 
-    public var subdocsAdded: Set<YDocument> = Set()
-    public var subdocsRemoved: Set<YDocument> = Set()
-    public var subdocsLoaded: Set<YDocument> = Set()
+    var subdocsAdded: Set<YDocument> = Set()
+    var subdocsRemoved: Set<YDocument> = Set()
+    var subdocsLoaded: Set<YDocument> = Set()
     
     var _mergeStructs: RefArray<YStruct> = []
 

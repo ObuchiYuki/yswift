@@ -13,12 +13,12 @@ final class EncodingTests: XCTestCase {
         let ydoc2 = YDocument()
         let pd1 = try YPermanentUserData(doc: ydoc1, storeType: nil)
         let pd2 = try YPermanentUserData(doc: ydoc2, storeType: nil)
-        try pd1.setUserMapping(doc: ydoc1, clientid: Int(ydoc1.clientID), userDescription: "user a")
-        try pd2.setUserMapping(doc: ydoc2, clientid: Int(ydoc2.clientID), userDescription: "user b")
-        try ydoc1.getText().insert(0, text: "xhi")
-        try ydoc1.getText().delete(0, length: 1)
-        try ydoc2.getText().insert(0, text: "hxxi")
-        try ydoc2.getText().delete(1, length: 2)
+        try pd1.setUserMapping(doc: ydoc1, clientid: ydoc1.clientID, userDescription: "user a")
+        try pd2.setUserMapping(doc: ydoc2, clientid: ydoc2.clientID, userDescription: "user b")
+        ydoc1.getText().insert(0, text: "xhi")
+        ydoc1.getText().delete(0, length: 1)
+        ydoc2.getText().insert(0, text: "hxxi")
+        ydoc2.getText().delete(1, length: 2)
         
         await Promise.wait(for: 1).value()
         
@@ -29,14 +29,14 @@ final class EncodingTests: XCTestCase {
         let ydoc3 = YDocument()
         try ydoc3.applyUpdate(ydoc1.encodeStateAsUpdate())
         let pd3 = try YPermanentUserData(doc: ydoc3, storeType: nil)
-        try pd3.setUserMapping(doc: ydoc3, clientid: Int(ydoc3.clientID), userDescription: "user a")
+        try pd3.setUserMapping(doc: ydoc3, clientid: ydoc3.clientID, userDescription: "user a")
     }
     
     
     func testDiffStateVectorOfUpdateIsEmpty() throws {
         let ydoc = YDocument()
         var sv: Data? = nil
-        try ydoc.getText().insert(0, text: "a")
+        ydoc.getText().insert(0, text: "a")
         ydoc.on(YDocument.On.update) { update, _, _ in
             do {
                 sv = try update.encodeStateVectorFromUpdate()
@@ -45,7 +45,7 @@ final class EncodingTests: XCTestCase {
             }
         }
         
-        try ydoc.getText().insert(0, text: "a")
+        ydoc.getText().insert(0, text: "a")
         try XCTAssertEqual(XCTUnwrap(sv).map{ $0 }, [0])
     }
 
@@ -55,9 +55,9 @@ final class EncodingTests: XCTestCase {
         ydoc.on(YDocument.On.update) { update, _, _ in
             updates.append(update)
         }
-        try ydoc.getText().insert(0, text: "a")
-        try ydoc.getText().insert(0, text: "b")
-        try ydoc.getText().insert(0, text: "c")
+        ydoc.getText().insert(0, text: "a")
+        ydoc.getText().insert(0, text: "b")
+        ydoc.getText().insert(0, text: "c")
                 
         let update13 = try YUpdate.merged([updates[0], updates[2]])
                 

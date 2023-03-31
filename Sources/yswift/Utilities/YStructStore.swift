@@ -20,7 +20,7 @@ final class PendingStrcut: CustomStringConvertible {
     var description: String { "PendingStrcut(missing: \(missing), update: \(update))" }
 }
 
-final public class YStructStore {
+final class YStructStore {
     var clients: [Int: RefArray<YStruct>] = [:]
     var pendingStructs: PendingStrcut? = nil
     var pendingDs: YUpdate? = nil
@@ -28,7 +28,7 @@ final public class YStructStore {
     init() {}
 
     /** Return the states as a Map<client,clock>. Note that clock refers to the next expected clock id. */
-    public func getStateVector() -> [Int: Int] {
+    func getStateVector() -> [Int: Int] {
         var sm = [Int: Int]()
         self.clients.forEach({ client, structs in
             let struct_ = structs[structs.count - 1]
@@ -92,7 +92,7 @@ final public class YStructStore {
         let index = self.findIndexCleanStart(
             transaction: transaction,
             structs: transaction.doc.store.clients[id.client]!,
-            clock: Int(id.clock)
+            clock: id.clock
         )
 
         return transaction.doc.store.clients[id.client]![index] as! YItem

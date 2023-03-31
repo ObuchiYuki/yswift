@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Promise
+import Combine
 
 public class LZObservable {
     public struct EventName<Arguments> {
@@ -19,6 +19,7 @@ public class LZObservable {
     }
     
     private var _observers: [String: [UUID: (Any) -> Void]] = [:]
+    private var _pubilshers: [String: Any] = [:]
     
     public init() {}
     
@@ -33,7 +34,18 @@ public class LZObservable {
         self._observers[event.name]![disposer.id] = { value in
             observer(value as! Args)
         }
+        
         return disposer
+    }
+    
+    public func publisher<Args>(for event: EventName<Args>) -> some Publisher<Args, Never> {
+        if let publisher = self._pubilshers[event.name] {
+            return publisher as! PassthroughSubject<Args, Never>
+        }
+        let publisher = PassthroughSubject<Args, Never>()
+        self.on(event) { publisher.send($0) }
+        self._pubilshers[event.name] = publisher
+        return publisher
     }
     
     @discardableResult
@@ -44,14 +56,6 @@ public class LZObservable {
             self.off(event, disposer)
         }
         return disposer
-    }
-    
-    public func once<Args>(_ event: EventName<Args>) -> Promise<Args, Never> {
-        Promise{ resolve, reject in
-            self.once(event, {
-                resolve($0)
-            })
-        }
     }
 
     public func off<Args>(_ event: EventName<Args>, _ disposer: Disposer) {
@@ -68,5 +72,7 @@ public class LZObservable {
     
     public func destroy() {
         self._observers = [:]
+        self._pubilshers = [:]
     }
 }
+

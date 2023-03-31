@@ -94,7 +94,7 @@ final class YArraySearchMarker {
 
         guard let item = item, let lobject = item.parent?.object as? YText_or_YArray else { return nil }
 
-        let len = Int(lobject.count) / YArraySearchMarker.maxSearchMarker
+        let len = lobject.count / YArraySearchMarker.maxSearchMarker
         if let marker = marker, abs(marker.index - pindex) < len {
             // adjust existing marker
             marker.overwrite(item, index: pindex)

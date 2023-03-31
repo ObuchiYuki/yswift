@@ -22,7 +22,10 @@ public struct YUpdate {
 extension YUpdate: Equatable, Hashable {}
 
 extension YUpdate: CustomDebugStringConvertible {
-    public var debugDescription: String { self.data.map{ $0 }.description }
+    public var debugDescription: String {
+        let components = self.data.map{ $0.description }.joined(separator: ", ")
+        return "YUpdate[\(self.data.count)](\(components))"
+    }
 }
 
 extension YUpdate {
@@ -138,12 +141,12 @@ extension YUpdate {
             var currClient = curr!.id.client
             var currClock = curr!.id.clock
             // write the beginning to `from`
-            from[Int(currClient)] = Int(currClock)
+            from[currClient] = currClock
             
             while curr != nil {
                 if currClient != curr!.id.client {
-                    to[Int(currClient)] = Int(currClock)
-                    from[Int(curr!.id.client)] = Int(curr!.id.clock)
+                    to[currClient] = currClock
+                    from[curr!.id.client] = curr!.id.clock
                     currClient = curr!.id.client
                 }
                 currClock = curr!.id.clock + curr!.length
@@ -151,7 +154,7 @@ extension YUpdate {
                 curr = try updateDecoder.next()
             }
             
-            to[Int(currClient)] = Int(currClock)
+            to[currClient] = currClock
         }
         return YUpdateMeta(from: from, to: to)
     }

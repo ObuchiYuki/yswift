@@ -40,6 +40,7 @@ struct YTest<T> {
         docs doccount: Int,
         seed: Int32 = 0,
         debugLog: Bool = false,
+        gc: Bool = true,
         initTestObject: ((TestDoc) -> T)? = nil
     ) throws {
         let randomGenerator = RandomGenerator(seed: seed)
@@ -51,7 +52,7 @@ struct YTest<T> {
         var text = [YText]()
         
         for i in 0..<doccount {
-            let doc = try TestDoc(userID: i, connector: connector)
+            let doc = try TestDoc(userID: i, connector: connector, gc: gc)
             doc.clientID = i
             docs.append(doc)
             array.append(doc.getOpaqueArray("array"))

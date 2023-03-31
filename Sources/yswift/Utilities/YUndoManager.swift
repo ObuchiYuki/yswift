@@ -1,202 +1,216 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by yuki on 2023/03/17.
 //
 
 import Foundation
+import Combine
 
-public protocol Object_or_ObjectArray {}
-extension YOpaqueObject: Object_or_ObjectArray {}
-extension [YOpaqueObject]: Object_or_ObjectArray {}
 
-extension Object_or_ObjectArray {
-    var doc: YDocument? {
-        if let type = self as? YOpaqueObject {
-            return type.doc
-        }
-        if let typea = self as? [YOpaqueObject] {
-            return typea[0].doc
-        }
-        return nil
-    }
+
+final public class YUndoManager: JSHashable {
     
-    var asObjectArray: [YOpaqueObject] {
-        if let type = self as? YOpaqueObject {
-            return [type]
-        }
-        if let typea = self as? [YOpaqueObject] {
-            return typea
-        }
-        fatalError()
-    }
-}
-
-final class StructRedone {
-    let item: YItem
-    let diff: Int
+    public let doc: YDocument
+    public let trackedOrigins: TrackOrigins
     
-    init(item: YItem, diff: Int) {
-        self.item = item
-        self.diff = diff
-    }
-}
-
-func followRedone(store: YStructStore, id: YID) -> StructRedone {
-    var nextID: YID? = id
-    var diff = 0
-    var item: YStruct? = nil
-    repeat {
-        if diff > 0 {
-            nextID = YID(client: nextID!.client, clock: nextID!.clock + diff)
-        }
-        item = store.find(nextID!)
-        diff = Int(nextID!.clock - item!.id.clock)
-        nextID = (item as? YItem)?.redone
-    } while (nextID != nil && item is YItem)
+    public private(set) var undoing: Bool = false
+    public private(set) var redoing: Bool = false
     
-    return StructRedone(item: item as! YItem, diff: diff)
-}
-
-public class StackItem {
-    public var deletions: YDeleteSet
-    public var insertions: YDeleteSet
-
-    public var meta: [String: Any]
-
-    public init(_ deletions: YDeleteSet, insertions: YDeleteSet) {
-        self.insertions = insertions
-        self.deletions = deletions
-        self.meta = [:]
-    }
-}
-
-final public class YUndoManager: LZObservable, JSHashable {
+    public var stackCleanred: some Publisher<CleanEvent, Never> { _stackCleanred }
+    public var stackItemAdded: some Publisher<YUndoManager.ChangeEvent, Never> { _stackItemAdded }
+    public var stackItemPopped: some Publisher<YUndoManager.ChangeEvent, Never> { _stackItemPopped }
+    public var stackItemUpdated: some Publisher<YUndoManager.ChangeEvent, Never> { _stackItemUpdated }
     
-    public private(set) var undoing: Bool
-    public private(set) var redoing: Bool
-    public private(set) var doc: YDocument
-    public private(set) var lastChange: Date
-    public private(set) var ignoreRemoteMapChanges: Bool
+    private let _stackCleanred = PassthroughSubject<CleanEvent, Never>()
+    private let _stackItemAdded = PassthroughSubject<YUndoManager.ChangeEvent, Never>()
+    private let _stackItemPopped = PassthroughSubject<YUndoManager.ChangeEvent, Never>()
+    private let _stackItemUpdated = PassthroughSubject<YUndoManager.ChangeEvent, Never>()
 
-    private let scope: RefArray<YOpaqueObject> = []
-    private let deleteFilter: (YItem) -> Bool
-    private var trackedOrigins: Ref<Set<AnyHashable?>>
-    private var captureTransaction: (YTransaction) -> Bool
-    private var undoStack: Ref<[StackItem]>
-    private var redoStack: Ref<[StackItem]>
+    let scope: RefArray<YOpaqueObject> = []
+    let deleteFilter: (YItem) -> Bool
+    let captureTimeout: TimeInterval
+    let ignoreRemoteMapChanges: Bool
     
-    private let captureTimeout: TimeInterval
+    var captureTransaction: (YTransaction) -> Bool
+    var undoStack: RefArray<StackItem> = []
+    var redoStack: RefArray<StackItem> = []
+    var lastChange: Date = Date.distantPast
+    
     private var afterTransactionDisposer: LZObservable.Disposer!
+    
+    public convenience init<T: YWrapperObject>(_ scope: T, options: Options = .make()) {
+        self.init([scope.opaque], options: options)
+    }
+    public convenience init<T: YWrapperObject>(_ scope: [T], options: Options = .make()) {
+        self.init(scope.map{ $0.opaque }, options: options)
+    }
+    public convenience init(_ scope: YOpaqueObject, options: Options = .make()) {
+        self.init([scope], options: options)
+    }
 
-    public init(typeScope: Object_or_ObjectArray, options: Options) {
+    public init(_ scope: [YOpaqueObject], options: Options = .make()) {
+        assert((options.document ?? scope[0].doc) != nil, "You must provide document.")
+        
         self.deleteFilter = options.deleteFilter
-        self.trackedOrigins = options.trackedOrigins
         self.captureTransaction = options.captureTransaction
-        self.undoStack = .init(value: [])
-        self.redoStack = .init(value: [])
-        self.undoing = false
-        self.redoing = false
-        self.doc = options.doc ?? typeScope.doc!
-        self.lastChange = Date.distantPast
+        self.doc = options.document ?? scope[0].doc!
         self.ignoreRemoteMapChanges = options.ignoreRemoteMapChanges
         self.captureTimeout = options.captureTimeout
+        self.trackedOrigins = options.trackedOrigins
+                
+        self.addToScope(scope)
+        self.trackedOrigins.append(self)
         
-        super.init()
-        
-        self.addToScope(typeScope)
-        self.trackedOrigins.value.insert(self)
-        
-        self.afterTransactionDisposer = self.doc.on(YDocument.On.afterTransaction) { transaction in
-            // Only track certain transactions
-            if (
-                !self.captureTransaction(transaction)
-                || !self.scope.contains(where: { transaction.changedParentTypes.keys.contains($0) })
-                || (!self.trackedOrigins.contains(transaction.origin as? AnyHashable)
-                    
-                    // TODO: implement this type of contains...
-//                    && (transaction.origin == nil || !self.trackedOrigins.contains(type(of: transaction.origin)))
-                    
-                   )
-            ) {
-                return
-            }
-            let undoing = self.undoing
-            let redoing = self.redoing
-            let stack = undoing ? self.redoStack : self.undoStack
-            if undoing {
-                self.stopCapturing() // next undo should not be appended to last stack item
-            } else if !redoing {
-                // neither undoing nor redoing: delete redoStack
-                self.clear(false, clearRedoStack: true)
-            }
-            let insertions = YDeleteSet()
-            transaction.afterState.forEach({ client, endClock in
-                let startClock = transaction.beforeState[client] ?? 0
-                let len = endClock - startClock
-                if len > 0 {
-                    insertions.add(client: client, clock: startClock, length: len)
-                }
-            })
-            let now = Date()
-            var didAdd = false
-            if self.lastChange > Date.distantPast
-                && now.timeIntervalSince(self.lastChange) < self.captureTimeout
-                && stack.count > 0
-                && !undoing && !redoing {
-                // append change to last stack op
-                let lastOp = stack[stack.count - 1]
-                lastOp.deletions = YDeleteSet.mergeAll([lastOp.deletions, transaction.deleteSet])
-                lastOp.insertions = YDeleteSet.mergeAll([lastOp.insertions, insertions])
-            } else {
-                // create a stack op
-                stack.value.append(StackItem(transaction.deleteSet, insertions: insertions))
-                didAdd = true
-            }
-            if !undoing && !redoing {
-                self.lastChange = now
-            }
-            // make sure that deleted structs are not gc'd
-            transaction.deleteSet.iterate(transaction, body: { item in
-                if item is YItem && self.scope.contains(where: { type in type.isParentOf(child: (item as! YItem)) }) {
-                    (item as? YItem)?.keepRecursive(keep: true)
-                }
-            })
-
-            let changeEvent = ChangeEvent(
-                origin: transaction.origin,
-                stackItem: stack[stack.count - 1],
-                type: undoing ? .redo : .undo,
-                undoStackCleared: nil,
-                changedParentTypes: transaction.changedParentTypes
-            )
-
-            if didAdd {
-                self.emit(Event.stackItemAdded, changeEvent)
-            } else {
-                self.emit(Event.stackItemUpdated, changeEvent)
-            }
+        self.afterTransactionDisposer = self.doc.on(YDocument.On.afterTransaction) {
+            self.afterTransaction($0)
         }
+        
         self.doc.on(YDocument.On.destroy) {
             self.destroy()
         }
     }
 
-
-    public func clearStackItem(_ tr: YTransaction, stackItem: StackItem) {
-        stackItem.deletions.iterate(tr) { item in
-            if item is YItem && self.scope.contains(where: { type in type.isParentOf(child: (item as! YItem)) }) {
-                (item as? YItem)?.keepRecursive(keep: false)
+    public func addToScope<T: YWrapperObject>(_ object: T) {
+        self.addToScope([object])
+    }
+    public func addToScope(_ object: YOpaqueObject) {
+        self.addToScope([object])
+    }
+    public func addToScope<T: YWrapperObject>(_ objects: [T]) {
+        self.addToScope(objects.map{ $0.opaque })
+    }
+    public func addToScope(_ objects: [YOpaqueObject]) {
+        for object in objects {
+            if self.scope.allSatisfy({ $0 !== object }) {
+                self.scope.value.append(object)
             }
         }
     }
 
+    public func addTrackedOrigin(_ origin: Any?) {
+        self.trackedOrigins.append(origin)
+    }
+    public func removeTrackedOrigin(_ origin: Any?) {
+        self.trackedOrigins.remove(origin)
+    }
 
-    public func popStackItem(_ stack: Ref<[StackItem]>, eventType: EvnetType) -> StackItem? {
-        /** Whether a change happened */
+    public func clear(clearUndoStack: Bool = true, clearRedoStack: Bool = true) {
+        guard (clearUndoStack && self.canUndo()) || (clearRedoStack && self.canRedo()) else { return }
+        
+        self.doc.transact{ tr in
+            if clearUndoStack {
+                for item in undoStack { self.clearStackItem(tr, stackItem: item) }
+                self.undoStack = []
+            }
+            if clearRedoStack {
+                for item in self.redoStack { self.clearStackItem(tr, stackItem: item) }
+                self.redoStack = []
+            }
+            self._stackCleanred.send(CleanEvent(undoStackCleared: clearUndoStack, redoStackCleared: clearRedoStack))
+        }
+    }
+
+    public func stopCapturing() {
+        self.lastChange = Date.distantPast
+    }
+
+    @discardableResult
+    public func undo() -> StackItem? {
+        self.undoing = true; defer { self.undoing = false }
+        return self.popStackItem(self.undoStack, eventType: .undo)
+    }
+
+    @discardableResult
+    public func redo() -> StackItem? {
+        self.redoing = true; defer { self.redoing = false }
+        return self.popStackItem(self.redoStack, eventType: .redo)
+    }
+
+    public func canUndo() -> Bool { self.undoStack.count > 0 }
+
+    public func canRedo() -> Bool { self.redoStack.count > 0 }
+
+    public func destroy() {
+        self.trackedOrigins.remove(self)
+        self.doc.off(YDocument.On.afterTransaction, self.afterTransactionDisposer)
+    }
+    
+    private func clearStackItem(_ tr: YTransaction, stackItem: StackItem) {
+        stackItem.deletions.iterate(tr) { item in
+            if let item = item as? YItem, self.scope.contains(where: { $0.isParentOf(child: item) }) {
+                item.keepRecursive(keep: false)
+            }
+        }
+    }
+    
+    private func afterTransaction(_ transaction: YTransaction) {
+        // Only track certain transactions
+        guard self.captureTransaction(transaction) else { return }
+        guard self.scope.contains(where: { transaction.changedParentTypes.keys.contains($0) }) else { return }
+        
+        if let origin = transaction.origin,
+           !self.trackedOrigins.contains(transaction.origin as? AnyHashable),
+           !self.trackedOrigins.contains(type(of: origin).self) { return }
+        
+        let undoing = self.undoing
+        let redoing = self.redoing
+        let stack = undoing ? self.redoStack : self.undoStack
+        if undoing {
+            self.stopCapturing() // next undo should not be appended to last stack item
+        } else if !redoing {
+            // neither undoing nor redoing: delete redoStack
+            self.clear(clearUndoStack: false, clearRedoStack: true)
+        }
+        let insertions = YDeleteSet()
+        for (client, endClock) in transaction.afterState {
+            let startClock = transaction.beforeState[client] ?? 0
+            let len = endClock - startClock
+            if len > 0 {
+                insertions.add(client: client, clock: startClock, length: len)
+            }
+        }
+        
+        let now = Date()
+        var didAdd = false
+        if self.lastChange > Date.distantPast, now.timeIntervalSince(self.lastChange) < self.captureTimeout, stack.count > 0, !undoing, !redoing {
+            // append change to last stack op
+            let lastOp = stack[stack.count - 1]
+            lastOp.deletions = YDeleteSet.mergeAll([lastOp.deletions, transaction.deleteSet])
+            lastOp.insertions = YDeleteSet.mergeAll([lastOp.insertions, insertions])
+        } else {
+            // create a stack op
+            stack.value.append(StackItem(transaction.deleteSet, insertions: insertions))
+            didAdd = true
+        }
+        
+        if !undoing, !redoing { self.lastChange = now }
+        
+        // make sure that deleted structs are not gc'd
+        transaction.deleteSet.iterate(transaction) { item in
+            if let item = item as? YItem, self.scope.contains(where: { $0.isParentOf(child: item) }) {
+                item.keepRecursive(keep: true)
+            }
+        }
+
+        let changeEvent = ChangeEvent(
+            origin: transaction.origin,
+            stackItem: stack[stack.count - 1],
+            type: undoing ? .redo : .undo,
+            undoStackCleared: nil,
+            changedParentTypes: transaction.changedParentTypes
+        )
+
+        if didAdd {
+            self._stackItemAdded.send(changeEvent)
+        } else {
+            self._stackItemUpdated.send(changeEvent)
+        }
+    }
+    
+    private func popStackItem(_ stack: RefArray<StackItem>, eventType: EvnetType) -> StackItem? {
         var result: StackItem? = nil
-        /** Keep a reference to the transaction so we can fire the event with the changedParentTypes */
         var _tr: YTransaction? = nil
         let doc = self.doc
         let scope = self.scope
@@ -213,7 +227,7 @@ final public class YUndoManager: LZObservable, JSHashable {
                     var struct_ = struct_
                     if struct_ is YItem {
                         if (struct_ as! YItem).redone != nil {
-                            let redone = followRedone(store: store, id: struct_.id)
+                            let redone = StructRedone.followRedone(store: store, id: struct_.id)
                             var item = redone.item, diff = redone.diff
                             if diff > 0 {
                                 item = YStructStore.getItemCleanStart(transaction, id: YID(client: item.id.client, clock: item.id.clock + diff))
@@ -235,12 +249,15 @@ final public class YUndoManager: LZObservable, JSHashable {
                         itemsToRedo.insert(struct_ as! YItem)
                     }
                 }
-                itemsToRedo.forEach({ struct_ in
-                    performedChange = struct_
-                        .redo(transaction, redoitems: itemsToRedo, itemsToDelete: stackItem.insertions, ignoreRemoteMapChanges: self.ignoreRemoteMapChanges) != nil || performedChange
-                })
-                // We want to delete in reverse order so that children are deleted before
-                // parents, so we have more information available when items are filtered.
+                for struct_ in itemsToRedo {
+                    let redo = struct_
+                        .redo(transaction,
+                              redoitems: itemsToRedo,
+                              itemsToDelete: stackItem.insertions,
+                              ignoreRemoteMapChanges: self.ignoreRemoteMapChanges
+                        )
+                    performedChange = performedChange || redo != nil
+                }
                 for i in (0..<itemsToDelete.count).reversed() {
                     let item = itemsToDelete[i]
                     if self.deleteFilter(item) {
@@ -259,100 +276,64 @@ final public class YUndoManager: LZObservable, JSHashable {
             _tr = transaction
         }
         
-        if result != nil {
+        if let result = result {
             let changedParentTypes = _tr!.changedParentTypes
-            self.emit(
-                Event.stackItemPopped,
-                ChangeEvent(
-                    stackItem: result!,
-                    type: eventType,
-                    changedParentTypes: changedParentTypes
-                )
-            )
+            self._stackItemPopped.send(ChangeEvent(stackItem: result, type: eventType, changedParentTypes: changedParentTypes))
         }
         return result
     }
 
-
-    public func addToScope(_ ytypes: Object_or_ObjectArray) {
-        let ytypes = ytypes.asObjectArray
-        ytypes.forEach({ ytype in
-            if self.scope.allSatisfy({ $0 !== ytype }) {
-                self.scope.value.append(ytype)
-            }
-        })
-    }
-
-    public func addTrackedOrigin(_ origin: AnyHashable) {
-        self.trackedOrigins.value.insert(origin)
-    }
-
-    public func removeTrackedOrigin(_ origin: AnyHashable?) {
-        self.trackedOrigins.value.remove(origin)
-    }
-
-    public func clear(_ clearUndoStack: Bool = true, clearRedoStack: Bool = true) {
-        if (clearUndoStack && self.canUndo()) || (clearRedoStack && self.canRedo()) {
-            self.doc.transact({ tr in
-                if clearUndoStack {
-                    self.undoStack.forEach({ item in self.clearStackItem(tr, stackItem: item) })
-                    self.undoStack = .init(value: [])
-                }
-                if clearRedoStack {
-                    self.redoStack.forEach({ item in self.clearStackItem(tr, stackItem: item) })
-                    self.redoStack = .init(value: [])
-                }
-                self.emit(Event.stackCleanred, .init(undoStackCleared: clearUndoStack, redoStackCleared: clearRedoStack))
-            })
-        }
-    }
-
-    public func stopCapturing() {
-        self.lastChange = Date.distantPast
-    }
-
-    @discardableResult
-    public func undo() -> StackItem? {
-        self.undoing = true
-        var res: StackItem?
-        defer {
-            self.undoing = false
-        }
-        res = self.popStackItem(self.undoStack, eventType: .undo)
-        return res
-    }
-
-    @discardableResult
-    public func redo() -> StackItem? {
-        self.redoing = true
-        var res: StackItem?
-
-        defer {
-            self.redoing = false
-        }
-        res = self.popStackItem(self.redoStack, eventType: .redo)
-
-        return res
-    }
-
-    public func canUndo() -> Bool {
-        return self.undoStack.count > 0
-    }
-
-    public func canRedo() -> Bool {
-        return self.redoStack.count > 0
-    }
-
-    public override func destroy() {
-        self.trackedOrigins.value.remove(self)
-        self.doc.off(YDocument.On.afterTransaction, self.afterTransactionDisposer)
-        super.destroy()
-    }
 }
 
 
 extension YUndoManager {
     public enum EvnetType { case undo, redo }
+    
+    final public class TrackOrigins: ExpressibleByArrayLiteral {
+        var storage: Set<AnyHashable?> = [nil]
+        
+        public init() {}
+        
+        public convenience init(arrayLiteral elements: Any...) {
+            self.init()
+            for element in elements { self.append(element) }
+        }
+        
+        public func append(_ value: Any?) {
+            guard let value = value else { self.storage.insert(nil); return }
+            if let value = value as? AnyHashable { self.storage.insert(value) }
+            if let value = value as? Any.Type { self.storage.insert(ObjectIdentifier(value)) }
+            self.storage.insert(ObjectIdentifier(value as AnyObject))
+        }
+        
+        public func remove(_ value: Any?) {
+            guard let value = value else { self.storage.remove(nil); return }
+            if let value = value as? AnyHashable { self.storage.remove(value) }
+            if let value = value as? Any.Type { self.storage.remove(ObjectIdentifier(value)) }
+            self.storage.remove(ObjectIdentifier(value as AnyObject))
+        }
+        
+        public func contains(_ value: Any?) -> Bool {
+            guard let value = value else { return storage.contains(nil) }
+            if let value = value as? AnyHashable { return storage.contains(value) }
+            if let value = value as? Any.Type { return storage.contains(ObjectIdentifier(value)) }
+            return storage.contains(ObjectIdentifier(value as AnyObject))
+        }
+        
+    }
+    
+    final public class StackItem {
+        var deletions: YDeleteSet
+        var insertions: YDeleteSet
+
+        public var meta: [String: Any]
+
+        init(_ deletions: YDeleteSet, insertions: YDeleteSet) {
+            self.insertions = insertions
+            self.deletions = deletions
+            self.meta = [:]
+        }
+    }
 
     public class ChangeEvent {
         public var origin: Any?
@@ -381,35 +362,179 @@ extension YUndoManager {
     }
     
     public struct Options {
-        init(
+        let captureTimeout: TimeInterval
+        let captureTransaction: ((YTransaction) -> Bool)
+        let deleteFilter: ((YItem) -> Bool) = {_ in true }
+        let trackedOrigins: TrackOrigins
+        let ignoreRemoteMapChanges: Bool
+        let document: YDocument?
+        
+        public static func make(
             captureTimeout: TimeInterval = 500,
             captureTransaction: @escaping ((YTransaction) -> Bool) = {_ in true },
-//            deleteFilter: @escaping ((Item) -> Bool) = {_ in true},
-            trackedOrigins: Ref<Set<AnyHashable?>> = Ref(value: [nil as UInt8?]),
+            trackedOrigins: TrackOrigins = TrackOrigins(),
             ignoreRemoteMapChanges: Bool = false,
-            doc: YDocument? = nil
-        ) {
-            self.captureTimeout = captureTimeout
-            self.captureTransaction = captureTransaction
-//            self.deleteFilter = deleteFilter
-            self.trackedOrigins = trackedOrigins
-            self.ignoreRemoteMapChanges = ignoreRemoteMapChanges
-            self.doc = doc
+            document: YDocument? = nil
+        ) -> Options {
+            self.init(
+                captureTimeout: captureTimeout,
+                captureTransaction: captureTransaction,
+                trackedOrigins: trackedOrigins,
+                ignoreRemoteMapChanges: ignoreRemoteMapChanges,
+                document: document
+            )
         }
-        
-        var captureTimeout: TimeInterval
-        var captureTransaction: ((YTransaction) -> Bool)
-        var deleteFilter: ((YItem) -> Bool) = {_ in true }
-        var trackedOrigins: Ref<Set<AnyHashable?>>
-        var ignoreRemoteMapChanges: Bool
-        var doc: YDocument?
     }
-
+    
     public enum Event {
         public static let stackCleanred = LZObservable.EventName<CleanEvent>("stack-cleared")
         public static let stackItemAdded = LZObservable.EventName<YUndoManager.ChangeEvent>("stack-item-added")
         public static let stackItemPopped = LZObservable.EventName<YUndoManager.ChangeEvent>("stack-item-popped")
         public static let stackItemUpdated = LZObservable.EventName<YUndoManager.ChangeEvent>("stack-item-updated")
+    }
+    
+    final class StructRedone {
+        let item: YItem
+        let diff: Int
+        
+        init(item: YItem, diff: Int) {
+            self.item = item
+            self.diff = diff
+        }
+        
+        static func followRedone(store: YStructStore, id: YID) -> StructRedone {
+            var nextID: YID? = id
+            var diff = 0
+            var item: YStruct? = nil
+            repeat {
+                if diff > 0 {
+                    nextID = YID(client: nextID!.client, clock: nextID!.clock + diff)
+                }
+                item = store.find(nextID!)
+                diff = nextID!.clock - item!.id.clock
+                nextID = (item as? YItem)?.redone
+            } while (nextID != nil && item is YItem)
+            
+            return StructRedone(item: item as! YItem, diff: diff)
+        }
+    }
+
+}
+
+
+// TODO: implement this type of contains...
+// trackedOriginsの判定にconstructorを使っている部分がSwiftで実装できない。
+// || (transaction.origin != nil && self.trackedOrigins.contains(type(of: transaction.origin)))
+
+
+extension YItem {
+    func redo(_ transaction: YTransaction, redoitems: Set<YItem>, itemsToDelete: YDeleteSet, ignoreRemoteMapChanges: Bool) -> YItem? {
+        if let redone = self.redone { return YStructStore.getItemCleanStart(transaction, id: redone) }
+        
+        let doc = transaction.doc
+        let store = doc.store
+        let ownClientID = doc.clientID
+        
+        var parentItem = self.parent!.object!.item
+        var left: YStruct? = nil
+        var right: YStruct? = nil
+
+        if let uparentItem = parentItem, uparentItem.deleted {
+            
+            if uparentItem.redone == nil {
+                if !redoitems.contains(uparentItem) { return nil }
+                let redo = uparentItem
+                    .redo(transaction, redoitems: redoitems, itemsToDelete: itemsToDelete, ignoreRemoteMapChanges: ignoreRemoteMapChanges)
+                if redo == nil { return nil }
+            }
+            
+            while let redone = parentItem?.redone {
+                parentItem = YStructStore.getItemCleanStart(transaction, id: redone)
+            }
+        }
+        
+        let parentType: YOpaqueObject
+        
+        if let parentContent = parentItem?.content as? YObjectContent {
+            parentType = parentContent.object
+        } else if let parentObject = self.parent?.object {
+            parentType = parentObject
+        } else {
+            return nil
+        }
+        
+        if self.parentKey == nil {
+            left = self.left
+            right = self
+            
+            print(0)
+            while let uleft = left as? YItem {
+                var leftTrace: YItem? = uleft
+                
+                while let uleftTrace = leftTrace, uleftTrace.parent?.object?.item !== parentItem {
+                    guard let redone = uleftTrace.redone else { leftTrace = nil; break }
+                    leftTrace = YStructStore.getItemCleanStart(transaction, id: redone)
+                }
+                if let uleftTrace = leftTrace, uleftTrace.parent?.object?.item === parentItem {
+                    left = uleftTrace; break
+                }
+                
+                left = uleft.left
+            }
+            
+            while let uright = right as? YItem {
+                var rightTrace: YItem? = uright
+                
+                while let urightTrace = rightTrace, urightTrace.parent?.object?.item !== parentItem {
+                    if let redone = urightTrace.redone {
+                        rightTrace = YStructStore.getItemCleanStart(transaction, id: redone)
+                    } else {
+                        rightTrace = nil
+                        break
+                    }
+                }
+                if let urightTrace = rightTrace, urightTrace.parent?.object?.item === parentItem {
+                    right = urightTrace
+                    break
+                }
+                right = uright.right
+            }
+        } else {
+            right = nil
+            if self.right != nil && !ignoreRemoteMapChanges {
+                left = self
+                
+                while let uleft = left as? YItem, let leftRight = uleft.right, itemsToDelete.isDeleted(leftRight.id) {
+                    left = uleft.right
+                }
+                while let redone = (left as? YItem)?.redone {
+                    left = YStructStore.getItemCleanStart(transaction, id: redone)
+                }
+                if let uleft = left as? YItem, uleft.right != nil {
+                    return nil
+                }
+            } else if let parentKey = self.parentKey {
+                left = parentType.storage[parentKey]
+            } else {
+                assertionFailure()
+            }
+        }
+        let nextClock = store.getState(ownClientID)
+        let nextId = YID(client: ownClientID, clock: nextClock)
+        let redoneItem = YItem(
+            id: nextId,
+            left: left,
+            origin: (left as? YItem)?.lastID,
+            right: right,
+            rightOrigin: right?.id,
+            parent: .object(parentType),
+            parentSub: self.parentKey,
+            content: self.content.copy()
+        )
+        self.redone = nextId
+        redoneItem.keepRecursive(keep: true)
+        redoneItem.integrate(transaction: transaction, offset: 0)
+        return redoneItem
     }
 }
 

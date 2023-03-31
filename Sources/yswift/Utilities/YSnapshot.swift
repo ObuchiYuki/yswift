@@ -7,6 +7,14 @@
 
 import Foundation
 
+extension YDocument {
+    public func snapshot() -> YSnapshot { YSnapshot(doc: self) }
+    
+    public func restored(from snapshot: YSnapshot) throws -> YDocument {
+        try snapshot.toDoc(self)
+    }
+}
+
 final public class YSnapshot: JSHashable {
     public var deleteSet: YDeleteSet
     public var stateVectors: [Int: Int]
@@ -52,8 +60,10 @@ final public class YSnapshot: JSHashable {
         
         let encoder = YUpdateEncoderV2()
         
+        print(4, encoder.toUpdate())
+        
         originDoc.transact{ transaction in
-            let size = self.stateVectors.lazy.filter{ $0.key > 0 }.count
+            let size = self.stateVectors.lazy.filter{ $0.value > 0 }.count
             
             encoder.restEncoder.writeUInt(UInt(size))
 
@@ -68,13 +78,13 @@ final public class YSnapshot: JSHashable {
                 encoder.writeClient(client)
                 // first clock written is 0
                 encoder.restEncoder.writeUInt(0)
-                for i in 0..<lastStructIndex {
+                
+                for i in 0...lastStructIndex {
                     structs[i].encode(into: encoder, offset: 0)
                 }
             }
             
-            deleteSet.encode(into: encoder)
-            
+            self.deleteSet.encode(into: encoder)
         }
     
         try newDoc.applyUpdateV2(encoder.toUpdate(), transactionOrigin: "snapshot")
