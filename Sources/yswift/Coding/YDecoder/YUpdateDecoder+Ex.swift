@@ -8,11 +8,11 @@
 import Foundation
 
 extension YDocument {
-    public func applyUpdate(_ update: YUpdate, transactionOrigin: Any? = nil) throws {
-        try _applyUpdate(to: self, update: update, transactionOrigin: transactionOrigin, YDecoder: YUpdateDecoderV1.init)
+    public func applyUpdate(_ update: YUpdate, origin: Any? = nil) throws {
+        try _applyUpdate(to: self, update: update, origin: origin, YDecoder: YUpdateDecoderV1.init)
     }
-    public func applyUpdateV2(_ update: YUpdate, transactionOrigin: Any? = nil) throws {
-        try _applyUpdate(to: self, update: update, transactionOrigin: transactionOrigin, YDecoder: YUpdateDecoderV2.init)
+    public func applyUpdateV2(_ update: YUpdate, origin: Any? = nil) throws {
+        try _applyUpdate(to: self, update: update, origin: origin, YDecoder: YUpdateDecoderV2.init)
     }
 }
 
@@ -81,8 +81,8 @@ extension YUpdateDecoder {
         return clientRefs
     }
     
-    public func readUpdate(ydoc: YDocument, transactionOrigin: Any?) throws {
-        try ydoc.transact(origin: transactionOrigin, local: false) { transaction in
+    public func readUpdate(ydoc: YDocument, origin: Any?) throws {
+        try ydoc.transact(origin: origin, local: false) { transaction in
             transaction.local = false
             var retry = false
             let doc = transaction.doc
@@ -134,13 +134,13 @@ extension YUpdateDecoder {
             if retry {
                 let update = store.pendingStructs!.update
                 store.pendingStructs = nil
-                try _applyUpdate(to: transaction.doc, update: update, transactionOrigin: nil, YDecoder: YUpdateDecoderV2.init)
+                try _applyUpdate(to: transaction.doc, update: update, origin: nil, YDecoder: YUpdateDecoderV2.init)
             }
         }
     }
 }
 
-fileprivate func _applyUpdate(to doc: YDocument, update: YUpdate, transactionOrigin: Any? = nil, YDecoder: (LZDecoder) throws -> YUpdateDecoder) throws {
+fileprivate func _applyUpdate(to doc: YDocument, update: YUpdate, origin: Any? = nil, YDecoder: (LZDecoder) throws -> YUpdateDecoder) throws {
     let decoder = LZDecoder(update.data)
-    try YDecoder(decoder).readUpdate(ydoc: doc, transactionOrigin: transactionOrigin)
+    try YDecoder(decoder).readUpdate(ydoc: doc, origin: origin)
 }

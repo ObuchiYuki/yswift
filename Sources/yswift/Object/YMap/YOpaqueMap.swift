@@ -33,6 +33,8 @@ final public class YOpaqueMap: YOpaqueObject {
     }
 
     public func set(_ key: String, value: Any?) {
+        assert(!(value is any YWrapperObject), "You should not put wrapper directory to opaque object.")
+
         if let doc = self.doc {
             doc.transact{ self.mapSet($0, key: key, value: value) }
         } else {

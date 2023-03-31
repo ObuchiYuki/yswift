@@ -11,7 +11,7 @@ import yswift
 final public class YUpdateEnvironment {
     let mergeUpdates: (_ updates: [YUpdate]) throws -> YUpdate
     let encodeStateAsUpdate: (_ doc: YDocument, _ encodedTargetStateVector: Data?) throws -> YUpdate
-    let applyUpdate: (_ ydoc: YDocument, _ update: YUpdate, _ transactionOrigin: Any?) throws -> Void
+    let applyUpdate: (_ ydoc: YDocument, _ update: YUpdate, _ origin: Any?) throws -> Void
     let logUpdate: (_ update: YUpdate) -> Void
     let parseUpdateMeta: (_ update: YUpdate) throws -> YUpdateMeta
     let encodeStateVectorFromUpdate: (_ update: YUpdate) throws -> Data
@@ -51,7 +51,7 @@ final public class YUpdateEnvironment {
     static let v1 = YUpdateEnvironment(
         mergeUpdates: { try YUpdate.merged($0) },
         encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1) },
-        applyUpdate: { try $0.applyUpdate($1, transactionOrigin: $2) },
+        applyUpdate: { try $0.applyUpdate($1, origin: $2) },
         logUpdate: { $0.log() },
         parseUpdateMeta: { try $0.updateMeta() },
         encodeStateVectorFromUpdate: { try $0.encodeStateVectorFromUpdate() },
@@ -65,7 +65,7 @@ final public class YUpdateEnvironment {
     static let v2 = YUpdateEnvironment(
         mergeUpdates: { try YUpdate.mergedV2($0) },
         encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: YUpdateEncoderV2()) },
-        applyUpdate: { try $0.applyUpdateV2($1, transactionOrigin: $2) },
+        applyUpdate: { try $0.applyUpdateV2($1, origin: $2) },
         logUpdate: { $0.log() },
         parseUpdateMeta: { try $0.updateMetaV2() },
         encodeStateVectorFromUpdate: { try $0.encodeStateVectorFromUpdateV2() },
@@ -83,7 +83,7 @@ final public class YUpdateEnvironment {
             return try ydoc.encodeStateAsUpdate(encoder: YUpdateEncoderV2())
         },
         encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: YUpdateEncoderV2()) },
-        applyUpdate: { try $0.applyUpdateV2($1, transactionOrigin: $2) },
+        applyUpdate: { try $0.applyUpdateV2($1, origin: $2) },
         logUpdate: { $0.log() },
         parseUpdateMeta: { try $0.updateMetaV2() },
         encodeStateVectorFromUpdate: { try $0.encodeStateVectorFromUpdateV2() },

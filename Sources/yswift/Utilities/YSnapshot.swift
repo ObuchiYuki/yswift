@@ -87,7 +87,7 @@ final public class YSnapshot: JSHashable {
             self.deleteSet.encode(into: encoder)
         }
     
-        try newDoc.applyUpdateV2(encoder.toUpdate(), transactionOrigin: "snapshot")
+        try newDoc.applyUpdateV2(encoder.toUpdate(), origin: "snapshot")
         
         return newDoc
     }

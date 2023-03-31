@@ -71,7 +71,7 @@ public class YDocument: LZObservable, JSHashable {
         }
         
         self.on(On.sync) { isSynced in
-            if isSynced == false && self.isSynced {
+            if !isSynced, self.isSynced {
                 self.whenSynced = provideSyncedPromise()
             }
             self.isSynced = isSynced
@@ -81,20 +81,23 @@ public class YDocument: LZObservable, JSHashable {
     }
 
     public func load() {
-        let item = self._item
-        if item != nil && !self.shouldLoad {
-            item!.parent!.object!.doc?.transact{ transaction in
+        if let item = self._item, !self.shouldLoad {
+            item.parent?.object?.doc?.transact{ transaction in
                 transaction.subdocsLoaded.insert(self)
             }
         }
         self.shouldLoad = true
     }
 
+    public func transact(origin: Any? = nil, local: Bool = true, _ body: () throws -> Void) rethrows {
+        try self.transact(origin: origin, local: local, {_ in try body() })
+    }
+        
     public func transact(origin: Any? = nil, local: Bool = true, _ body: (YTransaction) throws -> Void) rethrows {
         try YTransaction.transact(self, origin: origin, local: local, body)
     }
 
-    public func get<T: YOpaqueObject>(_ name: String = "", _ make: () -> T) -> T {
+    func get<T: YOpaqueObject>(_ name: String = "", _ make: () -> T) -> T {
         let object = self.share.setIfUndefined(name, {
             let object = make()
             object._integrate(self, item: nil)

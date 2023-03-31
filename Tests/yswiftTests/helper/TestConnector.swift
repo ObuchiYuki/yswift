@@ -44,7 +44,7 @@ class TestConnector: JSHashable {
                 
         try Sync.readSyncMessage(
             decoder: LZDecoder(receivedData),
-            encoder: encoder, doc: receiver, transactionOrigin: receiver.connector
+            encoder: encoder, doc: receiver, origin: receiver.connector
         )
         
         if encoder.count > 0 { sender._receive(encoder.data, remoteClient: receiver) }

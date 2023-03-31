@@ -14,7 +14,7 @@ public class LZObservable {
         public init(_ name: String) { self.name = name }
     }
     
-    public class Disposer {
+    final public class Disposer {
         let id = UUID()
     }
     

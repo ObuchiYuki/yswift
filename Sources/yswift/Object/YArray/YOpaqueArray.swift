@@ -111,6 +111,11 @@ extension YOpaqueArray: CustomStringConvertible {
 
 extension YOpaqueArray {
     public func append(_ content: Any?) {
+        #if DEBUG
+        if content as? [Any] != nil {
+            print("You puts array into array. Use self.append(contentsOf:) instead.")
+        }
+        #endif
         self.append(contentsOf: [content])
     }
     

@@ -50,11 +50,11 @@ extension YUpdate {
         return try self._parseUpdateMeta(YDecoder: YUpdateDecoderV2.init)
     }
 
-    public func diff(to sv: Data) throws -> YUpdate {
-        return try self._diff(to: sv, YDecoder: YUpdateDecoderV1.init, YEncoder: YUpdateEncoderV1.init)
+    public func diff(to stateVector: Data) throws -> YUpdate {
+        return try self._diff(to: stateVector, YDecoder: YUpdateDecoderV1.init, YEncoder: YUpdateEncoderV1.init)
     }
-    public func diffV2(to sv: Data) throws -> YUpdate {
-        return try self._diff(to: sv, YDecoder: YUpdateDecoderV2.init, YEncoder: YUpdateEncoderV2.init)
+    public func diffV2(to stateVector: Data) throws -> YUpdate {
+        return try self._diff(to: stateVector, YDecoder: YUpdateDecoderV2.init, YEncoder: YUpdateEncoderV2.init)
     }
     
     public func toV2() throws -> YUpdate {

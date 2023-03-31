@@ -34,10 +34,10 @@ enum Sync {
         try writeSyncStep2(encoder: encoder, doc: doc, encodedStateVector: decoder.readData())
     }
 
-    static func readSyncStep2(decoder: LZDecoder, doc: YDocument, transactionOrigin: Any? = nil) {
+    static func readSyncStep2(decoder: LZDecoder, doc: YDocument, origin: Any? = nil) {
         do {
             let data = try decoder.readData()
-            try doc.applyUpdate(YUpdate(data, version: .v1), transactionOrigin: transactionOrigin)
+            try doc.applyUpdate(YUpdate(data, version: .v1), origin: origin)
         } catch {
             print("Caught error while handling a Yjs update. \(error)")
         }
@@ -48,12 +48,12 @@ enum Sync {
         encoder.writeData(update.data)
     }
 
-    static func readUpdate_(decoder: LZDecoder, doc: YDocument, transactionOrigin: Any? = nil) {
-        readSyncStep2(decoder: decoder, doc: doc, transactionOrigin: transactionOrigin)
+    static func readUpdate_(decoder: LZDecoder, doc: YDocument, origin: Any? = nil) {
+        readSyncStep2(decoder: decoder, doc: doc, origin: origin)
     }
 
     @discardableResult
-    static func readSyncMessage(decoder: LZDecoder, encoder: LZEncoder, doc: YDocument, transactionOrigin: Any? = nil) throws -> MessageType {
+    static func readSyncMessage(decoder: LZDecoder, encoder: LZEncoder, doc: YDocument, origin: Any? = nil) throws -> MessageType {
         let messageType = MessageType(rawValue: try decoder.readUInt())!
         
         
@@ -61,9 +61,9 @@ enum Sync {
         case .syncStep1:
             try self.readSyncStep1(decoder: decoder, encoder: encoder, doc: doc)
         case .syncStep2:
-            self.readSyncStep2(decoder: decoder, doc: doc, transactionOrigin: transactionOrigin)
+            self.readSyncStep2(decoder: decoder, doc: doc, origin: origin)
         case .update:
-            self.readUpdate_(decoder: decoder, doc: doc, transactionOrigin: transactionOrigin)
+            self.readUpdate_(decoder: decoder, doc: doc, origin: origin)
         }
         
         return messageType

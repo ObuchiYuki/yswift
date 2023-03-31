@@ -149,10 +149,7 @@ final public class YUndoManager: JSHashable {
         // Only track certain transactions
         guard self.captureTransaction(transaction) else { return }
         guard self.scope.contains(where: { transaction.changedParentTypes.keys.contains($0) }) else { return }
-        
-        if let origin = transaction.origin,
-           !self.trackedOrigins.contains(transaction.origin as? AnyHashable),
-           !self.trackedOrigins.contains(type(of: origin).self) { return }
+        guard self.trackedOrigins.contains(transaction.origin) else { return }
         
         let undoing = self.undoing
         let redoing = self.redoing
@@ -290,11 +287,11 @@ extension YUndoManager {
     public enum EvnetType { case undo, redo }
     
     final public class TrackOrigins: ExpressibleByArrayLiteral {
-        var storage: Set<AnyHashable?> = [nil]
+        var storage: Set<AnyHashable?> = []
         
         public init() {}
         
-        public convenience init(arrayLiteral elements: Any...) {
+        public convenience init(arrayLiteral elements: Any?...) {
             self.init()
             for element in elements { self.append(element) }
         }
@@ -315,8 +312,8 @@ extension YUndoManager {
         
         public func contains(_ value: Any?) -> Bool {
             guard let value = value else { return storage.contains(nil) }
-            if let value = value as? AnyHashable { return storage.contains(value) }
-            if let value = value as? Any.Type { return storage.contains(ObjectIdentifier(value)) }
+            if let value = value as? AnyHashable, storage.contains(value) { return true }
+            if storage.contains(ObjectIdentifier(type(of: value))) { return true }
             return storage.contains(ObjectIdentifier(value as AnyObject))
         }
         
@@ -372,7 +369,7 @@ extension YUndoManager {
         public static func make(
             captureTimeout: TimeInterval = 500,
             captureTransaction: @escaping ((YTransaction) -> Bool) = {_ in true },
-            trackedOrigins: TrackOrigins = TrackOrigins(),
+            trackedOrigins: TrackOrigins = [nil],
             ignoreRemoteMapChanges: Bool = false,
             document: YDocument? = nil
         ) -> Options {
