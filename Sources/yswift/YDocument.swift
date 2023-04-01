@@ -98,11 +98,16 @@ public class YDocument: LZObservable, JSHashable {
     }
 
     func get<T: YOpaqueObject>(_ name: String = "", _ make: () -> T) -> T {
+        var thisSet = false
         let object = self.share.setIfUndefined(name, {
             let object = make()
-            object._integrate(self, item: nil)
+            thisSet = true
             return object
         }())
+        
+        if thisSet {
+            object._integrate(self, item: nil)
+        }
         
         if T.self != YOpaqueObject.self && !(object is T) {
             guard type(of: object) == YOpaqueObject.self else {
@@ -133,28 +138,26 @@ public class YDocument: LZObservable, JSHashable {
     public func getMap<T: YElement>(_: T.Type, _ name: String = "") -> YMap<T> {
         YMap(opaque: self.getOpaqueMap(name))
     }
+    public func getOpaqueMap(_ name: String = "") -> YOpaqueMap {
+        self.get(name) { YOpaqueMap() }
+    }
     
     public func getArray<T: YElement>(_: T.Type, _ name: String = "") -> YArray<T> {
         YArray(opaque: self.getOpaqueArray(name))
     }
-    
-    public func getOpaqueMap(_ name: String = "") -> YOpaqueMap {
-        self.get(name) { YOpaqueMap.init() }
-    }
-
     public func getOpaqueArray(_ name: String = "") -> YOpaqueArray {
-        self.get(name) { YOpaqueArray.init() }
+        self.get(name) { YOpaqueArray() }
     }
     
     public func getText(_ name: String = "") -> YText {
-        self.get(name) { YText.init() }
+        self.get(name) { YText() }
     }
     
     public func toJSON() -> [String: Any] {
         var doc: [String: Any] = [:]
-        self.share.forEach({ key, value in
+        self.share.forEach{ key, value in
             doc[key] = value.toJSON()
-        })
+        }
         return doc
     }
 
@@ -279,6 +282,4 @@ extension YDocument {
             self.cliendID = cliendID
         }
     }
-
 }
-

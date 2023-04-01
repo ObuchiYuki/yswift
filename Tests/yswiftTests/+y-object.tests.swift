@@ -109,6 +109,28 @@ final class ObjectTests: XCTestCase {
         InitialValue.unregister()
     }
     
+    func testObjectWithInitialValueOverrideInConvenienceInitScope() throws {
+        let test = try YTest<Any>(docs: 2)
+        let map0 = test.swiftyMap(Object.self, 0), map1 = test.swiftyMap(Object.self, 1)
+        
+        class Object: YObject {
+            @Property var value = 0
+            required init() { super.init(); self.register(_value, for: "value") }
+            convenience init(value: Int) { self.init(); self.value = value }
+        }
+        Object.registerAuto()
+        
+        let object0 = Object(value: 10)
+        XCTAssertEqual(object0.value, 10)
+        
+        map0["object"] = object0
+        try test.sync()
+        
+        let object1 = try XCTUnwrap(map1["object"])
+        XCTAssertEqual(object1.value, 10) 
+        
+    }
+    
     func testObjectWithArrayPropertyNestedPublisherSync() throws {
         class Inner: YObject {
             @Property var name: String = "Alice"
@@ -627,7 +649,7 @@ final class ObjectTests: XCTestCase {
 
 extension YObject {
     fileprivate static var count: UInt = 0
-    fileprivate static func registerAuto() {
+    static func registerAuto() {
         self.register(count)
         self.count += 1
     }

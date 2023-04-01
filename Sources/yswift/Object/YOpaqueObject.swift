@@ -126,8 +126,7 @@ extension YOpaqueObject {
         for (key, value) in self.doc?.share ?? [:] {
             if value === self { return key }
         }
-        fatalError("Key not found.")
-//        throw YSwiftError.unexpectedCase
+        fatalError("Key not found. \(self)")
     }
 }
 

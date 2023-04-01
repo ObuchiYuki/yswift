@@ -13,7 +13,15 @@ let package = Package(
         .package(url: "https://github.com/ObuchiYuki/Promise.git", branch: "main")
     ],
     targets: [
-        .target(name: "yswift", dependencies: [.product(name: "Promise", package: "Promise")]),
+        .target(
+            name: "yswift",
+            dependencies: [.product(name: "Promise", package: "Promise")],
+            swiftSettings: [
+                .unsafeFlags([
+                    "-enforce-exclusivity=unchecked"
+                ]),
+            ]
+        ),
         .testTarget(name: "yswiftTests", dependencies: ["yswift"])
     ]
 )

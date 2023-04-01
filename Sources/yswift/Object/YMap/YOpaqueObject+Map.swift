@@ -20,7 +20,7 @@ extension YOpaqueObject {
         if value == nil || value is NSNull {
             content = YAnyContent([value])
         } else {
-            if value! is Int || value! is NSDictionary || value! is Bool || value! is NSArray || value! is String {
+            if value! is NSNumber || value! is NSDictionary || value! is Bool || value! is NSArray || value! is String {
                 content = YAnyContent([value])
             } else if value! is Data {
                 content = YBinaryContent(value as! Data)
