@@ -259,7 +259,7 @@ extension YOpaqueObject {
     }
 
 
-    func listDelete(at index: Int, count: Int, _ transaction: YTransaction) {
+    func listDelete(at index: Int, count: Int, temporally: Bool, _ transaction: YTransaction) {
         var index = index, length = count
         
         if length == 0 { return }
@@ -290,14 +290,13 @@ extension YOpaqueObject {
                     let id = YID(client: item!.id.client, clock: item!.id.clock + length)
                     _ = YStructStore.getItemCleanStart(transaction, id: id)
                 }
-                item!.delete(transaction)
+                item!.delete(temporally: temporally, transaction)
                 length -= item!.length
             }
             item = item!.right as? YItem
         }
         if length > 0 {
-            fatalError("Length Exceeded")
-//            throw YSwiftError.lengthExceeded
+            fatalError("Index out of range.")
         }
         if (self.serchMarkers != nil) {
             YArraySearchMarker.updateChanges(self.serchMarkers!, index: startIndex, len: length - startLength)

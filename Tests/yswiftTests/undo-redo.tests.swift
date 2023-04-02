@@ -177,7 +177,7 @@ final class UndoRedoTests: XCTestCase {
         XCTAssertEqualJSON(array0.toArray(), [1, 2, 3, 4, 5, 6])
         
         try connector.syncAll()
-        array1.remove(at: 0)
+        array1.delete(at: 0)
         try connector.syncAll()
         undoManager.undo()
         XCTAssertEqualJSON(array0.toArray(), [4, 5, 6])
@@ -185,7 +185,7 @@ final class UndoRedoTests: XCTestCase {
         undoManager.redo()
         XCTAssertEqualJSON(array0.toArray(), [2, 3, 4, 5, 6])
         
-        array0.remove(at: 0..<5)
+        array0.delete(in: 0..<5)
         // test nested structure
         let ymap = YOpaqueMap()
         array0.insert(ymap, at: 0)
@@ -374,7 +374,7 @@ final class UndoRedoTests: XCTestCase {
             yMap["hello"] = "world modified"
         }
         doc2.transact(origin: doc2.clientID) { _ in
-            yArray2.remove(at: 0)
+            yArray2.delete(at: 0)
         }
         undoManager2.undo()
         undoManager.undo()

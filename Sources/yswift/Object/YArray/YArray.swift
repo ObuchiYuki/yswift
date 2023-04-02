@@ -24,6 +24,12 @@ final public class YArray<Element: YElement>: YWrapperObject {
         self.init(opaque: YOpaqueArray(contents.lazy.map{ $0.encodeToOpaque() }))
     }
     
+    public subscript(index: Int) -> Element {
+        Element.decode(from: self.opaque[index])
+    }
+    public subscript<R: _RangeExpression>(range: R) -> [Element] {
+        self.opaque[range].map{ Element.decode(from: $0) }
+    }
     
     public func append(_ content: Element) {
         self.opaque.append(content.encodeToOpaque())
@@ -39,11 +45,18 @@ final public class YArray<Element: YElement>: YWrapperObject {
         self.opaque.insert(contentsOf: contents.map{ $0.encodeToOpaque() }, at: index)
     }
 
+    public func delete(at index: Int) {
+        opaque.delete(at: index)
+    }
+    public func delete<R: _RangeExpression>(in range: R) {
+        opaque.delete(in: range)
+    }
+    
     public func remove(at index: Int) {
         opaque.remove(at: index)
     }
-    public func remove<R: _RangeExpression>(at range: R) {
-        opaque.remove(at: range)
+    public func remove<R: _RangeExpression>(in range: R) {
+        opaque.remove(in: range)
     }
     
     public func copy() -> YArray<Element> {
@@ -53,13 +66,6 @@ final public class YArray<Element: YElement>: YWrapperObject {
     public func toJSON() -> Any { self.opaque.toJSON() }
     
     public func toArray() -> [Element] { Array(self) }
-    
-    public subscript(index: Int) -> Element {
-        Element.decode(from: self.opaque[index])
-    }
-    public subscript<R: _RangeExpression>(range: R) -> [Element] {
-        self.opaque[range].map{ Element.decode(from: $0) }
-    }
 }
 
 extension YArray: Equatable where Element: Equatable {

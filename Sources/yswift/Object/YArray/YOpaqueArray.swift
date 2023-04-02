@@ -66,12 +66,20 @@ final public class YOpaqueArray: YOpaqueObject {
         }
     }
     
-    public func remove(at index: Int) {
-        self._remove(at: index)
+    public func delete(at index: Int) {
+        self._remove(at: index, temporally: false)
     }
-    public func remove<R: _RangeExpression>(at range: R) {
+    public func delete<R: _RangeExpression>(in range: R) {
         let range = range.relative(to: self.count)
-        self._remove(at: range.lowerBound, count: range.upperBound-range.lowerBound)
+        self._remove(at: range.lowerBound, count: range.count, temporally: false)
+    }
+    
+    public func remove(at index: Int) {
+        self._remove(at: index, temporally: true)
+    }
+    public func remove<R: _RangeExpression>(in range: R) {
+        let range = range.relative(to: self.count)
+        self._remove(at: range.lowerBound, count: range.count, temporally: true)
     }
     
     public override func copy() -> YOpaqueArray {
@@ -82,7 +90,7 @@ final public class YOpaqueArray: YOpaqueObject {
         return array
     }
     
-    func toArray() -> [Any?] { Array(self) }
+    public func toArray() -> [Any?] { Array(self) }
     
     public override func toJSON() -> Any {
         self.map{ ($0 as? YOpaqueObject).map{ $0.toJSON() } ?? $0 } as [Any?]
@@ -91,10 +99,10 @@ final public class YOpaqueArray: YOpaqueObject {
     // ============================================================================== //
     // MARK: - Private -
     
-    private func _remove(at index: Int, count: Int = 1) {
+    private func _remove(at index: Int, count: Int = 1, temporally: Bool) {
         if self.doc != nil {
             self.doc!.transact{ transaction in
-                self.listDelete(at: index, count: count, transaction)
+                self.listDelete(at: index, count: count, temporally: temporally, transaction)
             }
         } else {
             self._prelimContent.removeSubrange(index..<index+count)

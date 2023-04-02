@@ -8,15 +8,20 @@
 import Foundation
 
 final public class YOpaqueMap: YOpaqueObject {
+    
+    public var count: Int {
+        self.storage.lazy.filter{ _, v in !v.deleted }.count
+    }
+    
+    public var isEmpty: Bool {
+        self.storage.lazy.filter{ _, v in !v.deleted }.isEmpty
+    }
+    
     private var _prelimContent: [String: Any?]?
 
-    public init(_ dict: [String: Any?]? = nil) {
+    public init(_ contents: [String: Any?]? = nil) {
         super.init()
-        if dict == nil {
-            self._prelimContent = [:]
-        } else {
-            self._prelimContent = dict
-        }
+        self._prelimContent = contents ?? [:]
     }
     
     public func removeValue(forKey key: String) {
@@ -105,12 +110,7 @@ final public class YOpaqueMap: YOpaqueObject {
 }
 
 extension YOpaqueMap {
-    public var count: Int {
-        self.storage.lazy.filter{ _, v in !v.deleted }.count
-    }
-    public var isEmpty: Bool {
-        self.storage.lazy.filter{ _, v in !v.deleted }.isEmpty
-    }
+    
     
     public func keys() -> some Sequence<String> {
         self.storage.lazy.filter{ _, v in !v.deleted }

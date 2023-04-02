@@ -24,10 +24,7 @@ extension YMap {
     public var isEmpty: Bool { self.opaque.isEmpty }
     
     public subscript(key: String) -> Value? {
-        get {
-            guard let value = self.opaque[key] else { return nil }
-            return Value.decode(from: value)
-        }
+        get { self.opaque[key].map{ Value.decode(from: $0) } }
         set { self.opaque[key] = newValue?.encodeToOpaque() }
     }
 
@@ -74,7 +71,7 @@ extension YMap: YElement {
 }
 
 extension YMap: ExpressibleByDictionaryLiteral {
-    public convenience init(dictionaryLiteral elements: (String, Value)...) {
+    public convenience init(dictionaryLiteral elements: Element...) {
         self.init(Dictionary(uniqueKeysWithValues: elements))
     }
 }

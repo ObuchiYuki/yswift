@@ -66,7 +66,7 @@ final class SnapshotTests: XCTestCase {
 
         let snap = doc.snapshot()
         doc.getArray(String.self, "array")
-            .remove(at: 0)
+            .delete(at: 0)
 
         let docRestored = try doc.restored(from: snap)
 
@@ -87,7 +87,7 @@ final class SnapshotTests: XCTestCase {
         doc.getArray(String.self, "array").insert("item0", at: 0)
 
         let snap = doc.snapshot()
-        doc.getArray(String.self, "array").remove(at: 1)
+        doc.getArray(String.self, "array").delete(at: 1)
 
         let docRestored = try doc.restored(from: snap)
 
@@ -99,7 +99,7 @@ final class SnapshotTests: XCTestCase {
     func testDeletedItemsBase() throws {
         let doc = YDocument(.init(gc: false))
         doc.getArray(String.self, "array").insert("item1", at: 0)
-        doc.getArray(String.self, "array").remove(at: 0)
+        doc.getArray(String.self, "array").delete(at: 0)
         let snap = doc.snapshot()
         doc.getArray(String.self, "array").insert("item0", at: 0)
 
@@ -112,7 +112,7 @@ final class SnapshotTests: XCTestCase {
     func testDeletedItems2() throws {
         let doc = YDocument(.init(gc: false))
         doc.getArray(String.self, "array").insert(contentsOf: ["item1", "item2", "item3"], at: 0)
-        doc.getArray(String.self, "array").remove(at: 1)
+        doc.getArray(String.self, "array").delete(at: 1)
         let snap = doc.snapshot()
         doc.getArray(String.self, "array").insert("item0", at: 0)
 

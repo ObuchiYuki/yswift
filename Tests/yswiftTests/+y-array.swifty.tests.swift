@@ -33,7 +33,7 @@ final class YArraySwiftyTests: XCTestCase {
         
         array.append(1)
         XCTAssertEqual(event, YArray<Int>.Event(insert: [1]))
-        array.remove(at: 0)
+        array.delete(at: 0)
         XCTAssertEqual(event, YArray<Int>.Event(delete: 1))
         array.append(1)
         XCTAssertEqual(event, YArray<Int>.Event(insert: [1]))
