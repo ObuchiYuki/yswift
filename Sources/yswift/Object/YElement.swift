@@ -18,97 +18,35 @@ extension YOpaqueObject: YElement {
 }
 
 // ============================================================================== //
-// MARK: - Ex + Codable -
-//
-//import DictionaryCoder
-//
-//private let dictionayEncoder = DictionaryEncoder()
-//private let dictionayDecoder = DictionaryDecoder()
-//
-//extension YElement where Self: Encodable {
-//    public func persistenceObject() -> Any? {
-//        try! dictionayEncoder.encode(self) as NSDictionary
-//    }
-//}
-//
-//extension YElement where Self: Decodable {
-//    public static func fromPersistence(_ opaque: Any?) -> Self {
-//        try! dictionayDecoder.decode(Self.self, from: opaque as! NSDictionary)
-//    }
-//}
-
-// ============================================================================== //
 // MARK: - Ex + Primitive -
 
-public protocol YPrimitive {
-    func persistenceObject() -> Any?
-    static func fromPersistence(_ opaque: Any?) -> Self
-}
+public protocol YPrimitive: YElement {}
 
-extension Int: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension Int8: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension Int16: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension Int32: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension Int64: YPrimitive, YElement {
+extension YPrimitive {
     public func persistenceObject() -> Any? { self }
     public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
 }
 
-extension UInt: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension UInt8: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension UInt16: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension UInt32: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension UInt64: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
+extension Int: YPrimitive {}
+extension Int8: YPrimitive {}
+extension Int16: YPrimitive {}
+extension Int32: YPrimitive {}
+extension Int64: YPrimitive {}
 
-extension Float: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension Double: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
+extension UInt: YPrimitive {}
+extension UInt8: YPrimitive {}
+extension UInt16: YPrimitive {}
+extension UInt32: YPrimitive {}
+extension UInt64: YPrimitive {}
 
-extension String: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
-extension Data: YPrimitive, YElement {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
+extension Float: YPrimitive {}
+extension Double: YPrimitive {}
 
-extension Array: YElement where Element: YPrimitive {
-    public func persistenceObject() -> Any? { self }
-    public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
-}
+extension String: YPrimitive {}
+extension Data: YPrimitive {}
+
+extension Array: YPrimitive, YElement where Element: YPrimitive {}
+extension Dictionary: YPrimitive, YElement where Key == String, Value: YPrimitive {}
 
 extension Optional: YElement where Wrapped: YElement {
     public func persistenceObject() -> Any? {

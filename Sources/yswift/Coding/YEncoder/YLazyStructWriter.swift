@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import lib0
 
 final class YLazyStructWriter {
     private struct ClientStruct {

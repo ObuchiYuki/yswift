@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import lib0
 
 public protocol YDeleteSetEncoder {
     var restEncoder: LZEncoder { get set }

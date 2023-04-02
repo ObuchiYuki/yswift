@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import lib0
 
 public protocol YUpdateEncoder: YDeleteSetEncoder {
     func writeLeftID(_ id: YID)

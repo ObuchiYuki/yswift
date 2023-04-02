@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import lib0
 
 extension YDocument {
     public func applyUpdate(_ update: YUpdate, origin: Any? = nil) throws {

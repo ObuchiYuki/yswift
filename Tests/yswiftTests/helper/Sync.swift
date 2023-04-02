@@ -7,6 +7,7 @@
 
 import Foundation
 import yswift
+import lib0
 
 enum Sync {
     typealias StateMap = [Int: Int]

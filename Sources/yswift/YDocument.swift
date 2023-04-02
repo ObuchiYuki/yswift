@@ -8,6 +8,7 @@
 import Foundation
 import Promise
 import Combine
+import lib0
 
 public class YDocument: LZObservable, JSHashable {
     public let guid: String

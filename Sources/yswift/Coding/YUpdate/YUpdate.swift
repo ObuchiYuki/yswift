@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import lib0
 
 public struct YUpdate {
     public enum Version { case v1, v2 }

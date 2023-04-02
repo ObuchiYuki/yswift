@@ -6,24 +6,25 @@
 //
 
 import Foundation
+import lib0
 
-public class YID: Equatable {
+final public class YID: Equatable {
     /// Client id
-    public var client: Int
+    var client: Int
     /// unique per client id, continuous Int */
-    public var clock: Int
+    var clock: Int
 
-    public init(client: Int, clock: Int) {
+    init(client: Int, clock: Int) {
         self.client = client
         self.clock = clock
     }
 
-    public func encode(_ encoder: LZEncoder) {
+    func encode(_ encoder: LZEncoder) {
         encoder.writeUInt(UInt(self.client))
         encoder.writeUInt(UInt(self.clock))
     }
 
-    public static func decode(_ decoder: LZDecoder) throws -> YID {
+    static func decode(_ decoder: LZDecoder) throws -> YID {
         return YID(
             client: Int(try decoder.readUInt()),
             clock: Int(try decoder.readUInt())

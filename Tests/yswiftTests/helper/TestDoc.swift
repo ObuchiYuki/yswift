@@ -7,6 +7,7 @@
 
 import Foundation
 import XCTest
+import lib0
 @testable import yswift
 
 class TestDoc: YDocument {

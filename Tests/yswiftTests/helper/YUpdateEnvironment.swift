@@ -7,6 +7,7 @@
 
 import Foundation
 import yswift
+import lib0
 
 final public class YUpdateEnvironment {
     let mergeUpdates: (_ updates: [YUpdate]) throws -> YUpdate

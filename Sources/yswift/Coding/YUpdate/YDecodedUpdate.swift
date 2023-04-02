@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import lib0
 
 final public class YDecodedUpdate {
     var structs: [YStruct]

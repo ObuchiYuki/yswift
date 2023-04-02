@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import lib0
 
 extension YDocument {
     public func snapshot() -> YSnapshot { YSnapshot(doc: self) }

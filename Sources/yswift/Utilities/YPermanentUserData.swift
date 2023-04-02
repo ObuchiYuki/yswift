@@ -7,6 +7,7 @@
 
 import Foundation
 import Promise
+import lib0
 
 final public class YPermanentUserData {
     public var yusers: YOpaqueMap // YMap<YMap<Any>> ...may be

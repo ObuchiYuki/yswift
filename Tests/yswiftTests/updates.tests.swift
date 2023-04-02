@@ -1,5 +1,6 @@
 import XCTest
 import Promise
+import lib0
 @testable import yswift
 
 final class UpdatesTests: XCTestCase {

@@ -5,6 +5,7 @@
 //  Created by yuki on 2023/03/25.
 //
 
+import lib0
 import Foundation
 
 public protocol YDeleteSetDecoder {

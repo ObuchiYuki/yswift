@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import lib0
 
 extension YUpdate {
     public func log() {

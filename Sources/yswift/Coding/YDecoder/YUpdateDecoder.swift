@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import lib0
 
 public protocol YUpdateDecoder: YDeleteSetDecoder {
     func readLeftID() throws -> YID
