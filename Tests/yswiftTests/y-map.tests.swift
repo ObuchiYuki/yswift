@@ -23,11 +23,11 @@ final class YMapTests: XCTestCase {
         
         XCTAssertEqualJSON(
             try XCTUnwrap(map0["map"] as? YOpaqueMap).toJSON(),
-            ["nil": nil]
+            ["nil": nil] as NSDictionary
         )
         XCTAssertEqualJSON(
             try XCTUnwrap(map1["map"] as? YOpaqueMap).toJSON(),
-            ["nil": nil]
+            ["nil": nil] as NSDictionary
         )
     }
     

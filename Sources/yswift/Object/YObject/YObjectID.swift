@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by yuki on 2023/03/31.
 //
@@ -8,9 +8,12 @@
 import Foundation
 
 public struct YObjectID: Hashable, CustomStringConvertible {
-    let value: UInt64
+    let value: Int
    
-    init(_ value: UInt64) { self.value = value }
+    init(_ value: Int) {
+        self.value = value
+        YObjectID.inMemoryAllocatedIDs.insert(value)
+    }
    
     static public func == (lhs: YObjectID, rhs: YObjectID) -> Bool { lhs.value == rhs.value }
    
@@ -20,13 +23,21 @@ public struct YObjectID: Hashable, CustomStringConvertible {
 }
 
 extension YObjectID {
-    public static let invalidID = YObjectID(UInt64.max >> 8)
+    public static let invalidID = YObjectID(Int.max >> 8)
+    
+    private static var inMemoryAllocatedIDs = Set<Int>()
    
     public static func publish() -> YObjectID {
-        YObjectID(.random(in: 0...(UInt64.max >> 8) - 1))
+        func make() -> Int { Int.random(in: 0...(Int.max >> 8) - 1) }
+        var id: Int
+        repeat { id = make() } while YObjectID.inMemoryAllocatedIDs.contains(id)
+        return YObjectID(id)
     }
+}
+
+extension YObjectID {
    
-    public static var compressedStringMemo = [UInt64: String]()
+    public static var compressedStringMemo = [Int: String]()
        
     func compressedString() -> String {
         if let cached = YObjectID.compressedStringMemo[self.value] { return cached }
@@ -44,7 +55,12 @@ extension YObjectID {
            self = .invalidID; assertionFailure("decode failed"); return
         }
         data.append(0)
-        let objectID = data.withUnsafeBytes{ $0.load(as: UInt64.self) }
+        let objectID = data.withUnsafeBytes{ $0.load(as: Int.self) }
         self = YObjectID(objectID)
-   }
+    }
+}
+
+extension YObjectID: YElement {
+    public func encodeToOpaque() -> Any? { return value }
+    public static func decode(from opaque: Any?) -> YObjectID { YObjectID(opaque as! Int) }
 }

@@ -40,11 +40,10 @@ final public class YArray<Element: YElement>: YWrapperObject {
     }
 
     public func remove(at index: Int) {
-        opaque.remove(index, count: 1)
+        opaque.remove(at: index)
     }
     public func remove<R: _RangeExpression>(at range: R) {
-        let range = range.relative(to: self.count)
-        opaque.remove(range.lowerBound, count: range.count)
+        opaque.remove(at: range)
     }
     
     public func copy() -> YArray<Element> {
@@ -56,11 +55,10 @@ final public class YArray<Element: YElement>: YWrapperObject {
     public func toArray() -> [Element] { Array(self) }
     
     public subscript(index: Int) -> Element {
-        return Element.decode(from: self.opaque[index])
+        Element.decode(from: self.opaque[index])
     }
     public subscript<R: _RangeExpression>(range: R) -> [Element] {
-        let range = range.relative(to: self.count)
-        return self.opaque.slice(range.lowerBound, end: range.upperBound).map{ Element.decode(from: $0) }
+        self.opaque[range].map{ Element.decode(from: $0) }
     }
 }
 
@@ -101,7 +99,7 @@ extension YArray: ExpressibleByArrayLiteral {
 
 extension YArray {
     public var publisher: some Combine.Publisher<YArray<Element>, Never> {
-        let eventPublisher = self.eventPublisher.map{[unowned self] _ in self}
+        let eventPublisher = self.eventPublisher.map{_ in self }
         return Just(self).merge(with: eventPublisher)
     }
     

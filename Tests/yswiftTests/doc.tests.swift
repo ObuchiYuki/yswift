@@ -87,11 +87,8 @@ final class DocTests: XCTestCase {
             "array": [ "test1" ],
             "map": [
                 "k1": "v1",
-                "k2": [
-                    "m2k1": "m2v1"
-                ]
-                
-            ]
+                "k2": [ "m2k1": "m2v1" ]
+            ] as NSDictionary
         ], "doc.toJSON has array and recursive map")
     }
 

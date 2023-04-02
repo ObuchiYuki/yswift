@@ -16,12 +16,12 @@ final class YArrayTests: XCTestCase {
         let doc1 = YDocument()
         let arr = doc1.getOpaqueArray("array")
         arr.insert(contentsOf: [1, 2, 3], at: 0)
-        XCTAssertEqualJSON(arr.slice(0), [1, 2, 3])
-        XCTAssertEqualJSON(arr.slice(1), [2, 3])
-        XCTAssertEqualJSON(arr.slice(0, end: -1), [1, 2])
+        XCTAssertEqualJSON(arr[0...], [1, 2, 3])
+        XCTAssertEqualJSON(arr[1...], [2, 3])
+        XCTAssertEqualJSON(arr[0..<arr.count-1], [1, 2])
         arr.insert(0, at: 0)
-        XCTAssertEqualJSON(arr.slice(0), [0, 1, 2, 3])
-        XCTAssertEqualJSON(arr.slice(0, end: 2), [0, 1])
+        XCTAssertEqualJSON(arr[0...], [0, 1, 2, 3])
+        XCTAssertEqualJSON(arr[0..<2], [0, 1])
     }
 
     func testArrayFrom() throws {
@@ -42,21 +42,21 @@ final class YArrayTests: XCTestCase {
         let doc1 = YDocument()
         let arr = doc1.getOpaqueArray("array")
         arr.append(contentsOf: [0, 1, 2, 3])
-        arr.remove(0)
+        arr.remove(at: 0)
         arr.insert(0, at: 0)
         XCTAssert(arr.count == arr.toArray().count)
         doc1.transact{ _ in
-            arr.remove(1)
+            arr.remove(at: 1)
             XCTAssert(arr.count == arr.toArray().count)
             arr.insert(1, at: 1)
             XCTAssert(arr.count == arr.toArray().count)
-            arr.remove(2)
+            arr.remove(at: 2)
             XCTAssert(arr.count == arr.toArray().count)
             arr.insert(2, at: 2)
             XCTAssert(arr.count == arr.toArray().count)
         }
         XCTAssert(arr.count == arr.toArray().count)
-        arr.remove(1)
+        arr.remove(at: 1)
         XCTAssert(arr.count == arr.toArray().count)
         arr.insert(1, at: 1)
         XCTAssert(arr.count == arr.toArray().count)
@@ -74,10 +74,10 @@ final class YArrayTests: XCTestCase {
             next.insert("rectangle3", at: 1)
         })
         doc.transact({ _ in
-            next.remove(0)
+            next.remove(at: 0)
             next.insert("rectangle3", at: 0)
         })
-        next.remove(1)
+        next.remove(at: 1)
         doc.transact({ _ in
             next.insert("ellipse4", at: 1)
         })
@@ -124,11 +124,11 @@ final class YArrayTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let connector = test.connector, docs = test.docs, array0 = test.array[0], array1 = test.array[1]
         
-        array0.insert(contentsOf: [1, true, false], at: 0)
-        XCTAssertEqualJSON(array0.toJSON(), [1, true, false], ".toJSON() works")
+        array0.insert(contentsOf: [1, true, false] as [Any?], at: 0)
+        XCTAssertEqualJSON(array0.toJSON(), [1, true, false] as [Any?], ".toJSON() works")
         
         try connector.flushAllMessages()
-        XCTAssertEqualJSON(array1.toJSON(), [1, true, false], ".toJSON() works after sync")
+        XCTAssertEqualJSON(array1.toJSON(), [1, true, false] as [Any?], ".toJSON() works after sync")
         
         try YAssertEqualDocs(docs)
     }
@@ -151,8 +151,8 @@ final class YArrayTests: XCTestCase {
         array0.insert(contentsOf: ["x", "y", "z"], at: 0)
         try connector.flushAllMessages()
         array0.insert(0, at: 1)
-        array1.remove(0)
-        array1.remove(1, count: 1)
+        array1.remove(at: 0)
+        array1.remove(at: 1..<2)
         array2.insert(2, at: 1)
         try YAssertEqualDocs(docs)
     }
@@ -212,8 +212,8 @@ final class YArrayTests: XCTestCase {
         
         users[1].disconnect()
         
-        array1.remove(1, count: 1)
-        array0.remove(0, count: 2)
+        array1.remove(at: 1)
+        array0.remove(at: 0..<2)
         
         try users[1].connect()
         
@@ -229,7 +229,7 @@ final class YArrayTests: XCTestCase {
         
         docs[0].disconnect()
         
-        array1.remove(0, count: 3)
+        array1.remove(at: 0..<3)
         
         try docs[0].connect()
         
@@ -246,11 +246,11 @@ final class YArrayTests: XCTestCase {
         XCTAssert(event != nil)
         
         event = nil
-        array0.remove(0)
+        array0.remove(at: 0)
         XCTAssert(event != nil)
         
         event = nil
-        array0.remove(0, count: 2)
+        array0.remove(at: 0..<2)
         XCTAssert(event != nil)
         
         event = nil
@@ -284,11 +284,11 @@ final class YArrayTests: XCTestCase {
         
         array0.observe{ e, _ in event = e }
         
-        array0.insert([], at: 0)
+        array0.insert(YOpaqueArray(), at: 0)
         XCTAssert(event != nil)
         
         event = nil
-        array0.remove(0)
+        array0.remove(at: 0)
         XCTAssert(event != nil)
         
         event = nil
@@ -343,7 +343,7 @@ final class YArrayTests: XCTestCase {
 
 
         changes = nil
-        array0.remove(0, count: 2)
+        array0.remove(at: 0..<2)
 
         wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 0)
@@ -369,10 +369,10 @@ final class YArrayTests: XCTestCase {
         var events: [YEvent] = []
         array0.observe{ e, _ in events.append(e) }
         
-        array0.insert(contentsOf: ["hi", YOpaqueMap()], at: 0)
+        array0.insert(contentsOf: ["hi", YOpaqueMap()] as [Any?], at: 0)
         XCTAssert(events.count == 1, "Event is triggered exactly once for insertion of two elements")
         
-        array0.remove(1)
+        array0.remove(at: 1)
         XCTAssert(events.count == 2, "Event is triggered exactly once for deletion")
         
         try YAssertEqualDocs(docs)
@@ -405,7 +405,7 @@ final class YArrayTests: XCTestCase {
         try connector.flushAllMessages()
         docs[0].disconnect()
         
-        array0.remove(0, count: 3)
+        array0.remove(at: 0..<3)
         try docs[0].connect()
         try connector.flushAllMessages()
         
@@ -534,12 +534,12 @@ final class YArrayTests: XCTestCase {
                     delLength = test.gen.int(in: 0...min(2, type.count - somePos))
                     
                     test.log("delete nested YArray at '\(somePos)..<\(somePos+delLength)'")
-                    type.remove(somePos, count: delLength)
+                    type.remove(at: somePos..<somePos+delLength)
                 }
             } else {
                 var oldContent = yarray.toArray()
                 test.log("delete at '\(somePos)..<\(somePos+delLength)'")
-                yarray.remove(somePos, count: delLength)
+                yarray.remove(at: somePos..<somePos+delLength)
                 oldContent.removeSubrange(somePos..<somePos+delLength)
                 XCTAssertEqualJSON(yarray.toArray(), oldContent)
             }

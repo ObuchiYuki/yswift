@@ -1,31 +1,13 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by yuki on 2023/03/16.
 //
 
 import Foundation
 import Combine
-
-extension YDocument {
-    private static let rootMapKey = "$"
-    
-    public var rootMap: YOpaqueMap { self.getOpaqueMap(YDocument.rootMapKey) }
-    
-    public func makeObject<T: YObject>(_: T.Type) -> T {
-        let map = self.rootMap
-        var id = YObjectID.publish()
-        while map.contains(id.compressedString()) {
-            id = .publish()
-        }
-        let object = T()
-        map[id.compressedString()] = object
-        
-        return object
-    }
-}
-
+import Promise
 
 final public class YObjectEvent: YEvent {
     public var keysChanged: Set<String?>
@@ -37,10 +19,20 @@ final public class YObjectEvent: YEvent {
 }
 
 open class YObject: YOpaqueObject {
+    
+    private static let objectIDKey = "_"
+    public private(set) var objectID: YObjectID!
+    
     private var _prelimContent: [String: Any?] = [:]
     private var _propertyTable: [String: _YObjectProperty] = [:]
     
     public required override init() {
+        if YObject.decodingFromContent { // decode
+            self.objectID = nil
+        } else { // initial make
+            self.objectID = .publish()
+        }
+        
         super.init()
                 
         self.observe{[unowned self] event, _ in
@@ -49,19 +41,36 @@ open class YObject: YOpaqueObject {
                 self._propertyTable[key]?.send(self.mapGet(key))
             }
         }
+        
+        if !YObject.decodingFromContent {
+            self._setValue(self.objectID.value, for: YObject.objectIDKey)
+            YObjectStore.shared.register(self)
+        }
+    }
+    
+    override func _onStorageUpdated() {
+        guard self.objectID == nil, self.storage[YObject.objectIDKey] != nil else { return }
+        let id = self.mapGet(YObject.objectIDKey) as! Int
+        self.objectID = YObjectID(id)
+        YObjectStore.shared.register(self)
     }
     
     public func register<T: YElement>(_ property: Property<T>, for key: String) {
         self._propertyTable[key] = property
         property.storage.setter = {[unowned self] in self._setValue($0.encodeToOpaque(), for: key) }
         property.storage.getter = {[unowned self] in T.decode(from: self._getValue(for: key)) }
-        if !YObject.decodingFromContent { self._setValue(property.initialValue().encodeToOpaque(), for: key) }
+        if !YObject.decodingFromContent {
+            self._setValue(property.initialValue().encodeToOpaque(), for: key)
+        }
     }
     
-    public func register<T: YWrapperObject>(_ property: T, for key: String) {
-        self._setValue(property.opaque, for: key)
+    public func register<T: YWrapperObject>(_ property: WProperty<T>, for key: String) {
+        property.storage.getter = {[unowned self] in T.decode(from: self._getValue(for: key)) }
+        if !YObject.decodingFromContent {
+            self._setValue(property.initialValue().opaque, for: key)
+        }
     }
-
+    
     public override func copy() -> Self {
         let map = Self()
         for (key, value) in self.elementSequence() {
@@ -75,11 +84,8 @@ open class YObject: YOpaqueObject {
     }
     
     private func _getValue(for key: String) -> Any? {
-        if self.doc != nil {
-            return self.mapGet(key)
-        } else {
-            return _prelimContent[key] ?? nil
-        }
+        if self.doc != nil { return self.mapGet(key) }
+        return _prelimContent[key] ?? nil
     }
     private func _setValue(_ value: Any?, for key: String) {
         if let doc = self.doc {
@@ -99,16 +105,14 @@ open class YObject: YOpaqueObject {
     
     override func _integrate(_ y: YDocument, item: YItem?) {
         super._integrate(y, item: item)
-        
+                
         for (key, value) in self._prelimContent {
             self._setValue(value, for: key)
         }
         self._prelimContent.removeAll()
     }
 
-    override func _copy() -> YOpaqueMap {
-        return YOpaqueMap()
-    }
+    override func _copy() -> YObject { return Self() }
 
     override func _callObserver(_ transaction: YTransaction, _parentSubs: Set<String?>) {
         self.callObservers(
@@ -152,10 +156,27 @@ extension YObject {
 
 extension YObject: CustomStringConvertible {
     public var description: String {
-        let components = self.elementSequence()
-            .map{ "\($0): \($1.map{ String(reflecting: $0) } ?? "nil")" }
-            .joined(separator: ", ")
-        return "\(Self.self)(\(components))"
+        var components = [String]()
+                
+        for var (key, value) in self.elementSequence().sorted(by: { $0.0 < $1.0 }) {
+            if key == YObject.objectIDKey {
+                value = YObjectID(value as! Int).compressedString()
+                key = "_"
+            }
+            
+            if let _value = value, !(_value is NSNull) {
+                if let property = self._propertyTable[key], String(describing: type(of: property)).contains("YObjectReference") {
+                    value = YObjectID(value as! Int).compressedString()
+                }
+                value = String(reflecting: value!)
+            } else {
+                value = "nil"
+            }
+            
+            components.append("\(key): \(value!)")
+        }
+        
+        return "\(Self.self)(\(components.joined(separator: ", ")))"
     }
 }
 

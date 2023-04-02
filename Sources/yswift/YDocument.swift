@@ -11,7 +11,7 @@ import Combine
 
 public class YDocument: LZObservable, JSHashable {
     public let guid: String
-    public let gc: Bool
+    public var gc: Bool
     
     public internal(set) var collectionid: String?
     public internal(set) var clientID: Int

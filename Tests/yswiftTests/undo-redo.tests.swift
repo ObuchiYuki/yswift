@@ -177,7 +177,7 @@ final class UndoRedoTests: XCTestCase {
         XCTAssertEqualJSON(array0.toArray(), [1, 2, 3, 4, 5, 6])
         
         try connector.syncAll()
-        array1.remove(0)
+        array1.remove(at: 0)
         try connector.syncAll()
         undoManager.undo()
         XCTAssertEqualJSON(array0.toArray(), [4, 5, 6])
@@ -185,24 +185,24 @@ final class UndoRedoTests: XCTestCase {
         undoManager.redo()
         XCTAssertEqualJSON(array0.toArray(), [2, 3, 4, 5, 6])
         
-        array0.remove(0, count: 5)
+        array0.remove(at: 0..<5)
         // test nested structure
         let ymap = YOpaqueMap()
         array0.insert(ymap, at: 0)
-        XCTAssertEqualJSON(array0.toJSON(), [[:]])
+        XCTAssertEqualJSON(array0.toJSON(), [[:] as NSDictionary])
         
         undoManager.stopCapturing()
         ymap["a"] = 1
         XCTAssertEqualJSON(array0.toJSON(), [[ "a": 1 ]])
         
         undoManager.undo()
-        XCTAssertEqualJSON(array0.toJSON(), [[:]])
+        XCTAssertEqualJSON(array0.toJSON(), [[:] as NSDictionary])
         
         undoManager.undo()
         XCTAssertEqualJSON(array0.toJSON(), [2, 3, 4, 5, 6])
         
         undoManager.redo()
-        XCTAssertEqualJSON(array0.toJSON(), [[:]])
+        XCTAssertEqualJSON(array0.toJSON(), [[:] as NSDictionary])
         
         undoManager.redo()
         XCTAssertEqualJSON(array0.toJSON(), [["a": 1]])
@@ -423,7 +423,7 @@ final class UndoRedoTests: XCTestCase {
         XCTAssertEqualJSON(design.toJSON(), ["text": ["blocks": ["text": "Type Something"]]])
         
         undoManager.undo()
-        XCTAssertEqualJSON(design.toJSON(), [:])
+        XCTAssertEqualJSON(design.toJSON(), [:] as NSDictionary)
         undoManager.redo()
         
         XCTAssertEqualJSON(design.toJSON(), ["text": ["blocks": ["text": "Type Something"]]])

@@ -138,8 +138,8 @@ final class ObjectTests: XCTestCase {
             convenience init(_ name: String) { self.init(); self.name = name }
         }
         class Object: YObject {
-            let array = YArray<Inner>()
-            required init() { super.init(); self.register(array, for: "array") }
+            @WProperty var array = YArray<Inner>()
+            required init() { super.init(); self.register(_array, for: "array") }
         }
         Inner.registerAuto()
         Object.registerAuto()
@@ -174,8 +174,8 @@ final class ObjectTests: XCTestCase {
             convenience init(_ name: String) { self.init(); self.name = name }
         }
         class Object: YObject {
-            let array = YArray<Inner>()
-            required init() { super.init(); self.register(array, for: "array") }
+            @WProperty var array = YArray<Inner>()
+            required init() { super.init(); self.register(_array, for: "array") }
         }
         Inner.registerAuto()
         Object.registerAuto()
@@ -229,11 +229,11 @@ final class ObjectTests: XCTestCase {
             }
         }
         class ObjectWithArray: YObject {
-            let array = YArray<Inner>()
+            @WProperty var array = YArray<Inner>()
             
             required init() {
                 super.init()
-                self.register(array, for: "array")
+                self.register(_array, for: "array")
             }
         }
         Inner.registerAuto()

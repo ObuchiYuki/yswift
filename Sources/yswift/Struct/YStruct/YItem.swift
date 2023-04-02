@@ -335,7 +335,7 @@ final class YItem: YStruct, JSHashable {
 
 extension YItem {
     /** Mark this Item as deleted. */
-    func delete(_ transaction: YTransaction) {
+    func delete(temporally: Bool = false, _ transaction: YTransaction) {
         guard !self.deleted, let parent = self.parent?.object else { return }
         
         // adjust the length of parent
@@ -346,7 +346,10 @@ extension YItem {
         self.deleted = true
         transaction.deleteSet.add(client: self.id.client, clock: self.id.clock, length: self.length)
         transaction.addChangedType(parent, parentSub: self.parentKey)
-        self.content.delete(transaction)
+        
+        if !temporally {
+            self.content.delete(transaction)
+        }
     }
 
     func gc(_ store: YStructStore, parentGC: Bool) {

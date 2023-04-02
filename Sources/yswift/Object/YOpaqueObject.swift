@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by yuki on 2023/03/15.
 //
@@ -13,11 +13,11 @@ open class YOpaqueObject: JSHashable {
     // MARK: - Property -
     var doc: YDocument? = nil
 
-    public var parent: YOpaqueObject? { self.item?.parent?.object }
+    var parent: YOpaqueObject? { self.item?.parent?.object }
     
     var item: YItem? = nil
     
-    var storage: [String: YItem] = [:]
+    var storage: [String: YItem] = [:] { didSet { self._onStorageUpdated() } }
     
     var serchMarkers: RefArray<YArraySearchMarker>? = nil
 
@@ -39,6 +39,8 @@ open class YOpaqueObject: JSHashable {
     public func copy() -> Self { fatalError() }
 
     func _copy() -> YOpaqueObject { fatalError() }
+    
+    func _onStorageUpdated() {}
 
     // =========================================================================== //
     // MARK: - Methods -
@@ -130,7 +132,7 @@ extension YOpaqueObject {
     }
 }
 
-public protocol YWrapperObject {
+public protocol YWrapperObject: YElement {
     associatedtype Opaque: YOpaqueObject
     
     var opaque: Opaque { get }

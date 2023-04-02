@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by yuki on 2023/03/28.
 //
@@ -10,6 +10,25 @@ import Combine
 
 protocol _YObjectProperty {
     func send(_ value: Any?)
+}
+
+extension YObject {
+    @propertyWrapper
+    public struct WProperty<Value: YWrapperObject> {
+        final class Storage {
+            var _wrappedValue: Value?
+            var getter: (() -> Value)!
+        }
+        
+        public var wrappedValue: Value { storage.getter() }
+        
+        let storage = Storage()
+        let initialValue: () -> Value
+        
+        public init(wrappedValue: @autoclosure @escaping () -> Value) {
+            self.initialValue = wrappedValue
+        }
+    }
 }
 
 extension YObject {
@@ -48,3 +67,5 @@ extension YObject {
         }
     }
 }
+
+

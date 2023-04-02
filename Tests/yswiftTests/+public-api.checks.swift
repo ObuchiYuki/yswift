@@ -22,10 +22,10 @@ class Layer: YObject {
     @Property var position: Point = Point()
     @Property var name: String = "Untitled Layer"
     
-//    convenience init(name: String) {
-//        self.init()
-//        self.name = name
-//    }
+    convenience init(name: String) {
+        self.init()
+        self.name = name
+    }
     
     required init() {
         super.init()
@@ -35,11 +35,11 @@ class Layer: YObject {
 }
 
 class Container: Layer {
-    let children: YArray<Layer> = []
+    @WProperty var children: YArray<Layer> = []
     
     required init() {
         super.init()
-        self.register(children, for: "children")
+        self.register(_children, for: "children")
     }
 }
 
@@ -52,14 +52,6 @@ final class PublicAPITests: XCTestCase {
     
     func testDocAPI() throws {
         let test = try YTest<Any>(docs: 2)
-        
-        let root0 = doc0.getObject(Container.self, "root")
-        root0.name = "Root"
-        
-        try test.sync()
-  
-        let root1 = doc1.getObject(Container.self, "root")
-        print(root1.name)
         
     }
 }

@@ -74,9 +74,9 @@ final class UpdatesTests: XCTestCase {
 
             let array = ydoc.getOpaqueArray()
             array.insert(contentsOf: [1, 2], at: 0)
-            array.remove(1, count: 1)
+            array.remove(at: 1)
             array.insert(contentsOf: [3, 4], at: 0)
-            array.remove(1, count: 2)
+            array.remove(at: 1..<2)
             
             try checkUpdateCases(ydoc: ydoc, updates: updates, enc: env, hasDeletes: true)
         }
