@@ -68,19 +68,17 @@ final public class YOpaqueArray: YOpaqueObject {
     }
     
     public func delete(at index: Int) {
-        self._remove(at: index, temporally: false)
+        self._delete(at: index)
     }
     public func delete<R: _RangeExpression>(in range: R) {
         let range = range.relative(to: self.count)
-        self._remove(at: range.lowerBound, count: range.count, temporally: false)
+        self._delete(at: range.lowerBound, count: range.count)
     }
     
-    public func remove(at index: Int) {
-        self._remove(at: index, temporally: true)
-    }
-    public func remove<R: _RangeExpression>(in range: R) {
-        let range = range.relative(to: self.count)
-        self._remove(at: range.lowerBound, count: range.count, temporally: true)
+    public func remove(at index: Int) -> Any? {
+        let element = (self[index] as? YOpaqueObject).map{ $0.copy() } ?? self[index]
+        self._delete(at: index)
+        return element
     }
     
     public override func copy() -> YOpaqueArray {
@@ -98,10 +96,10 @@ final public class YOpaqueArray: YOpaqueObject {
     // ============================================================================== //
     // MARK: - Private -
     
-    private func _remove(at index: Int, count: Int = 1, temporally: Bool) {
-        if self.doc != nil {
-            self.doc!.transact{ transaction in
-                self.listDelete(at: index, count: count, temporally: temporally, transaction)
+    private func _delete(at index: Int, count: Int = 1) {
+        if let doc = self.doc {
+            doc.transact{ transaction in
+                self.listDelete(at: index, count: count, transaction)
             }
         } else {
             self._prelimContent.removeSubrange(index..<index+count)

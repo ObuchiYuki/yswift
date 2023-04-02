@@ -37,21 +37,6 @@ extension YOpaqueObject {
         return result
     }
 
-//    func listToArray() -> [Any?] {
-//        var cs: [Any?] = []
-//        var n = self._start
-//        while (n != nil) {
-//            if n!.countable && !n!.deleted {
-//                let c = n!.content.values
-//                for i in 0..<c.count {
-//                    cs.append(c[i])
-//                }
-//            }
-//            n = n!.right as? Item
-//        }
-//        return cs
-//    }
-
     func listToArray(snapshot: YSnapshot) -> [Any?] {
         var cs: [Any?] = []
         var n = self._start
@@ -66,22 +51,6 @@ extension YOpaqueObject {
         }
         return cs
     }
-
-//    func listForEach(_ body: (Any?) throws -> Void) rethrows {
-//        var item = self._start
-//        while let uitem = item {
-//            if uitem.countable && !uitem.deleted {
-//               try uitem.content.values.forEach(body)
-//            }
-//            item = uitem.right as? Item
-//        }
-//    }
-//
-//    func listMap<R>(_ body: (Any?) throws -> R) rethrows -> [R] {
-//        var result: [R] = []
-//        try self.listForEach{ try result.append(body($0)) }
-//        return result
-//    }
 
     func listCreateIterator() -> AnyIterator<Any?> {
         var item = self._start
@@ -189,7 +158,6 @@ extension YOpaqueObject {
                     left!.integrate(transaction: transaction, offset: 0)
                 } else {
                     fatalError("Unexpected content type")
-//                    throw YSwiftError.unexpectedContentType
                 }
             }
         }
@@ -259,7 +227,7 @@ extension YOpaqueObject {
     }
 
 
-    func listDelete(at index: Int, count: Int, temporally: Bool, _ transaction: YTransaction) {
+    func listDelete(at index: Int, count: Int, _ transaction: YTransaction) {
         var index = index, length = count
         
         if length == 0 { return }
@@ -290,7 +258,7 @@ extension YOpaqueObject {
                     let id = YID(client: item!.id.client, clock: item!.id.clock + length)
                     _ = YStructStore.getItemCleanStart(transaction, id: id)
                 }
-                item!.delete(temporally: temporally, transaction)
+                item!.delete(transaction)
                 length -= item!.length
             }
             item = item!.right as? YItem

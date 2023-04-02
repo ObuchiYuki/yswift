@@ -335,7 +335,7 @@ final class YItem: YStruct, JSHashable {
 
 extension YItem {
     /** Mark this Item as deleted. */
-    func delete(temporally: Bool = false, _ transaction: YTransaction) {
+    func delete(_ transaction: YTransaction) {
         guard !self.deleted, let parent = self.parent?.object else { return }
         
         // adjust the length of parent
@@ -347,15 +347,12 @@ extension YItem {
         transaction.deleteSet.add(client: self.id.client, clock: self.id.clock, length: self.length)
         transaction.addChangedType(parent, parentSub: self.parentKey)
         
-        if !temporally {
-            self.content.delete(transaction)
-        }
+        self.content.delete(transaction)
     }
 
     func gc(_ store: YStructStore, parentGC: Bool) {
         if !self.deleted {
             fatalError("Unexpected case")
-//            throw YSwiftError.unexpectedCase
         }
         
         self.content.gc(store)

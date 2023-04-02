@@ -52,11 +52,8 @@ final public class YArray<Element: YElement>: YWrapperObject {
         opaque.delete(in: range)
     }
     
-    public func remove(at index: Int) {
-        opaque.remove(at: index)
-    }
-    public func remove<R: _RangeExpression>(in range: R) {
-        opaque.remove(in: range)
+    public func remove(at index: Int) -> Element {
+        Element.decode(from: opaque.remove(at: index))
     }
     
     public func copy() -> YArray<Element> {

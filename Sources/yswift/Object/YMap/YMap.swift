@@ -52,7 +52,7 @@ extension YMap {
         self.opaque.removeAll()
     }
     
-    public func copy() throws -> YMap<Value> {
+    public func copy() -> YMap<Value> {
         YMap(opaque: self.opaque.copy())
     }
     

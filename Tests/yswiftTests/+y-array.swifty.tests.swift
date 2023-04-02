@@ -5,6 +5,24 @@ import Combine
 
 final class YArraySwiftyTests: XCTestCase {
     
+    func testArrayNestedDeleteAndRemove() throws {
+        let test = try YTest<Any>(docs: 2)
+
+        let (array0, array1) = test.swiftyArray2(YMap<Int>.self)
+        
+        var map0: YMap<Int> = ["Apple": 120, "Banana": 240]
+        
+        array0.append(map0)
+        try test.sync()
+        
+        map0 = array0.remove(at: 0)
+        try test.sync()
+        
+        print(map0)
+        
+        XCTAssertEqual(map0, ["Apple": 120, "Banana": 240])
+    }
+    
     func testArrayPrimitiveTypeSync() throws {
         let test = try YTest<Any>(docs: 2)
         let array0 = test.swiftyArray(Int.self, 0), array1 = test.swiftyArray(Int.self, 1)

@@ -18,6 +18,14 @@ struct YTest<T> {
     let gen: RandomGenerator
     let debugLog: Bool
     
+    func swiftyArray2<Element: YElement>(_: Element.Type) -> (YArray<Element>, YArray<Element>) {
+        return (self.swiftyArray(Element.self, 0), self.swiftyArray(Element.self, 1))
+    }
+    
+    func swiftyMap2<Value: YElement>(_: Value.Type) -> (YMap<Value>, YMap<Value>) {
+        return (self.swiftyMap(Value.self, 0), self.swiftyMap(Value.self, 1))
+    }
+    
     func swiftyArray<Element: YElement>(_: Element.Type, _ index: Int) -> YArray<Element> {
         YArray<Element>(opaque: self.array[index])
     }
