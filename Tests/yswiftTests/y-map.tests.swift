@@ -221,10 +221,10 @@ final class YMapTests: XCTestCase {
         map0.set("otherstuff", value: "c1")
         XCTAssertEqual(map0.count, 2, "map size is \(map0.count) expected 2")
         
-        map0.removeValue(forKey: "stuff")
+        map0.deleteValue(forKey: "stuff")
         XCTAssertEqual(map0.count, 1, "map size after delete is \(map0.count), expected 1")
         
-        map0.removeValue(forKey: "otherstuff")
+        map0.deleteValue(forKey: "otherstuff")
         XCTAssertEqual(map0.count, 0, "map size after delete is \(map0.count), expected 0")
     }
 
@@ -234,7 +234,7 @@ final class YMapTests: XCTestCase {
         let connector = test.connector, docs = test.docs, map0 = test.map[0], map1 = test.map[1]
         map0.set("stuff", value: "c0")
         map1.set("stuff", value: "c1")
-        map1.removeValue(forKey: "stuff")
+        map1.deleteValue(forKey: "stuff")
         
         try connector.flushAllMessages()
         
@@ -331,7 +331,7 @@ final class YMapTests: XCTestCase {
         map1.set("stuff", value: "c1")
         map2.set("stuff", value: "c2")
         map3.set("stuff", value: "c3")
-        map3.removeValue(forKey: "stuff")
+        map3.deleteValue(forKey: "stuff")
         
         try connector.flushAllMessages()
         
@@ -360,7 +360,7 @@ final class YMapTests: XCTestCase {
                     
                     XCTAssert(mevent.keysChanged.contains("deepmap"))
                     XCTAssertEqual(mevent.path.count, 1)
-                    XCTAssertEqualJSON(mevent.path[0], "map")
+                    XCTAssertEqual(mevent.path[0], .key("map"))
                     let emap = try XCTUnwrap(event.target as? YOpaqueMap)
                     dmapid = try XCTUnwrap(emap["deepmap"] as? YOpaqueMap).item?.id
                 })
@@ -395,7 +395,7 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let docs = test.docs, map0 = test.map[0]
 
-        var pathes: [[PathElement]] = []
+        var pathes: [[YEvent.PathElement]] = []
         var calls = 0
         
         map0.observeDeep{ events, _ in
@@ -411,7 +411,7 @@ final class YMapTests: XCTestCase {
         try XCTUnwrap(_map["array"] as? YOpaqueArray).insert("content", at: 0)
         
         XCTAssertEqual(calls, 3)
-        XCTAssertEqualJSON(pathes, [[], ["map"], ["map", "array"]])
+        XCTAssertEqual(pathes, [[], [.key("map")], [.key("map"), .key("array")]])
         
         try YAssertEqualDocs(docs)
     }
@@ -443,7 +443,7 @@ final class YMapTests: XCTestCase {
         // update, oldValue is in opContents
         map0.set("stuff", value: 5)
         // delete
-        map0.removeValue(forKey: "stuff")
+        map0.deleteValue(forKey: "stuff")
         compareEvent(event, keysChanged: Set(["stuff"]), target: map0)
         
         try YAssertEqualDocs(docs)
@@ -510,7 +510,7 @@ final class YMapTests: XCTestCase {
         
         docs[0].transact{ _ in
             map0.set("c", value: 1)
-            map0.removeValue(forKey: "c")
+            map0.deleteValue(forKey: "c")
         }
         XCTAssertNotNil(changes)
         XCTAssertEqual(changes?.keys.count, 0)
@@ -590,7 +590,7 @@ final class YMapTests: XCTestCase {
         },
         { doc, test, _ in // delete
             let key = test.gen.oneOf(["one", "two"])
-            doc.getOpaqueMap("map").removeValue(forKey: key)
+            doc.getOpaqueMap("map").deleteValue(forKey: key)
         }
     ]
 

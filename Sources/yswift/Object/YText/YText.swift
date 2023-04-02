@@ -14,12 +14,14 @@ public enum YChangeAction: String {
 
 public protocol YTextAttributeValue {}
 extension Bool: YTextAttributeValue {}
-extension NSNumber: YTextAttributeValue {}
 extension Int: YTextAttributeValue {}
 extension String: YTextAttributeValue {}
+extension NSNumber: YTextAttributeValue {}
+extension NSDictionary: YTextAttributeValue {}
+extension NSArray: YTextAttributeValue {}
+extension NSNull: YTextAttributeValue {}
 extension [Any?]: YTextAttributeValue {}
 extension [String: Any?]: YTextAttributeValue {}
-extension NSNull: YTextAttributeValue {}
 
 extension YTextAttributeValue {
     func jsProperty(_ name: String) -> Any? {
@@ -30,7 +32,7 @@ extension YTextAttributeValue {
     }
 }
 
-public typealias YTextAttributes = RefDictionary<String, YTextAttributeValue?>
+typealias YTextAttributes = RefDictionary<String, YTextAttributeValue?>
 
 extension YTextAttributes {
     public func isEqual(to other: YTextAttributes) -> Bool {
@@ -949,7 +951,7 @@ final public class YText: YOpaqueObject {
     }
 
 
-    public func insert(_ index: Int, text: String, attributes: YTextAttributes? = nil) {
+    public func insert(_ index: Int, text: String, attributes: [String: (any YTextAttributeValue)?]? = nil) {
         if text.count <= 0 { return }
         
         guard let doc = self.doc else {
@@ -964,20 +966,20 @@ final public class YText: YOpaqueObject {
             if attributes == nil {
                 attributes = [:]
                 pos.currentAttributes.forEach{ k, v in
-                    attributes!.value[k] = v
+                    attributes![k] = v
                 }
             }
 
-            insertText(transaction: transaction, parent: self, currPos: pos, text: text, attributes: attributes!)
+            insertText(transaction: transaction, parent: self, currPos: pos, text: text, attributes: RefDictionary(attributes!))
         })
     }
 
     // OLD: insertEmbed(_ index: Int, embed: Object|object, attributes: YTextAttributes = {})
-    public func insertEmbed(_ index: Int, embed: YEventDeltaInsertType, attributes: YTextAttributes?) {
+    public func insertEmbed(_ index: Int, embed: YEventDeltaInsertType, attributes: [String: (any YTextAttributeValue)?]?) {
         if self.doc != nil {
             self.doc!.transact{ transaction in
                 let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
-                insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: attributes ?? [:])
+                insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: RefDictionary(attributes ?? [:]))
             }
         } else {
             (self._pending)?.append{
@@ -1003,7 +1005,7 @@ final public class YText: YOpaqueObject {
         }
     }
 
-    public func format(_ index: Int, length: Int, attributes: YTextAttributes) {
+    public func format(_ index: Int, length: Int, attributes: [String: (any YTextAttributeValue)?]) {
         if length == 0 {
             return
         }
@@ -1014,7 +1016,7 @@ final public class YText: YOpaqueObject {
                     return
                 }
                 
-                formatText(transaction: transaction, parent: self, currPos: pos, length: length, attributes: attributes)
+                formatText(transaction: transaction, parent: self, currPos: pos, length: length, attributes: RefDictionary(attributes))
             })
         } else {
             self._pending?.append{

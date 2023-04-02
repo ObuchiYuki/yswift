@@ -24,7 +24,7 @@ public class YEvent {
     }
 
     public var path: [PathElement] {
-        return getPathTo(parent: self.currentTarget, child: self.target)
+        return YEvent.getPathTo(parent: self.currentTarget, child: self.target)
     }
 
     public var keys: [String: YEventKey] {
@@ -137,28 +137,32 @@ public class YEvent {
     }
 }
 
-public protocol PathElement {}
-extension String: PathElement {}
-extension Int: PathElement {}
-
-func getPathTo(parent: YOpaqueObject, child: YOpaqueObject) -> [PathElement] {
-    var child: YOpaqueObject? = child
-    var path: [PathElement] = []
-    while let childItem = child?.item, child != parent {
-        if let parentKey = childItem.parentKey {
-            // parent is map-ish
-            path.insert(parentKey, at: 0)
-        } else {
-            // parent is array-ish
-            var i = 0
-            var item = childItem.parent?.object?._start
-            while let uitem = item, item != childItem {
-                if !uitem.deleted { i += 1 }
-                item = uitem.right as? YItem
-            }
-            path.insert(i, at: 0)
-        }
-        child = childItem.parent?.object
+extension YEvent {
+    public enum PathElement: Equatable, Hashable {
+        case index(Int)
+        case key(String)
     }
-    return path
+    
+    private static func getPathTo(parent: YOpaqueObject, child: YOpaqueObject) -> [PathElement] {
+        var child: YOpaqueObject? = child
+        var path: [PathElement] = []
+        while let childItem = child?.item, child != parent {
+            if let parentKey = childItem.parentKey {
+                // parent is map-ish
+                path.insert(.key(parentKey), at: 0)
+            } else {
+                // parent is array-ish
+                var i = 0
+                var item = childItem.parent?.object?._start
+                while let uitem = item, item != childItem {
+                    if !uitem.deleted { i += 1 }
+                    item = uitem.right as? YItem
+                }
+                path.insert(.index(i), at: 0)
+            }
+            child = childItem.parent?.object
+        }
+        return path
+    }
 }
+

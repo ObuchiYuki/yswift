@@ -24,8 +24,8 @@ extension YMap {
     public var isEmpty: Bool { self.opaque.isEmpty }
     
     public subscript(key: String) -> Value? {
-        get { self.opaque[key].map{ Value.decode(from: $0) } }
-        set { self.opaque[key] = newValue?.encodeToOpaque() }
+        get { self.opaque[key].map{ Value.fromPersistence($0) } }
+        set { self.opaque[key] = newValue?.persistenceObject() }
     }
 
     public func set(_ key: String, value: Value?) throws {
@@ -37,11 +37,15 @@ extension YMap {
     }
     
     public func values() -> some Sequence<Value> {
-        self.opaque.values().lazy.map{ Value.decode(from: $0)  }
+        self.opaque.values().lazy.map{ Value.fromPersistence($0)  }
     }
     
-    public func removeValue(forKey key: String) throws {
-        self.opaque.removeValue(forKey: key)
+    public func removeValue(forKey key: String) throws -> Value? {
+        self.opaque.removeValue(forKey: key).map{ Value.fromPersistence($0) }
+    }
+    
+    public func deleteValue(forKey key: String) throws {
+        self.opaque.deleteValue(forKey: key)
     }
     
     public func contains(_ key: String) -> Bool {
@@ -66,8 +70,8 @@ extension YMap {
 }
 
 extension YMap: YElement {
-    public func encodeToOpaque() -> Any? { self.opaque }
-    public static func decode(from opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueMap) }
+    public func persistenceObject() -> Any? { self.opaque }
+    public static func fromPersistence(_ opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueMap) }
 }
 
 extension YMap: ExpressibleByDictionaryLiteral {
@@ -96,7 +100,7 @@ extension YMap: Sequence {
     public typealias Element = (String, Value)
     
     public func makeIterator() -> some IteratorProtocol<Element> {
-        self.opaque.lazy.map{ (key: $0, value: Value.decode(from: $1)) }.makeIterator()
+        self.opaque.lazy.map{ (key: $0, value: Value.fromPersistence($1)) }.makeIterator()
     }
 }
 

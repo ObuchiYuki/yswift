@@ -60,9 +60,9 @@ extension YObject {
         
         func send(_ value: Any?) {
             if let publisher = self.storage.publisher {
-                publisher.send(Value.decode(from: value))
+                publisher.send(Value.fromPersistence(value))
             } else {
-                self.storage.publisher = CurrentValueSubject(Value.decode(from: value))
+                self.storage.publisher = CurrentValueSubject(Value.fromPersistence(value))
             }
         }
     }

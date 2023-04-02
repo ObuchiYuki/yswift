@@ -34,10 +34,10 @@ final public class YOpaqueMap: YOpaqueObject {
         if doc != nil { return mapGet(key) }
         return self._prelimContent[key] ?? nil
     }
-
+    
     public func set(_ key: String, value: Any?) {
         assert(!(value is any YWrapperObject), "You should not put wrapper directory to opaque object.")
-
+        
         if let doc = self.doc {
             doc.transact{ self.mapSet($0, key: key, value: value) }
         } else {
@@ -52,13 +52,19 @@ final public class YOpaqueMap: YOpaqueObject {
     public func values() -> some Sequence<Any?> {
         self.innerSequence().map{ _, value in value }
     }
-
+    
     public func contains(_ key: String) -> Bool {
         if doc != nil { return self.mapHas(key) }
         return self._prelimContent[key] != nil
     }
     
-    public func removeValue(forKey key: String) {
+    public func removeValue(forKey key: String) -> Any? {
+        let value = (self[key] as? YOpaqueObject).map{ $0.copy() } ?? self[key]
+        self.deleteValue(forKey: key)
+        return value
+    }
+    
+    public func deleteValue(forKey key: String) {
         if let doc = self.doc {
             doc.transact{ self.mapDelete($0, key: key) }
         } else {

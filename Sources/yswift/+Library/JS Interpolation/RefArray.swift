@@ -10,6 +10,8 @@ final class RefArray<Element> {
     
     var count: Int { self.value.count }
     
+    var isEmpty: Bool { self.value.isEmpty }
+    
     init(_ value: [Element]) { self.value = value }
     
     init(repeating element: Element, count: Int) { self.value = [Element](repeating: element, count: count) }

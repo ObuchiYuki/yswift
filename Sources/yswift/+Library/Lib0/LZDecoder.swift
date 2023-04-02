@@ -285,7 +285,8 @@ final public class LZStringDecoder {
 
     public func read() throws -> String {
         let end = try self.spos + Int(self.decoder.read())
-        let res = self.str.substring(with: NSRange(from: self.spos, to: end)) as String
+        
+        let res = self.str.substring(with: NSRange(location: self.spos, length: end-self.spos)) as String
         self.spos = end
         return res
     }

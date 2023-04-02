@@ -18,9 +18,9 @@ extension YDocument {
 
 final class StructRef: CustomStringConvertible {
     var i: Int
-    var refs: RefArray<YStruct?>
+    var refs: [YStruct?]
     
-    init(i: Int, refs: RefArray<YStruct?>) { self.i = i; self.refs = refs }
+    init(i: Int, refs: [YStruct?]) { self.i = i; self.refs = refs }
     
     var description: String { "StructRef(i: \(i), refs: \(refs))" }
 }
@@ -33,12 +33,10 @@ extension YUpdateDecoder {
         
         for _ in 0..<numOfStateUpdates {
             let numberOfStructs = try Int(self.restDecoder.readUInt())
-            let refs = RefArray<YStruct?>(repeating: nil, count: numberOfStructs)
+            var refs = [YStruct?](repeating: nil, count: numberOfStructs)
             let client = try self.readClient()
             var clock = try Int(self.restDecoder.readUInt())
-            
-            clientRefs.value[client] = StructRef(i: 0, refs: refs)
-            
+                        
             for i in 0..<numberOfStructs {
                 let info = try self.readInfo()
                 let contentType = info & 0b0001_1111
@@ -54,7 +52,6 @@ extension YUpdateDecoder {
                     let len = try Int(self.restDecoder.readUInt())
                     refs[i] = YSkip(id: YID(client: client, clock: clock), length: len)
                     clock += len
-                    break
                 default:
                     let cantCopyParentInfo = (info & (0b0100_0000 | 0b1000_0000)) == 0
                     let struct_ = try YItem(
@@ -64,10 +61,8 @@ extension YUpdateDecoder {
                         right: nil,
                         rightOrigin: (info & 0b0100_0000) == 0b0100_0000 ? self.readRightID() : nil, // right origin
                         parent: cantCopyParentInfo
-                        ? (self.readParentInfo()
-                           ? .object(doc.get(self.readString(), YOpaqueObject.init))
-                           : .id(self.readLeftID()))
-                        : nil, // parent
+                            ? (self.readParentInfo() ? .object(doc.get(self.readString(), YOpaqueObject.init)) : .id(self.readLeftID()))
+                            : nil, // parent
                         parentSub: cantCopyParentInfo && (info & 0b0010_0000) == 0b0010_0000 ? self.readString() : nil, // parentSub
                         content: try decodeContent(from: self, info: info) // item content
                     )
@@ -75,6 +70,8 @@ extension YUpdateDecoder {
                     clock += struct_.length
                 }
             }
+            
+            clientRefs.value[client] = StructRef(i: 0, refs: refs)
             
         }
         

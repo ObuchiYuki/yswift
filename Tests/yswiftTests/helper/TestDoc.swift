@@ -12,8 +12,8 @@ import XCTest
 class TestDoc: YDocument {
     var connector: TestConnector
     var userID: Int
-    var receiving: [TestDoc: Ref<[Data]>] = [:]
-    var updates: Ref<[YUpdate]> = Ref(value: [])
+    var receiving: [TestDoc: RefArray<Data>] = [:]
+    var updates: RefArray<YUpdate> = []
     
     init(userID: Int, connector: TestConnector, gc: Bool) throws {
         self.userID = userID
@@ -59,7 +59,7 @@ class TestDoc: YDocument {
     }
 
     func _receive(_ message: Data, remoteClient: TestDoc) {
-        self.receiving.setIfUndefined(remoteClient, .init(value: [])).value.append(message)
+        self.receiving.setIfUndefined(remoteClient, []).value.append(message)
     }
     
     private func broadcastMessage(_ m: Data) {

@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-import yswift
+@testable import yswift
 
 class TestConnector: JSHashable {
     var connections = Set<TestDoc>()

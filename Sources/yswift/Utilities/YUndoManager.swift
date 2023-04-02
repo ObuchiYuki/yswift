@@ -464,7 +464,6 @@ extension YItem {
             left = self.left
             right = self
             
-            print(0)
             while let uleft = left as? YItem {
                 var leftTrace: YItem? = uleft
                 

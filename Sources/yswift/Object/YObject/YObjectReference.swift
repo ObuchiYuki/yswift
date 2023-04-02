@@ -23,8 +23,8 @@ final public class YObjectReference<T: YObject>: _YObjectReferenceType {
 }
 
 extension YObjectReference: YElement {
-    public func encodeToOpaque() -> Any? { self.objectID.value }
-    public static func decode(from opaque: Any?) -> YObjectReference<T> {
+    public func persistenceObject() -> Any? { self.objectID.value }
+    public static func fromPersistence(_ opaque: Any?) -> YObjectReference<T> {
         let id = YObjectID(opaque as! Int)
         return YObjectReference(objectID: id)
     }

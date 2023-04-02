@@ -219,7 +219,7 @@ extension YStructStore {
             }
         }
 
-        var stackHead: YStruct = curStructsTarget!.refs.value[curStructsTarget!.i]!
+        var stackHead: YStruct = curStructsTarget!.refs[curStructsTarget!.i]!
         curStructsTarget!.i += 1
         var state = [Int: Int]()
 
@@ -265,7 +265,7 @@ extension YStructStore {
                             updateMissingSv(client: missing!, clock: store.getState(missing!))
                             addStackToRestSS()
                         } else {
-                            stackHead = structRefs.refs.value[structRefs.i]!
+                            stackHead = structRefs.refs[structRefs.i]!
                             structRefs.i += 1
                             continue
                         }
@@ -280,7 +280,7 @@ extension YStructStore {
             if stack.count > 0 {
                 stackHead = stack.removeLast()
             } else if curStructsTarget != nil && curStructsTarget!.i < curStructsTarget!.refs.count {
-                stackHead = curStructsTarget!.refs.value[curStructsTarget!.i]!
+                stackHead = curStructsTarget!.refs[curStructsTarget!.i]!
                 curStructsTarget!.i += 1
             } else {
                 curStructsTarget = getNextStructTarget()
@@ -289,7 +289,7 @@ extension YStructStore {
                     // we are done!
                     break
                 } else {
-                    stackHead = curStructsTarget!.refs.value[curStructsTarget!.i]!
+                    stackHead = curStructsTarget!.refs[curStructsTarget!.i]!
                     curStructsTarget!.i += 1
                 }
             }

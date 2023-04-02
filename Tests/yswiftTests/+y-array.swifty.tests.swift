@@ -14,11 +14,15 @@ final class YArraySwiftyTests: XCTestCase {
         
         array0.append(map0)
         try test.sync()
+        XCTAssertEqual(array1, [["Apple": 120, "Banana": 240]])
         
         map0 = array0.remove(at: 0)
         try test.sync()
+        XCTAssertEqual(array1, [])
         
-        print(map0)
+        array0.append(map0)
+        try test.sync()
+        XCTAssertEqual(array1, [["Apple": 120, "Banana": 240]])
         
         XCTAssertEqual(map0, ["Apple": 120, "Banana": 240])
     }

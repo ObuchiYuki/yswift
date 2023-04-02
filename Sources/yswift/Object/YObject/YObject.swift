@@ -57,15 +57,15 @@ open class YObject: YOpaqueObject {
     
     public func register<T: YElement>(_ property: Property<T>, for key: String) {
         self._propertyTable[key] = property
-        property.storage.setter = {[unowned self] in self._setValue($0.encodeToOpaque(), for: key) }
-        property.storage.getter = {[unowned self] in T.decode(from: self._getValue(for: key)) }
+        property.storage.setter = {[unowned self] in self._setValue($0.persistenceObject(), for: key) }
+        property.storage.getter = {[unowned self] in T.fromPersistence(self._getValue(for: key)) }
         if !YObject.decodingFromContent {
-            self._setValue(property.initialValue().encodeToOpaque(), for: key)
+            self._setValue(property.initialValue().persistenceObject(), for: key)
         }
     }
     
     public func register<T: YWrapperObject>(_ property: WProperty<T>, for key: String) {
-        property.storage.getter = {[unowned self] in T.decode(from: self._getValue(for: key)) }
+        property.storage.getter = {[unowned self] in T.fromPersistence(self._getValue(for: key)) }
         if !YObject.decodingFromContent {
             self._setValue(property.initialValue().opaque, for: key)
         }

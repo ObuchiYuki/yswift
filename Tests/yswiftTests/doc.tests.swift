@@ -159,7 +159,7 @@ final class DocTests: XCTestCase {
 
             XCTAssertEqual(doc2._subdocGuids, ["a", "c"])
 
-            doc2.getOpaqueMap("mysubdocs").removeValue(forKey: "a")
+            doc2.getOpaqueMap("mysubdocs").deleteValue(forKey: "a")
             XCTAssertEqual(event, [[], ["a"], []])
             XCTAssertEqual(doc2._subdocGuids, ["a", "c"])
         }

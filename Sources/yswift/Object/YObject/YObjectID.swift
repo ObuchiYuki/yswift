@@ -61,6 +61,6 @@ extension YObjectID {
 }
 
 extension YObjectID: YElement {
-    public func encodeToOpaque() -> Any? { return value }
-    public static func decode(from opaque: Any?) -> YObjectID { YObjectID(opaque as! Int) }
+    public func persistenceObject() -> Any? { return value }
+    public static func fromPersistence(_ opaque: Any?) -> YObjectID { YObjectID(opaque as! Int) }
 }

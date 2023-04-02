@@ -59,9 +59,7 @@ final public class YSnapshot: JSHashable {
         if originDoc.gc { throw YSwiftError.originDocGC }
         
         let encoder = YUpdateEncoderV2()
-        
-        print(4, encoder.toUpdate())
-        
+                
         originDoc.transact{ transaction in
             let size = self.stateVectors.lazy.filter{ $0.value > 0 }.count
             

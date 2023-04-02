@@ -21,28 +21,28 @@ final public class YArray<Element: YElement>: YWrapperObject {
     public convenience init() { self.init(opaque: YOpaqueArray()) }
     
     public convenience init<S: Sequence>(_ contents: S) where S.Element == Element {
-        self.init(opaque: YOpaqueArray(contents.lazy.map{ $0.encodeToOpaque() }))
+        self.init(opaque: YOpaqueArray(contents.lazy.map{ $0.persistenceObject() }))
     }
     
     public subscript(index: Int) -> Element {
-        Element.decode(from: self.opaque[index])
+        Element.fromPersistence(self.opaque[index])
     }
     public subscript<R: _RangeExpression>(range: R) -> [Element] {
-        self.opaque[range].map{ Element.decode(from: $0) }
+        self.opaque[range].map{ Element.fromPersistence($0) }
     }
     
     public func append(_ content: Element) {
-        self.opaque.append(content.encodeToOpaque())
+        self.opaque.append(content.persistenceObject())
     }
     public func append<S: Sequence>(contentsOf contents: S) where S.Element == Element {
-        self.opaque.append(contentsOf: contents.map{ $0.encodeToOpaque() })
+        self.opaque.append(contentsOf: contents.map{ $0.persistenceObject() })
     }
     
     public func insert(_ content: Element, at index: Int) {
-        self.opaque.insert(content.encodeToOpaque(), at: index)
+        self.opaque.insert(content.persistenceObject(), at: index)
     }
     public func insert<S: Sequence>(contentsOf contents: S, at index: Int) where S.Element == Element {
-        self.opaque.insert(contentsOf: contents.map{ $0.encodeToOpaque() }, at: index)
+        self.opaque.insert(contentsOf: contents.map{ $0.persistenceObject() }, at: index)
     }
 
     public func delete(at index: Int) {
@@ -53,7 +53,7 @@ final public class YArray<Element: YElement>: YWrapperObject {
     }
     
     public func remove(at index: Int) -> Element {
-        Element.decode(from: opaque.remove(at: index))
+        Element.fromPersistence(opaque.remove(at: index))
     }
     
     public func copy() -> YArray<Element> {
@@ -78,8 +78,8 @@ extension YArray: Hashable where Element: Hashable {
 }
 
 extension YArray: YElement {
-    public func encodeToOpaque() -> Any? { self.opaque }
-    public static func decode(from opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueArray) }
+    public func persistenceObject() -> Any? { self.opaque }
+    public static func fromPersistence(_ opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueArray) }
 }
 
 extension YArray: CustomStringConvertible {
@@ -88,7 +88,7 @@ extension YArray: CustomStringConvertible {
 
 extension YArray: Sequence {
     public func makeIterator() -> some IteratorProtocol<Element> {
-        return self.opaque.lazy.map{ Element.decode(from: $0) }.makeIterator()
+        return self.opaque.lazy.map{ Element.fromPersistence($0) }.makeIterator()
     }
 }
 

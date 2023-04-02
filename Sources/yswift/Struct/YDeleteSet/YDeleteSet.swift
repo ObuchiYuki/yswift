@@ -134,7 +134,7 @@ final public class YDeleteSet {
         let merged = YDeleteSet()
         
         for dssI in 0..<dss.count {
-            dss[dssI].clients.forEachMutating({ client, delsLeft in
+            dss[dssI].clients.forEach({ client, delsLeft in
                 if merged.clients[client] == nil {
                     for i in dssI+1..<dss.count {
                         delsLeft.value += dss[i].clients[client] ?? []
@@ -182,12 +182,13 @@ final public class YDeleteSet {
                     var len = struct_.length
                     
                     if i + 1 < structs.count {
-                        var next: YStruct? = structs[i + 1]
+                        var next: YStruct? = structs[i+1]
                         
-                        while next != nil && i + 1 < structs.count && next!.deleted {
-                            len += next!.length
+                        while let unext = next, i+1 < structs.count && unext.deleted {
+                            len += unext.length
                             i += 1
-                            next = structs.value.at(i + 1)
+                            if !(i+1 < structs.count) { break }
+                            next = structs.value[i+1]
                         }
                     }
                     

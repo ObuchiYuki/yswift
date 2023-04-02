@@ -43,35 +43,7 @@ extension Array {
     }
 }
 
-extension NSRange {
-    init(from: Int, to: Int) {
-        self.init(location: from, length: to-from)
-    }
-    
-    init(_ range: Range<Int>) {
-        self.init(from: range.lowerBound, to: range.upperBound)
-    }
-}
-
-public protocol JSHashable: AnyObject, Hashable, Equatable {}
-
-extension JSHashable {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
-    }
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(ObjectIdentifier(self))
-    }
-}
-
-
 extension Dictionary {
-    mutating func forEachMutating(_ block: (Key, inout Value) -> Void) {
-        for key in self.keys {
-            block(key, &self[key]!)
-        }
-    }
-    
     mutating func setIfUndefined(_ key: Key, _ make: @autoclosure () throws -> Value) rethrows -> Value {
         if let value = self[key] { return value }
         let newValue = try make()
@@ -88,7 +60,6 @@ extension Array {
         return self[1...].reduce(self[0], body)
     }
 }
-
 
 func equalJSON(_ a: Any?, _ b: Any?) -> Bool {
     if a == nil && b == nil { return true }
