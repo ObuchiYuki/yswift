@@ -223,7 +223,6 @@ extension YDocument {
         
         public static let afterTransactionCleanup = YDocument.EventName<YTransaction>("afterTransactionCleanup")
     
-
         public struct SubDocEvent {
             public let loaded: Set<YDocument>
             public let added: Set<YDocument>

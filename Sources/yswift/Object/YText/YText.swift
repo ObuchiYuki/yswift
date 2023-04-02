@@ -1060,6 +1060,6 @@ final public class YText: YOpaqueObject {
     }
 }
 
-public func readYText(_decoder: YUpdateDecoder) -> YText {
+func readYText(_decoder: YUpdateDecoder) -> YText {
     return YText()
 }

@@ -7,7 +7,7 @@
 
 import Foundation
 
-final public class YDeleteSet {
+final class YDeleteSet {
     var clients: [Int: RefArray<YDeleteItem>] = [:]
 
     func iterate(_ transaction: YTransaction, body: (YStruct) throws -> Void) rethrows {
@@ -24,12 +24,12 @@ final public class YDeleteSet {
         }
     }
 
-    public func isDeleted(_ id: YID) -> Bool {
+    func isDeleted(_ id: YID) -> Bool {
         let dis = self.clients[id.client]
         return dis != nil && YDeleteItem.findIndex(dis!, clock: id.clock) != nil
     }
 
-    public func sortAndMerge() {
+    func sortAndMerge() {
         self.clients.forEach{ _, dels in
             dels.value.sort(by: { a, b in a.clock < b.clock })
             var i: Int = 1, j: Int = 1
@@ -49,7 +49,7 @@ final public class YDeleteSet {
         }
     }
 
-    public func add(client: Int, clock: Int, length: Int) {
+    func add(client: Int, clock: Int, length: Int) {
         if self.clients[client] == nil {
             self.clients[client] = []
         }
@@ -57,7 +57,7 @@ final public class YDeleteSet {
         self.clients[client]!.value.append(YDeleteItem(clock: clock, len: length))
     }
     
-    public func encode(into encoder: any YDeleteSetEncoder) {
+    func encode(into encoder: any YDeleteSetEncoder) {
         encoder.restEncoder.writeUInt(UInt(self.clients.count))
     
         // Ensure that the delete set is written in a deterministic order

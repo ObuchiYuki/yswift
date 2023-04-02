@@ -98,7 +98,15 @@ final class YArraySwiftyTests: XCTestCase {
     
     
     func testArrayCodableType() throws {
-        struct Point: Codable, Equatable, YElement { var x: Double, y: Double }
+        struct Point: Codable, Equatable, YElement {
+            var x: Double, y: Double
+            
+            func persistenceObject() -> Any? { ["x": x, "y": y] }
+            static func fromPersistence(_ opaque: Any?) -> Point {
+                let opaque = opaque as! [String: Double]
+                return Point(x: opaque["x"]!, y: opaque["y"]!)
+            }
+        }
 
         let test = try YTest<Any>(docs: 1)
         let array = test.swiftyArray(Point.self, 0)

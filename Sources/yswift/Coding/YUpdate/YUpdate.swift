@@ -19,6 +19,11 @@ public struct YUpdate {
     }
 }
 
+public struct YUpdateMeta: Equatable {
+    public let from: [Int: Int]
+    public let to: [Int: Int]
+}
+
 extension YUpdate: Equatable, Hashable {}
 
 extension YUpdate: CustomDebugStringConvertible {

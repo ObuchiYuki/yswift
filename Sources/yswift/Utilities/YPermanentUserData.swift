@@ -86,7 +86,7 @@ final public class YPermanentUserData {
      * @param {Object} conf
      * @param {function(Transaction, DeleteSet):Bool} [conf.filter]
      */
-    public func setUserMapping(doc: YDocument, clientid: Int, userDescription: String, filter: @escaping (YTransaction, YDeleteSet) -> Bool = {_, _ in true }) throws {
+    public func setUserMapping(doc: YDocument, clientid: Int, userDescription: String, filter: @escaping (YTransaction, Any) -> Bool = {_, _ in true }) throws {
         let users = self.yusers
         var user = users[userDescription] as? YOpaqueMap
         

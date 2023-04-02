@@ -8,9 +8,9 @@
 import Foundation
 
 
-final public class YDeleteItem {
-    public let clock: Int
-    public var len: Int
+final class YDeleteItem {
+    let clock: Int
+    var len: Int
     
     init(clock: Int, len: Int) {
         self.clock = clock

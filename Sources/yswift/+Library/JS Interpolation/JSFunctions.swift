@@ -72,7 +72,7 @@ func equalJSON(_ a: Any?, _ b: Any?) -> Bool {
     return false
 }
 
-public func equalAttributes(_ a: Any?, _ b: Any?) -> Bool {
+func equalAttributes(_ a: Any?, _ b: Any?) -> Bool {
     var a = a, b = b
     if a is NSNull { a = nil }
     if b is NSNull { b = nil }

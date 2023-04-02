@@ -16,10 +16,10 @@ extension YDocument {
 }
 
 final public class YSnapshot: JSHashable {
-    public var deleteSet: YDeleteSet
-    public var stateVectors: [Int: Int]
+    var deleteSet: YDeleteSet
+    var stateVectors: [Int: Int]
 
-    public init(deleteSet: YDeleteSet, stateVectors: [Int: Int]) {
+    init(deleteSet: YDeleteSet, stateVectors: [Int: Int]) {
         self.deleteSet =  deleteSet
         self.stateVectors = stateVectors
     }

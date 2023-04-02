@@ -15,7 +15,9 @@ let package = Package(
     targets: [
         .target(
             name: "yswift",
-            dependencies: [.product(name: "Promise", package: "Promise")],
+            dependencies: [
+                .product(name: "Promise", package: "Promise")
+            ],
             swiftSettings: [
                 .unsafeFlags([
                     "-enforce-exclusivity=unchecked"

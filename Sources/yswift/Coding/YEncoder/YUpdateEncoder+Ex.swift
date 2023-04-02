@@ -7,19 +7,6 @@
 
 import Foundation
 
-/**
- * We use the first five bits in the info flag for determining the type of the struct.
- *
- * 0: GC
- * 1: Item with Deleted content
- * 2: Item with JSON content
- * 3: Item with Binary content
- * 4: Item with String content
- * 5: Item with Embed content (for richtext content)
- * 6: Item with Format content (a formatting marker for richtext content)
- * 7: Item with Type
- */
-
 extension YDocument {
     public func encodeStateAsUpdate(encodedStateVector: Data? = nil, encoder: YUpdateEncoder = YUpdateEncoderV1()) throws -> YUpdate {
         try encoder.encodeStateAsUpdate(doc: self, encodedStateVector: encodedStateVector)

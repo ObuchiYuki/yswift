@@ -19,20 +19,23 @@ extension YOpaqueObject: YElement {
 
 // ============================================================================== //
 // MARK: - Ex + Codable -
-private let dictionayEncoder = DictionaryEncoder()
-private let dictionayDecoder = DictionaryDecoder()
-
-extension YElement where Self: Encodable {
-    public func persistenceObject() -> Any? {
-        try! dictionayEncoder.encode(self) as NSDictionary
-    }
-}
-
-extension YElement where Self: Decodable {
-    public static func fromPersistence(_ opaque: Any?) -> Self {
-        try! dictionayDecoder.decode(Self.self, from: opaque as! NSDictionary)
-    }
-}
+//
+//import DictionaryCoder
+//
+//private let dictionayEncoder = DictionaryEncoder()
+//private let dictionayDecoder = DictionaryDecoder()
+//
+//extension YElement where Self: Encodable {
+//    public func persistenceObject() -> Any? {
+//        try! dictionayEncoder.encode(self) as NSDictionary
+//    }
+//}
+//
+//extension YElement where Self: Decodable {
+//    public static func fromPersistence(_ opaque: Any?) -> Self {
+//        try! dictionayDecoder.decode(Self.self, from: opaque as! NSDictionary)
+//    }
+//}
 
 // ============================================================================== //
 // MARK: - Ex + Primitive -
