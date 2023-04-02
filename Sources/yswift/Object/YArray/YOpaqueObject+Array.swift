@@ -83,7 +83,7 @@ extension YOpaqueObject {
 //        return result
 //    }
 
-    func listCreateIterator() -> some IteratorProtocol<Any?> {
+    func listCreateIterator() -> AnyIterator<Any?> {
         var item = self._start
         var currentContent: [Any?]? = nil
         var currentContentIndex = 0

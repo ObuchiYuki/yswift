@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol YContent: AnyObject {
+protocol YContent: AnyObject, CustomStringConvertible {
     var count: Int { get }
     
     var typeid: UInt8 { get }
@@ -31,6 +31,16 @@ protocol YContent: AnyObject {
     func encode(into encoder: YUpdateEncoder, offset: Int) -> Void
     
     static func decode(from decoder: YUpdateDecoder) throws -> Self
+}
+
+extension YContent {
+    public var description: String {
+        var components = [String]()
+        for child in Mirror(reflecting: self).children {
+            components.append("\(child.label ?? ""): \(child.value)")
+        }
+        return "\(Self.self)(\(components.joined(separator: ", ")))"
+    }
 }
 
 func decodeContent(from decoder: YUpdateDecoder, info: UInt8) throws -> any YContent {

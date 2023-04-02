@@ -28,7 +28,7 @@ extension YMap {
         set { self.opaque[key] = newValue?.encodeToOpaque() }
     }
 
-    public func setThrowingError(_ key: String, value: Value?) throws {
+    public func set(_ key: String, value: Value?) throws {
         self.opaque.set(key, value: value)
     }
     

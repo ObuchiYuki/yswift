@@ -1,26 +1,16 @@
 import XCTest
 import yswift
 
-class Point: YObject {
-    @Property var x: Double = 0
-    @Property var y: Double = 0
-    
-//    convenience init(x: Double = 0, y: Double = 0) {
-//        self.init()
-//        self.x = x
-//        self.y = y
-//    }
-    
-    required init() {
-        super.init()
-        self.register(_x, for: "x")
-        self.register(_y, for: "y")
-    }
-}
-
 class Layer: YObject {
-    @Property var position: Point = Point()
     @Property var name: String = "Untitled Layer"
+    @Property var parent: YObjectReference<Layer>?
+
+    @WProperty var children: YArray<Layer> = []
+    
+    func addSublayer(_ layer: Layer) {
+        self.children.append(layer)
+        layer.parent = .reference(for: self)
+    }
     
     convenience init(name: String) {
         self.init()
@@ -30,28 +20,28 @@ class Layer: YObject {
     required init() {
         super.init()
         self.register(_name, for: "name")
-        self.register(_position, for: "pos")
-    }
-}
-
-class Container: Layer {
-    @WProperty var children: YArray<Layer> = []
-    
-    required init() {
-        super.init()
+        self.register(_parent, for: "parent")
         self.register(_children, for: "children")
     }
 }
 
 final class PublicAPITests: XCTestCase {
     override func setUp() {
-        Point.registerAuto()
         Layer.registerAuto()
-        Container.registerAuto()
     }
     
     func testDocAPI() throws {
         let test = try YTest<Any>(docs: 2)
+        let map0 = test.swiftyMap(Layer.self, 0), map1 = test.swiftyMap(Layer.self, 1)
         
+        let root0 = Layer(name: "Root")
+        root0.addSublayer(Layer(name: "layer[0]"))
+        map0["root"] = root0
+        
+        try test.sync()
+        
+        let root1 = try XCTUnwrap(map1["root"])
+        
+        XCTAssert(root1.children[0].parent?.value === root1)
     }
 }

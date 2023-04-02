@@ -8,33 +8,31 @@
 import Foundation
 
 final public class YOpaqueMap: YOpaqueObject {
-    
     public var count: Int {
-        self.storage.lazy.filter{ _, v in !v.deleted }.count
+        if doc != nil { return self.storage.lazy.filter{ _, v in !v.deleted }.count }
+        return self._prelimContent.count
     }
     
     public var isEmpty: Bool {
-        self.storage.lazy.filter{ _, v in !v.deleted }.isEmpty
+        if doc != nil { return self.storage.lazy.filter{ _, v in !v.deleted }.isEmpty }
+        return self._prelimContent.isEmpty
     }
     
-    private var _prelimContent: [String: Any?]?
-
+    private var _prelimContent: [String: Any?]
+    
     public init(_ contents: [String: Any?]? = nil) {
-        super.init()
         self._prelimContent = contents ?? [:]
-    }
-    
-    public func removeValue(forKey key: String) {
-        if let doc = self.doc {
-            doc.transact{ self.mapDelete($0, key: key) }
-        } else {
-            self._prelimContent?.removeValue(forKey: key)
-        }
+        super.init()
     }
     
     public subscript(key: String) -> Any? {
-        get { self.mapGet(key) }
+        get { self.get(key) }
         set { self.set(key, value: newValue) }
+    }
+    
+    public func get(_ key: String) -> Any? {
+        if doc != nil { return mapGet(key) }
+        return self._prelimContent[key] ?? nil
     }
 
     public func set(_ key: String, value: Any?) {
@@ -43,50 +41,63 @@ final public class YOpaqueMap: YOpaqueObject {
         if let doc = self.doc {
             doc.transact{ self.mapSet($0, key: key, value: value) }
         } else {
-            self._prelimContent![key] = value
+            self._prelimContent[key] = value
         }
+    }
+    
+    public func keys() -> some Sequence<String> {
+        self.innerSequence().map{ key, _ in key }
+    }
+    
+    public func values() -> some Sequence<Any?> {
+        self.innerSequence().map{ _, value in value }
     }
 
     public func contains(_ key: String) -> Bool {
-        return self.mapHas(key)
+        if doc != nil { return self.mapHas(key) }
+        return self._prelimContent[key] != nil
+    }
+    
+    public func removeValue(forKey key: String) {
+        if let doc = self.doc {
+            doc.transact{ self.mapDelete($0, key: key) }
+        } else {
+            self._prelimContent.removeValue(forKey: key)
+        }
     }
 
     public func removeAll() {
         if let doc = self.doc {
             doc.transact{ for key in self.keys() { self.mapDelete($0, key: key) } }
         } else {
-            self._prelimContent?.removeAll()
+            self._prelimContent.removeAll()
         }
     }
     
     public override func copy() -> YOpaqueMap {
         let map = YOpaqueMap()
         for (key, value) in self {
-            if let value = value as? YOpaqueObject {
-                map.set(key, value: value.copy())
-            } else {
-                map.set(key, value: value)
-            }
+            map.set(key, value: (value as? YOpaqueObject).map{ $0.copy() } ?? value)
         }
         return map
     }
 
     public override func toJSON() -> Any {
         var map: [String: Any] = [:]
-        for (key, item) in storage where !item.deleted {
-            let v = item.content.values[item.length - 1]
-            if v == nil {
+        for (key, value) in self {
+            if value == nil {
                 map[key] = NSNull()
-            } else if let v = v as? YOpaqueObject {
+            } else if let v = value as? YOpaqueObject {
                 map[key] = v.toJSON()
             } else {
-                map[key] = v
+                map[key] = value
             }
         }
         return map
     }
     
-
+    // ============================================================================== //
+    // MARK: - Private -
     override func _write(_ encoder: YUpdateEncoder) {
         encoder.writeTypeRef(YMapRefID)
     }
@@ -94,10 +105,10 @@ final public class YOpaqueMap: YOpaqueObject {
     override func _integrate(_ y: YDocument, item: YItem?) {
         super._integrate(y, item: item)
         
-        for (key, value) in self._prelimContent ?? [:] {
+        for (key, value) in self._prelimContent {
             self.set(key, value: value)
         }
-        self._prelimContent = nil
+        self._prelimContent.removeAll()
     }
 
     override func _copy() -> YOpaqueMap {
@@ -109,26 +120,20 @@ final public class YOpaqueMap: YOpaqueObject {
     }
 }
 
-extension YOpaqueMap {
-    
-    
-    public func keys() -> some Sequence<String> {
-        self.storage.lazy.filter{ _, v in !v.deleted }
-            .map{ key, _ in key }
-    }
-    public func values() -> some Sequence<Any?> {
-        self.storage.lazy.filter{ _, v in !v.deleted }
-            .map{ _, c in c.content.values[c.length - 1] }
-    }
-}
 
 extension YOpaqueMap: Sequence {
     public typealias Element = (key: String, value: Any?)
     
+    private func innerSequence() -> AnySequence<Element> {
+        if doc != nil {
+            return AnySequence(self.storage.lazy.filter{ _, v in !v.deleted }
+                .map{ ($0, $1.content.values[$1.length - 1]) })
+        }
+        return AnySequence(self._prelimContent)
+    }
+    
     public func makeIterator() -> some IteratorProtocol<Element> {
-        self.storage.lazy.filter{ _, v in !v.deleted }
-            .map{ ($0, $1.content.values[$1.length - 1]) }
-            .makeIterator()
+        return self.innerSequence().makeIterator()
     }
 }
 

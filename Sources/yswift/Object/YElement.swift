@@ -111,7 +111,7 @@ extension Optional: YElement where Wrapped: YElement {
     public func encodeToOpaque() -> Any? {
         switch self {
         case .none: return NSNull()
-        case .some(let element): return element
+        case .some(let element): return element.encodeToOpaque()
         }
     }
     public static func decode(from opaque: Any?) -> Self {

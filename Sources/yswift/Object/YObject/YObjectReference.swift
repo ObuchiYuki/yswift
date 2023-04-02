@@ -11,7 +11,7 @@ protocol _YObjectReferenceType {}
 
 final public class YObjectReference<T: YObject>: _YObjectReferenceType {
     
-    public var value: Promise<YObject, Never> { YObjectStore.shared.object(for: objectID) }
+    public var value: T { YObjectStore.shared.object(for: objectID) as! T }
     
     let objectID: YObjectID
     

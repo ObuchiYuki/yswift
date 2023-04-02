@@ -26,12 +26,13 @@ final public class YOpaqueArray: YOpaqueObject {
     
 
     public subscript(index: Int) -> Any? {
-        self.listGet(index)
+        if doc != nil { return self.listGet(index) }
+        return _prelimContent[index]
     }
     
     public subscript<R: _RangeExpression>(range: R) -> [Any?] {
         let range = range.relative(to: self.count)
-        return self.slice(range.lowerBound, end: range.upperBound)
+        return self._slice(range.lowerBound, end: range.upperBound)
     }
     
     
@@ -84,9 +85,7 @@ final public class YOpaqueArray: YOpaqueObject {
     
     public override func copy() -> YOpaqueArray {
         let array = YOpaqueArray()
-        array.insert(contentsOf: self.map{ element in
-            element is YOpaqueObject ? (element as! YOpaqueObject).copy() : element
-        }, at: 0)
+        array.insert(contentsOf: self.map{ ($0 as? YOpaqueObject).map{ $0.copy() } ?? $0 }, at: 0)
         return array
     }
     
@@ -109,9 +108,11 @@ final public class YOpaqueArray: YOpaqueObject {
         }
     }
         
-    public func slice(_ start: Int = 0, end: Int? = nil) -> [Any?] {
+    private func _slice(_ start: Int = 0, end: Int? = nil) -> [Any?] {
         let end = end ?? self.count
-        return self.listSlice(start: start, end: end)
+        
+        if self.doc != nil { return self.listSlice(start: start, end: end) }
+        return self._prelimContent[start..<end].map{ $0 }
     }
 
     override func _integrate(_ y: YDocument, item: YItem?) {
@@ -135,8 +136,9 @@ final public class YOpaqueArray: YOpaqueObject {
 extension YOpaqueArray: Sequence {
     public typealias Element = Any?
     
-    public func makeIterator() -> some IteratorProtocol<Element> {
-        self.listCreateIterator()
+    public func makeIterator() -> AnyIterator<Element> {
+        if doc != nil { return self.listCreateIterator() }
+        return AnyIterator(self._prelimContent.makeIterator())
     }
 }
 
