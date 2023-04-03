@@ -362,7 +362,7 @@ final class YMapTests: XCTestCase {
                     XCTAssertEqual(mevent.path.count, 1)
                     XCTAssertEqual(mevent.path[0], .key("map"))
                     let emap = try XCTUnwrap(event.target as? YOpaqueMap)
-                    dmapid = try XCTUnwrap(emap["deepmap"] as? YOpaqueMap).item?.id
+                    dmapid = try XCTUnwrap(emap["deepmap"] as? YOpaqueMap)._objectItem?.id
                 })
             } catch {
                 XCTFail("\(error)")
@@ -384,9 +384,9 @@ final class YMapTests: XCTestCase {
         let dmap3 = try XCTUnwrap(_map3["deepmap"] as? YOpaqueMap)
         
         XCTAssertGreaterThan(calls, 0)
-        XCTAssertEqual(dmap1.item?.id, dmap2.item?.id)
-        XCTAssertEqual(dmap1.item?.id, dmap3.item?.id)
-        XCTAssertEqual(dmap1.item?.id, dmapid)
+        XCTAssertEqual(dmap1._objectItem?.id, dmap2._objectItem?.id)
+        XCTAssertEqual(dmap1._objectItem?.id, dmap3._objectItem?.id)
+        XCTAssertEqual(dmap1._objectItem?.id, dmapid)
         
         try YAssertEqualDocs(docs)
     }

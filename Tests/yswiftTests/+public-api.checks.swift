@@ -3,7 +3,7 @@ import yswift
 
 class Layer: YObject {
     @Property var name: String = "Untitled Layer"
-    @Property var parent: YObjectReference<Layer>?
+    @Property var parent: YReference<Layer>?
 
     @WProperty var children: YArray<Layer> = []
     

@@ -8,7 +8,7 @@
 import Foundation
 
 final public class YOpaqueArray: YOpaqueObject {
-    public var count: Int { self.doc == nil ? self._prelimContent.count : self._length }
+    public var count: Int { self.document == nil ? self._prelimContent.count : self._length }
     
     public var isEmpty: Bool { count == 0 }
     
@@ -26,7 +26,7 @@ final public class YOpaqueArray: YOpaqueObject {
     
 
     public subscript(index: Int) -> Any? {
-        if doc != nil { return self.listGet(index) }
+        if document != nil { return self.listGet(index) }
         return _prelimContent[index]
     }
     
@@ -44,7 +44,7 @@ final public class YOpaqueArray: YOpaqueObject {
     public func append(contentsOf contents: [Any?]) {
         assert(!contents.contains(where: { $0 is any YWrapperObject }), "You should not put wrapper directory to opaque object.")
         
-        if let doc = self.doc {
+        if let doc = self.document {
             doc.transact{ self.listPush(contents, $0) }
         } else {
             self._prelimContent.append(contentsOf: contents)
@@ -60,7 +60,7 @@ final public class YOpaqueArray: YOpaqueObject {
     public func insert(contentsOf contents: [Any?], at index: Int) {
         assert(!contents.contains(where: { $0 is any YWrapperObject }), "You should not put wrapper directory to opaque object.")
         
-        if let doc = self.doc {
+        if let doc = self.document {
             doc.transact{ self.listInsert(contents, at: index, $0) }
         } else {
             self._prelimContent.insert(contentsOf: contents, at: index)
@@ -97,7 +97,7 @@ final public class YOpaqueArray: YOpaqueObject {
     // MARK: - Private -
     
     private func _delete(at index: Int, count: Int = 1) {
-        if let doc = self.doc {
+        if let doc = self.document {
             doc.transact{ transaction in
                 self.listDelete(at: index, count: count, transaction)
             }
@@ -109,7 +109,7 @@ final public class YOpaqueArray: YOpaqueObject {
     private func _slice(_ start: Int = 0, end: Int? = nil) -> [Any?] {
         let end = end ?? self.count
         
-        if self.doc != nil { return self.listSlice(start: start, end: end) }
+        if self.document != nil { return self.listSlice(start: start, end: end) }
         return self._prelimContent[start..<end].map{ $0 }
     }
 
@@ -135,9 +135,23 @@ extension YOpaqueArray: Sequence {
     public typealias Element = Any?
     
     public func makeIterator() -> AnyIterator<Element> {
-        if doc != nil { return self.listCreateIterator() }
+        if document != nil { return self.listCreateIterator() }
         return AnyIterator(self._prelimContent.makeIterator())
     }
+}
+
+extension YOpaqueArray: RandomAccessCollection {
+    public var startIndex: Int { 0 }
+    
+    public var endIndex: Int { count }
+    
+    public func index(after i: Int) -> Int { i+1 }
+    
+    public func index(before i: Int) -> Int { i-1 }
+    
+    public func index(_ i: Int, offsetBy distance: Int) -> Int { i + distance }
+    
+    public func distance(from start: Int, to end: Int) -> Int { end - start }
 }
 
 extension YOpaqueArray: CustomStringConvertible {

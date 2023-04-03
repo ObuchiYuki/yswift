@@ -10,7 +10,7 @@ import Foundation
 extension YObject {
     public func register<T: YWrapperObject>(_ property: WProperty<T>, for key: String) {
         property.storage.getter = {[unowned self] in T.fromPersistence(self._getValue(for: key)) }
-        if !YObject.decodingFromContent {
+        if case .decode = YObject.initContext {} else {
             self._setValue(property.initialValue().opaque, for: key)
         }
     }

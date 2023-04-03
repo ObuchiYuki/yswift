@@ -450,7 +450,7 @@ func cleanupContextlessFormattingGap(transaction: YTransaction, item: YItem?) {
 
 func cleanupYTextFormatting(type: YText) -> Int {
     var res = 0
-    type.doc?.transact({ transaction in
+    type.document?.transact({ transaction in
         var start = type._start!
         var end = type._start
         var startAttributes = YTextAttributes()
@@ -553,7 +553,7 @@ final public class YTextEvent: YEvent {
         
         let deltas: RefArray<YEventDelta> = []
 
-        self.target.doc?.transact({ transaction in
+        self.target.document?.transact({ transaction in
             let currentAttributes = YTextAttributes([:]) // saves all current attributes for insert
             let oldAttributes = YTextAttributes([:])
             var item = self.target._start
@@ -817,8 +817,8 @@ final public class YText: YOpaqueObject {
     }
     
     public func applyDelta(_ delta: [YEventDelta], sanitize: Bool = true) {
-        if self.doc != nil {
-            self.doc!.transact({ transaction in
+        if self.document != nil {
+            self.document!.transact({ transaction in
                 let currPos = ItemTextListPosition(left: nil, right: self._start, index: 0, currentAttributes: [:])
                 for i in 0..<delta.count {
                     let op = delta[i]
@@ -861,7 +861,7 @@ final public class YText: YOpaqueObject {
         var ops: [YEventDelta] = []
         let currentAttributes: YTextAttributes = [:]
         
-        let doc = self.doc!
+        let doc = self.document!
         var str = ""
         var n = self._start
         
@@ -954,7 +954,7 @@ final public class YText: YOpaqueObject {
     public func insert(_ index: Int, text: String, attributes: [String: (any YTextAttributeValue)?]? = nil) {
         if text.count <= 0 { return }
         
-        guard let doc = self.doc else {
+        guard let doc = self.document else {
             self._pending?.append{ self.insert(index, text: text, attributes: attributes) }
             return
         }
@@ -976,8 +976,8 @@ final public class YText: YOpaqueObject {
 
     // OLD: insertEmbed(_ index: Int, embed: Object|object, attributes: YTextAttributes = {})
     public func insertEmbed(_ index: Int, embed: YEventDeltaInsertType, attributes: [String: (any YTextAttributeValue)?]?) {
-        if self.doc != nil {
-            self.doc!.transact{ transaction in
+        if self.document != nil {
+            self.document!.transact{ transaction in
                 let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
                 insertText(transaction: transaction, parent: self, currPos: pos, text: embed, attributes: RefDictionary(attributes ?? [:]))
             }
@@ -992,8 +992,8 @@ final public class YText: YOpaqueObject {
         if length == 0 {
             return
         }
-        if self.doc != nil {
-            self.doc!.transact({ transaction in
+        if self.document != nil {
+            self.document!.transact({ transaction in
                 _ = deleteText(
                     transaction: transaction,
                     currPos: ItemTextListPosition.find(transaction, parent: self, index: index),
@@ -1009,8 +1009,8 @@ final public class YText: YOpaqueObject {
         if length == 0 {
             return
         }
-        if self.doc != nil {
-            self.doc!.transact({ transaction in
+        if self.document != nil {
+            self.document!.transact({ transaction in
                 let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
                 if pos.right == nil {
                     return
@@ -1026,8 +1026,8 @@ final public class YText: YOpaqueObject {
     }
 
     public func removeAttribute(_ attributeName: String) {
-        if self.doc != nil {
-            self.doc!.transact({ transaction in
+        if self.document != nil {
+            self.document!.transact({ transaction in
                 self.mapDelete(transaction, key: attributeName)
             })
         } else {
@@ -1036,8 +1036,8 @@ final public class YText: YOpaqueObject {
     }
 
     public func setAttribute(_ attributeName: String, attributeValue: YTextAttributeValue) {
-        if self.doc != nil {
-            self.doc!.transact{ transaction in
+        if self.document != nil {
+            self.document!.transact{ transaction in
                 self.mapSet(transaction, key: attributeName, value: attributeValue)
             }
         } else {

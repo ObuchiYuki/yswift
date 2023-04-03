@@ -83,7 +83,7 @@ public class YDocument: LZObservable, JSHashable {
 
     public func load() {
         if let item = self._item, !self.shouldLoad {
-            item.parent?.object?.doc?.transact{ transaction in
+            item.parent?.object?.document?.transact{ transaction in
                 transaction.subdocsLoaded.insert(self)
             }
         }
@@ -182,7 +182,7 @@ public class YDocument: LZObservable, JSHashable {
             content?.document = subdoc
             content?.document._item = item!
             
-            item!.parent!.object!.doc?.transact{ transaction in
+            item!.parent!.object!.document?.transact{ transaction in
                 let doc = subdoc
                 if !item!.deleted { transaction.subdocsAdded.insert(doc) }
                 transaction.subdocsRemoved.insert(self)

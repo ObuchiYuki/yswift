@@ -7,9 +7,7 @@
 
 import Promise
 
-protocol _YObjectReferenceType {}
-
-final public class YObjectReference<T: YObject>: _YObjectReferenceType {
+final public class YReference<T: YObject> {
     
     public var value: T { YObjectStore.shared.object(for: objectID) as! T }
     
@@ -19,13 +17,13 @@ final public class YObjectReference<T: YObject>: _YObjectReferenceType {
     
     public init(_ object: T) { self.objectID = object.objectID }
     
-    public static func reference(for object: T) -> YObjectReference<T> { .init(object) }
+    public static func reference(for object: T) -> YReference<T> { .init(object) }
 }
 
-extension YObjectReference: YElement {
+extension YReference: YPrimitive {
     public func persistenceObject() -> Any? { self.objectID.value }
-    public static func fromPersistence(_ opaque: Any?) -> YObjectReference<T> {
+    public static func fromPersistence(_ opaque: Any?) -> YReference<T> {
         let id = YObjectID(opaque as! Int)
-        return YObjectReference(objectID: id)
+        return YReference(objectID: id)
     }
 }

@@ -12,8 +12,8 @@ extension YObject {
         let nTypeID = Int(typeID) + 7
         self.typeIDTable[ObjectIdentifier(self)] = nTypeID
         YObjectContent.register(for: nTypeID) {_ in
-            self.decodingFromContent = true
-            defer { self.decodingFromContent = false }
+            YObject.initContext = .decode
+            defer { YObject.initContext = .unspecified }
             return Self()
         }
     }

@@ -102,7 +102,9 @@ extension YOpaqueObject {
             item = uitem.right as? YItem
         }
         
-        return nil
+        fatalError("Index out of Bounds")
+        
+//        return nil
     }
 
     func listInsert(_ contents: [Any?], after referenceItem: YItem?, _ transaction: YTransaction) {

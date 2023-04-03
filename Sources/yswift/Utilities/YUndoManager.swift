@@ -50,11 +50,11 @@ final public class YUndoManager: JSHashable {
     }
 
     public init(_ scope: [YOpaqueObject], options: Options = .make()) {
-        assert((options.document ?? scope[0].doc) != nil, "You must provide document.")
+        assert((options.document ?? scope[0].document) != nil, "You must provide document.")
         
         self.deleteFilter = options.deleteFilter
         self.captureTransaction = options.captureTransaction
-        self.doc = options.document ?? scope[0].doc!
+        self.doc = options.document ?? scope[0].document!
         self.ignoreRemoteMapChanges = options.ignoreRemoteMapChanges
         self.captureTimeout = options.captureTimeout
         self.trackedOrigins = options.trackedOrigins
@@ -431,7 +431,7 @@ extension YItem {
         let store = doc.store
         let ownClientID = doc.clientID
         
-        var parentItem = self.parent!.object!.item
+        var parentItem = self.parent!.object!._objectItem
         var left: YStruct? = nil
         var right: YStruct? = nil
 
@@ -466,11 +466,11 @@ extension YItem {
             while let uleft = left as? YItem {
                 var leftTrace: YItem? = uleft
                 
-                while let uleftTrace = leftTrace, uleftTrace.parent?.object?.item !== parentItem {
+                while let uleftTrace = leftTrace, uleftTrace.parent?.object?._objectItem !== parentItem {
                     guard let redone = uleftTrace.redone else { leftTrace = nil; break }
                     leftTrace = YStructStore.getItemCleanStart(transaction, id: redone)
                 }
-                if let uleftTrace = leftTrace, uleftTrace.parent?.object?.item === parentItem {
+                if let uleftTrace = leftTrace, uleftTrace.parent?.object?._objectItem === parentItem {
                     left = uleftTrace; break
                 }
                 
@@ -480,7 +480,7 @@ extension YItem {
             while let uright = right as? YItem {
                 var rightTrace: YItem? = uright
                 
-                while let urightTrace = rightTrace, urightTrace.parent?.object?.item !== parentItem {
+                while let urightTrace = rightTrace, urightTrace.parent?.object?._objectItem !== parentItem {
                     if let redone = urightTrace.redone {
                         rightTrace = YStructStore.getItemCleanStart(transaction, id: redone)
                     } else {
@@ -488,7 +488,7 @@ extension YItem {
                         break
                     }
                 }
-                if let urightTrace = rightTrace, urightTrace.parent?.object?.item === parentItem {
+                if let urightTrace = rightTrace, urightTrace.parent?.object?._objectItem === parentItem {
                     right = urightTrace
                     break
                 }

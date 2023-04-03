@@ -126,8 +126,8 @@ final class SnapshotTests: XCTestCase {
         let test = try YTest<Any>(docs: 2, gc: false)
         let array0 = test.array[0], array1 = test.array[1], connector = test.connector
 
-        let doc0 = try XCTUnwrap(array0.doc)
-        let doc1 = try XCTUnwrap(array1.doc)
+        let doc0 = try XCTUnwrap(array0.document)
+        let doc1 = try XCTUnwrap(array1.document)
 
         array0.insert("user1item1", at: 0)
         try connector.syncAll()

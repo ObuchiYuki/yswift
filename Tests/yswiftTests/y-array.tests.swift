@@ -16,12 +16,12 @@ final class YArrayTests: XCTestCase {
         let doc1 = YDocument()
         let arr = doc1.getOpaqueArray("array")
         arr.insert(contentsOf: [1, 2, 3], at: 0)
-        XCTAssertEqualJSON(arr[0...], [1, 2, 3])
-        XCTAssertEqualJSON(arr[1...], [2, 3])
-        XCTAssertEqualJSON(arr[0..<arr.count-1], [1, 2])
+        XCTAssertEqualJSON(arr[0...].map{ $0 }, [1, 2, 3])
+        XCTAssertEqualJSON(arr[1...].map{ $0 }, [2, 3])
+        XCTAssertEqualJSON(arr[0..<arr.count-1].map{ $0 }, [1, 2])
         arr.insert(0, at: 0)
-        XCTAssertEqualJSON(arr[0...], [0, 1, 2, 3])
-        XCTAssertEqualJSON(arr[0..<2], [0, 1])
+        XCTAssertEqualJSON(arr[0...].map{ $0 }, [0, 1, 2, 3])
+        XCTAssertEqualJSON(arr[0..<2].map{ $0 }, [0, 1])
     }
 
     func testArrayFrom() throws {

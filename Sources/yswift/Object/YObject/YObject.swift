@@ -20,20 +20,26 @@ final public class YObjectEvent: YEvent {
 
 open class YObject: YOpaqueObject {
     
+    enum InitContext {
+        case unspecified
+        case decode
+        // [old:new], [old.raw:new_writer]
+        case smartcopy(RefDictionary<YObjectID, YObjectID>, RefDictionary<YObjectID, (YObjectID) -> ()>)
+    }
+    
     static let objectIDKey = "_"
-    static var decodingFromContent = false
+    static var initContext: InitContext = .unspecified
     static var typeIDTable: [ObjectIdentifier: Int] = [:]
     
     public private(set) var objectID: YObjectID!
     
     internal var _prelimContent: [String: Any?] = [:]
-    internal var _propertyTable: [String: _YObjectProperty] = [:]
+    internal var _propertyTable: [String: any _YObjectProperty] = [:]
     
     public required override init() {
-        if YObject.decodingFromContent { // decode
-            self.objectID = nil
-        } else { // initial make
-            self.objectID = .publish()
+        switch YObject.initContext {
+        case .decode: self.objectID = nil
+        case .smartcopy, .unspecified: self.objectID = .publish()
         }
         
         super.init()
@@ -45,7 +51,9 @@ open class YObject: YOpaqueObject {
             }
         }
         
-        if !YObject.decodingFromContent {
+        switch YObject.initContext {
+        case .decode: break
+        default:
             self._setValue(self.objectID.value, for: YObject.objectIDKey)
             YObjectStore.shared.register(self)
         }
@@ -60,9 +68,14 @@ open class YObject: YOpaqueObject {
 
     public override func copy() -> Self {
         let map = Self()
+        if case .smartcopy(let table, _) = YObject.initContext {
+            table[self.objectID] = map.objectID
+        }
         for (key, value) in self.elementSequence() {
             if let value = value as? YOpaqueObject {
                 map._setValue(value.copy(), for: key)
+            } else if case .smartcopy(_, let writers) = YObject.initContext, key.starts(with: "&"), let id = value as? Int {
+                writers[YObjectID(id)] = { map._setValue($0, for: key) }
             } else {
                 map._setValue(value, for: key)
             }
@@ -71,11 +84,11 @@ open class YObject: YOpaqueObject {
     }
     
     func _getValue(for key: String) -> Any? {
-        if self.doc != nil { return self.mapGet(key) }
+        if self.document != nil { return self.mapGet(key) }
         return _prelimContent[key] ?? nil
     }
     func _setValue(_ value: Any?, for key: String) {
-        if let doc = self.doc {
+        if let doc = self.document {
             doc.transact{ self.mapSet($0, key: key, value: value) }
         } else {
             self._prelimContent[key] = value
@@ -111,7 +124,7 @@ open class YObject: YOpaqueObject {
 
 extension YObject {
     func elementSequence() -> AnySequence<(String, Any?)> {
-        if self.doc == nil {
+        if self.document == nil {
             return AnySequence(self._prelimContent.lazy
                 .map{ ($0, $1) })
         } else {

@@ -11,11 +11,11 @@ open class YOpaqueObject: JSHashable {
         
     // =========================================================================== //
     // MARK: - Property -
-    var doc: YDocument? = nil
+    public var document: YDocument? = nil
 
-    var parent: YOpaqueObject? { self.item?.parent?.object }
+    var _parentObject: YOpaqueObject? { self._objectItem?.parent?.object }
     
-    var item: YItem? = nil
+    var _objectItem: YItem? = nil
     
     var storage: [String: YItem] = [:] { didSet { self._onStorageUpdated() } }
     
@@ -61,7 +61,7 @@ open class YOpaqueObject: JSHashable {
         var child = child
         while (child != nil) {
             if child!.parent?.object === self { return true }
-            child = child?.parent?.object?.item
+            child = child?.parent?.object?._objectItem
         }
         return false
     }
@@ -73,7 +73,7 @@ open class YOpaqueObject: JSHashable {
         while true {
             if transaction.changedParentTypes[type] == nil { transaction.changedParentTypes[type] = [] }
             transaction.changedParentTypes[type]!.append(event)
-            guard let object = type.item?.parent?.object else { break }
+            guard let object = type._objectItem?.parent?.object else { break }
             type = object
         }
         
@@ -84,8 +84,8 @@ open class YOpaqueObject: JSHashable {
     // MARK: - Private Methods (Temporally public) -
     
     func _integrate(_ y: YDocument, item: YItem?) {
-        self.doc = y
-        self.item = item
+        self.document = y
+        self._objectItem = item
     }
 
     func _write(_ _encoder: YUpdateEncoder) {}
@@ -125,7 +125,7 @@ open class YOpaqueObject: JSHashable {
 
 extension YOpaqueObject {
     func findRootTypeKey() -> String {
-        for (key, value) in self.doc?.share ?? [:] {
+        for (key, value) in self.document?.share ?? [:] {
             if value === self { return key }
         }
         fatalError("Key not found. \(self)")

@@ -146,7 +146,7 @@ extension YEvent {
     private static func getPathTo(parent: YOpaqueObject, child: YOpaqueObject) -> [PathElement] {
         var child: YOpaqueObject? = child
         var path: [PathElement] = []
-        while let childItem = child?.item, child != parent {
+        while let childItem = child?._objectItem, child != parent {
             if let parentKey = childItem.parentKey {
                 // parent is map-ish
                 path.insert(.key(parentKey), at: 0)

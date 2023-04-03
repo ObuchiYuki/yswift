@@ -77,7 +77,7 @@ final public class YTransaction {
     }
 
     func addChangedType(_ type: YOpaqueObject, parentSub: String?) {
-        let item = type.item
+        let item = type._objectItem
         if item == nil || (item!.id.clock < (self.beforeState[item!.id.client] ?? 0) && !item!.deleted) {
             var changed = self.changed.setIfUndefined(type, Set())
             changed.insert(parentSub)
@@ -102,7 +102,7 @@ final public class YTransaction {
         
         transaction.changed.forEach{ (itemtype: YOpaqueObject, subs: Set<String?>) in
             fs.append{
-                if itemtype.item == nil || !itemtype.item!.deleted {
+                if itemtype._objectItem == nil || !itemtype._objectItem!.deleted {
                     itemtype._callObserver(transaction, _parentSubs: subs)
                 }
             }
@@ -115,9 +115,9 @@ final public class YTransaction {
                 fs.append{ () -> Void in
                     // We need to think about the possibility that the user transforms the
                     // Y.Doc in the event.
-                    if type.item == nil || !type.item!.deleted {
+                    if type._objectItem == nil || !type._objectItem!.deleted {
                         events = events
-                            .filter{ event in event.target.item == nil || !event.target.item!.deleted }
+                            .filter{ event in event.target._objectItem == nil || !event.target._objectItem!.deleted }
                         events
                             .forEach{ event in event.currentTarget = type }
                         

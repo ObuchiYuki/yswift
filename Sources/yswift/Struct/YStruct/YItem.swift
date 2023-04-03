@@ -249,7 +249,7 @@ final class YItem: YStruct, JSHashable {
         transaction.addChangedType(parent, parentSub: self.parentKey)
         
         // delete if parent is deleted or if this is not the current attribute value of parent
-        if let parentItem = parent.item, parentItem.deleted { self.delete(transaction) }
+        if let parentItem = parent._objectItem, parentItem.deleted { self.delete(transaction) }
         if self.parentKey != nil, self.right != nil { self.delete(transaction) }
     }
     
@@ -303,7 +303,7 @@ final class YItem: YStruct, JSHashable {
         if origin == nil && rightOrigin == nil {
             switch self.parent {
             case .object(let parent):
-                let parentItem = parent.item
+                let parentItem = parent._objectItem
                 if parentItem == nil {
                     let ykey = parent.findRootTypeKey()
                     encoder.writeParentInfo(true)
@@ -368,7 +368,7 @@ extension YItem {
         var item: YItem? = self
         while let uitem = item, uitem.keep != keep {
             item!.keep = keep
-            item = uitem.parent?.object?.item
+            item = uitem.parent?.object?._objectItem
         }
     }
 

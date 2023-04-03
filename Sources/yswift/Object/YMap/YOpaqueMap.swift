@@ -9,12 +9,12 @@ import Foundation
 
 final public class YOpaqueMap: YOpaqueObject {
     public var count: Int {
-        if doc != nil { return self.storage.lazy.filter{ _, v in !v.deleted }.count }
+        if document != nil { return self.storage.lazy.filter{ _, v in !v.deleted }.count }
         return self._prelimContent.count
     }
     
     public var isEmpty: Bool {
-        if doc != nil { return self.storage.lazy.filter{ _, v in !v.deleted }.isEmpty }
+        if document != nil { return self.storage.lazy.filter{ _, v in !v.deleted }.isEmpty }
         return self._prelimContent.isEmpty
     }
     
@@ -31,14 +31,14 @@ final public class YOpaqueMap: YOpaqueObject {
     }
     
     public func get(_ key: String) -> Any? {
-        if doc != nil { return mapGet(key) }
+        if document != nil { return mapGet(key) }
         return self._prelimContent[key] ?? nil
     }
     
     public func set(_ key: String, value: Any?) {
         assert(!(value is any YWrapperObject), "You should not put wrapper directory to opaque object.")
         
-        if let doc = self.doc {
+        if let doc = self.document {
             doc.transact{ self.mapSet($0, key: key, value: value) }
         } else {
             self._prelimContent[key] = value
@@ -54,7 +54,7 @@ final public class YOpaqueMap: YOpaqueObject {
     }
     
     public func contains(_ key: String) -> Bool {
-        if doc != nil { return self.mapHas(key) }
+        if document != nil { return self.mapHas(key) }
         return self._prelimContent[key] != nil
     }
     
@@ -65,7 +65,7 @@ final public class YOpaqueMap: YOpaqueObject {
     }
     
     public func deleteValue(forKey key: String) {
-        if let doc = self.doc {
+        if let doc = self.document {
             doc.transact{ self.mapDelete($0, key: key) }
         } else {
             self._prelimContent.removeValue(forKey: key)
@@ -73,7 +73,7 @@ final public class YOpaqueMap: YOpaqueObject {
     }
 
     public func removeAll() {
-        if let doc = self.doc {
+        if let doc = self.document {
             doc.transact{ for key in self.keys() { self.mapDelete($0, key: key) } }
         } else {
             self._prelimContent.removeAll()
@@ -131,7 +131,7 @@ extension YOpaqueMap: Sequence {
     public typealias Element = (key: String, value: Any?)
     
     private func innerSequence() -> AnySequence<Element> {
-        if doc != nil {
+        if document != nil {
             return AnySequence(self.storage.lazy.filter{ _, v in !v.deleted }
                 .map{ ($0, $1.content.values[$1.length - 1]) })
         }
