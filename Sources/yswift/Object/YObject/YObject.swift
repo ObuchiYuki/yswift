@@ -20,11 +20,14 @@ final public class YObjectEvent: YEvent {
 
 open class YObject: YOpaqueObject {
     
-    private static let objectIDKey = "_"
+    static let objectIDKey = "_"
+    static var decodingFromContent = false
+    static var typeIDTable: [ObjectIdentifier: Int] = [:]
+    
     public private(set) var objectID: YObjectID!
     
-    private var _prelimContent: [String: Any?] = [:]
-    private var _propertyTable: [String: _YObjectProperty] = [:]
+    internal var _prelimContent: [String: Any?] = [:]
+    internal var _propertyTable: [String: _YObjectProperty] = [:]
     
     public required override init() {
         if YObject.decodingFromContent { // decode
@@ -54,23 +57,7 @@ open class YObject: YOpaqueObject {
         self.objectID = YObjectID(id)
         YObjectStore.shared.register(self)
     }
-    
-    public func register<T: YElement>(_ property: Property<T>, for key: String) {
-        self._propertyTable[key] = property
-        property.storage.setter = {[unowned self] in self._setValue($0.persistenceObject(), for: key) }
-        property.storage.getter = {[unowned self] in T.fromPersistence(self._getValue(for: key)) }
-        if !YObject.decodingFromContent {
-            self._setValue(property.initialValue().persistenceObject(), for: key)
-        }
-    }
-    
-    public func register<T: YWrapperObject>(_ property: WProperty<T>, for key: String) {
-        property.storage.getter = {[unowned self] in T.fromPersistence(self._getValue(for: key)) }
-        if !YObject.decodingFromContent {
-            self._setValue(property.initialValue().opaque, for: key)
-        }
-    }
-    
+
     public override func copy() -> Self {
         let map = Self()
         for (key, value) in self.elementSequence() {
@@ -83,11 +70,11 @@ open class YObject: YOpaqueObject {
         return map
     }
     
-    private func _getValue(for key: String) -> Any? {
+    func _getValue(for key: String) -> Any? {
         if self.doc != nil { return self.mapGet(key) }
         return _prelimContent[key] ?? nil
     }
-    private func _setValue(_ value: Any?, for key: String) {
+    func _setValue(_ value: Any?, for key: String) {
         if let doc = self.doc {
             doc.transact{ self.mapSet($0, key: key, value: value) }
         } else {
@@ -123,27 +110,7 @@ open class YObject: YOpaqueObject {
 }
 
 extension YObject {
-    private static var typeIDTable: [ObjectIdentifier: Int] = [:]
-    private static var decodingFromContent = false
-    
-    public class func register(_ typeID: UInt) {
-        let nTypeID = Int(typeID) + 7
-        self.typeIDTable[ObjectIdentifier(self)] = nTypeID
-        YObjectContent.register(for: nTypeID) {_ in
-            self.decodingFromContent = true
-            defer { self.decodingFromContent = false }
-            return Self()
-        }
-    }
-    
-    public class func unregister() {
-        guard let typeID = self.typeIDTable[ObjectIdentifier(self)] else { return }
-        YObjectContent.unregister(for: typeID)
-    }
-}
-
-extension YObject {
-    private func elementSequence() -> AnySequence<(String, Any?)> {
+    func elementSequence() -> AnySequence<(String, Any?)> {
         if self.doc == nil {
             return AnySequence(self._prelimContent.lazy
                 .map{ ($0, $1) })
@@ -153,30 +120,3 @@ extension YObject {
         }
     }
 }
-
-extension YObject: CustomStringConvertible {
-    public var description: String {
-        var components = [String]()
-                
-        for var (key, value) in self.elementSequence().sorted(by: { $0.0 < $1.0 }) {
-            if key == YObject.objectIDKey {
-                value = YObjectID(value as! Int).compressedString()
-                key = "_"
-            }
-            
-            if let _value = value, !(_value is NSNull) {
-                if let property = self._propertyTable[key], String(describing: type(of: property)).contains("YObjectReference") {
-                    value = YObjectID(value as! Int).compressedString()
-                }
-                value = String(reflecting: value!)
-            } else {
-                value = "nil"
-            }
-            
-            components.append("\(key): \(value!)")
-        }
-        
-        return "\(Self.self)(\(components.joined(separator: ", ")))"
-    }
-}
-

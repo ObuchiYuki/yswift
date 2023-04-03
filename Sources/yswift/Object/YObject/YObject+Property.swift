@@ -8,27 +8,27 @@
 import Foundation
 import Combine
 
-protocol _YObjectProperty {
-    func send(_ value: Any?)
-}
-
 extension YObject {
-    @propertyWrapper
-    public struct WProperty<Value: YWrapperObject> {
-        final class Storage {
-            var _wrappedValue: Value?
-            var getter: (() -> Value)!
-        }
-        
-        public var wrappedValue: Value { storage.getter() }
-        
-        let storage = Storage()
-        let initialValue: () -> Value
-        
-        public init(wrappedValue: @autoclosure @escaping () -> Value) {
-            self.initialValue = wrappedValue
+    public func register<T: YElement>(_ property: Property<T>, for key: String) {
+        self._registerProperty(property, for: key)
+    }
+    
+    public func register<T: YObject>(_ property: Property<YObjectReference<T>>, for key: String) {
+        self._registerProperty(property, for: key)
+    }
+    
+    private func _registerProperty<T: YElement>(_ property: Property<T>, for key: String) {
+        self._propertyTable[key] = property
+        property.storage.setter = {[unowned self] in self._setValue($0.persistenceObject(), for: key) }
+        property.storage.getter = {[unowned self] in T.fromPersistence(self._getValue(for: key)) }
+        if !YObject.decodingFromContent {
+            self._setValue(property.initialValue().persistenceObject(), for: key)
         }
     }
+}
+
+protocol _YObjectProperty {
+    func send(_ value: Any?)
 }
 
 extension YObject {

@@ -40,10 +40,14 @@ extension UInt32: YPrimitive {}
 extension UInt64: YPrimitive {}
 
 extension Float: YPrimitive {}
+extension CGFloat: YPrimitive {}
 extension Double: YPrimitive {}
 
 extension String: YPrimitive {}
 extension Data: YPrimitive {}
+
+extension NSArray: YPrimitive {}
+extension NSDictionary: YPrimitive {}
 
 extension Array: YPrimitive, YElement where Element: YPrimitive {}
 extension Dictionary: YPrimitive, YElement where Key == String, Value: YPrimitive {}
