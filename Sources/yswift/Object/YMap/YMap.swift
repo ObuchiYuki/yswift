@@ -105,8 +105,8 @@ extension YMap: Sequence {
 }
 
 extension YMap {
-    public var publisher: some Combine.Publisher<Void, Never> {
-        self.opaque._eventHandler.publisher.map{_ in () }
+    public var publisher: some Combine.Publisher<YMap<Value>, Never> {
+        self.opaque._eventHandler.publisher.map{_ in self }
     }
     
     public var deepPublisher: some Combine.Publisher<Void, Never> {

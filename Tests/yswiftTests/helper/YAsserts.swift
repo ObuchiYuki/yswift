@@ -9,6 +9,13 @@ import Foundation
 import XCTest
 @testable import yswift
 
+func XCTAssertEqualReference(_ a: Any?, _ b: Any?, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) {
+    let a = a as AnyObject
+    let b = b as AnyObject
+    
+    XCTAssert(a === b, "(\(a)) is not equal to (\(a)) \(message())")
+}
+
 func XCTAssertEqualJSON(_ a: Any?, _ b : Any?, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) {
     func toJSON(_ a: Any?) -> Any {
         if a is NSNull { return "NSNull()" }

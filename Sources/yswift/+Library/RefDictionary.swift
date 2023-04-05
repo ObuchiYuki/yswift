@@ -40,3 +40,7 @@ extension RefDictionary: Sequence {
         self.value.makeIterator()
     }
 }
+
+extension RefDictionary: CustomStringConvertible {
+    var description: String { self.value.description }
+}

@@ -51,9 +51,16 @@ final public class YArray<Element: YElement>: YWrapperObject {
     public func delete<R: _RangeExpression>(in range: R) {
         opaque.delete(in: range)
     }
+    public func deleteAll() {
+        opaque.deleteAll()
+    }
     
     public func remove(at index: Int) -> Element {
         Element.fromPersistence(opaque.remove(at: index))
+    }
+    
+    public func assign(_ other: [Element]) {
+        opaque.assign(other.map{ $0.persistenceObject() })
     }
     
     public func copy() -> YArray<Element> {
@@ -90,6 +97,20 @@ extension YArray: Sequence {
     public func makeIterator() -> some IteratorProtocol<Element> {
         return self.opaque.lazy.map{ Element.fromPersistence($0) }.makeIterator()
     }
+}
+
+extension YArray: RandomAccessCollection {
+    public var startIndex: Int { 0 }
+    
+    public var endIndex: Int { self.count }
+    
+    public func index(after i: Int) -> Int { i+1 }
+    
+    public func index(before i: Int) -> Int { i-1 }
+    
+    public func index(_ i: Int, offsetBy distance: Int) -> Int { i + distance }
+    
+    public func distance(from start: Int, to end: Int) -> Int { end - start }
 }
 
 extension YArray: ExpressibleByArrayLiteral {

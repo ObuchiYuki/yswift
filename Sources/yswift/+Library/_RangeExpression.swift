@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol _RangeExpression {
+public protocol _RangeExpression {    
     func relative(to count: Int) -> Range<Int>
 }
 

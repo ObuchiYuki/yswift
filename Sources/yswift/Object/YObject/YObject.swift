@@ -72,10 +72,10 @@ open class YObject: YOpaqueObject {
             table[self.objectID] = map.objectID
         }
         for (key, value) in self.elementSequence() {
-            if let value = value as? YOpaqueObject {
+            if case .smartcopy(_, let writers) = YObject.initContext, key.starts(with: "&") {
+                self._copyWithSmartCopy(map: map, value: value, key: key, writers: writers)
+            } else if let value = value as? YOpaqueObject {
                 map._setValue(value.copy(), for: key)
-            } else if case .smartcopy(_, let writers) = YObject.initContext, key.starts(with: "&"), let id = value as? Int {
-                writers[YObjectID(id)] = { map._setValue($0, for: key) }
             } else {
                 map._setValue(value, for: key)
             }

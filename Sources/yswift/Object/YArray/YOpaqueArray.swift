@@ -70,15 +70,26 @@ final public class YOpaqueArray: YOpaqueObject {
     public func delete(at index: Int) {
         self._delete(at: index)
     }
+    
     public func delete<R: _RangeExpression>(in range: R) {
         let range = range.relative(to: self.count)
+        if range.isEmpty { return }
         self._delete(at: range.lowerBound, count: range.count)
+    }
+    
+    public func deleteAll() {
+        self.delete(in: 0..<count)
     }
     
     public func remove(at index: Int) -> Any? {
         let element = (self[index] as? YOpaqueObject).map{ $0.copy() } ?? self[index]
         self._delete(at: index)
         return element
+    }
+    
+    public func assign(_ other: [Any?]) {
+        self.deleteAll()
+        self.append(contentsOf: other)
     }
     
     public override func copy() -> YOpaqueArray {

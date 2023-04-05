@@ -10,12 +10,11 @@ import Combine
 
 extension YObject {
     public func register<T: YElement>(_ property: Property<T>, for key: String) {
-        assert(!key.starts(with: "&"))
-        self._registerProperty(property, for: key)
-    }
-    
-    public func register<T: YObject>(_ property: Property<YReference<T>>, for key: String) {
-        self._registerProperty(property, for: "&\(key)")
+        if YObject.Property<T>.isReference(property) {
+            self._registerProperty(property, for: "&\(key)")
+        } else {
+            self._registerProperty(property, for: key)
+        }
     }
     
     private func _registerProperty(_ property: any _YObjectProperty, for key: String) {
@@ -52,10 +51,20 @@ extension YObject {
         }
         
         public var wrappedValue: Value {
-            get { self.storage.publisher?.value ?? Value.fromPersistence(self.storage.getter()) }
-            set { self.storage.setter(newValue.persistenceObject()) }
+            get {
+                assert(self.storage.getter != nil, "Use of unregistred property. YObject.register(_:) to register property.")
+                
+                return self.storage.publisher?.value ?? Value.fromPersistence(self.storage.getter())
+            }
+            set {
+                assert(self.storage.setter != nil, "Use of unregistred property. YObject.register(_:) to register property.")
+                
+                self.storage.setter(newValue.persistenceObject())
+            }
         }
         public var projectedValue: some Publisher<Value, Never> {
+            assert(self.storage.getter != nil, "Use of unregistred property. YObject.register(_:) to register property.")
+            
             if self.storage.publisher == nil {
                 let value = Value.fromPersistence(self.storage.getter())
                 self.storage.publisher = CurrentValueSubject(value)
@@ -80,4 +89,15 @@ extension YObject {
     }
 }
 
-
+extension YObject.Property {
+    static func isReference<T: YElement>(_ property: YObject.Property<T>) -> Bool { false }
+    
+    static func isReference<T: YElement>(_ property: YObject.Property<YReference<T>>) -> Bool { true }
+    static func isReference<T: YElement>(_ property: YObject.Property<YReference<T>?>) -> Bool { true }
+    
+    static func isReference<T: YElement>(_ property: YObject.Property<[YReference<T>]>) -> Bool { true }
+    static func isReference<T: YElement>(_ property: YObject.Property<[YReference<T>]?>) -> Bool { true }
+    
+    static func isReference<T: YElement>(_ property: YObject.Property<[String: YReference<T>]>) -> Bool { true }
+    static func isReference<T: YElement>(_ property: YObject.Property<[String: YReference<T>]?>) -> Bool { true }
+}
