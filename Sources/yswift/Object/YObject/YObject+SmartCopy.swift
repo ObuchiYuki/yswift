@@ -54,9 +54,7 @@ extension YObject {
         YObject.initContext = .smartcopy(table, writers)
         
         let copied = self.copy()
-        
-        print(table, writers)
-        
+                
         for (oldID, writer) in writers {
             let newID = table[oldID] ?? oldID
             writer(newID)

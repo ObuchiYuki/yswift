@@ -10,7 +10,7 @@ import Combine
 
 extension YObject {
     public func register<T: YElement>(_ property: Property<T>, for key: String) {
-        if YObject.Property<T>.isReference(property) {
+        if T.isReference {
             self._registerProperty(property, for: "&\(key)")
         } else {
             self._registerProperty(property, for: key)
@@ -87,17 +87,4 @@ extension YObject {
             }
         }
     }
-}
-
-extension YObject.Property {
-    static func isReference<T: YElement>(_ property: YObject.Property<T>) -> Bool { false }
-    
-    static func isReference<T: YElement>(_ property: YObject.Property<YReference<T>>) -> Bool { true }
-    static func isReference<T: YElement>(_ property: YObject.Property<YReference<T>?>) -> Bool { true }
-    
-    static func isReference<T: YElement>(_ property: YObject.Property<[YReference<T>]>) -> Bool { true }
-    static func isReference<T: YElement>(_ property: YObject.Property<[YReference<T>]?>) -> Bool { true }
-    
-    static func isReference<T: YElement>(_ property: YObject.Property<[String: YReference<T>]>) -> Bool { true }
-    static func isReference<T: YElement>(_ property: YObject.Property<[String: YReference<T>]?>) -> Bool { true }
 }

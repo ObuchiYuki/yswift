@@ -21,6 +21,7 @@ final public class YReference<T: YObject> {
 }
 
 extension YReference: YPrimitive {
+    public static var isReference: Bool { true }
     public func persistenceObject() -> Any? { self.objectID.value }
     public static func fromPersistence(_ opaque: Any?) -> YReference<T> {
         let id = YObjectID(opaque as! Int)

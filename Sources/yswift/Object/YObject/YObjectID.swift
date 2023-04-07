@@ -61,6 +61,7 @@ extension YObjectID {
 }
 
 extension YObjectID: YElement {
+    public static var isReference: Bool { false }
     public func persistenceObject() -> Any? { return value }
     public static func fromPersistence(_ opaque: Any?) -> YObjectID { YObjectID(opaque as! Int) }
 }

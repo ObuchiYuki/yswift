@@ -8,11 +8,17 @@
 import Foundation
 
 public protocol YElement {
+    static var isReference: Bool { get }
     func persistenceObject() -> Any?
     static func fromPersistence(_ opaque: Any?) -> Self
 }
 
+extension YElement {
+    public static var isReference: Bool { false } 
+}
+
 extension YOpaqueObject: YElement {
+    public static var isReference: Bool { false }
     public func persistenceObject() -> Any? { self }
     public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
 }
@@ -23,6 +29,7 @@ extension YOpaqueObject: YElement {
 public protocol YPrimitive: YElement {}
 
 extension YPrimitive {
+    public static var isReference: Bool { false }
     public func persistenceObject() -> Any? { self }
     public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
 }
@@ -49,10 +56,16 @@ extension Data: YPrimitive {}
 extension NSArray: YPrimitive {}
 extension NSDictionary: YPrimitive {}
 
-extension Array: YPrimitive, YElement where Element: YPrimitive {}
-extension Dictionary: YPrimitive, YElement where Key == String, Value: YPrimitive {}
+extension Array: YPrimitive, YElement where Element: YPrimitive {
+    public static var isReference: Bool { Element.isReference }
+}
+extension Dictionary: YPrimitive, YElement where Key == String, Value: YPrimitive {
+    public static var isReference: Bool { Value.isReference }
+}
 
 extension Optional: YElement where Wrapped: YElement {
+    public static var isReference: Bool { Wrapped.isReference }
+    
     public func persistenceObject() -> Any? {
         switch self {
         case .none: return NSNull()

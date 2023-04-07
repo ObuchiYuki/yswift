@@ -1,6 +1,6 @@
 import XCTest
 import Promise
-import yswift
+@testable import yswift
 
 class NameContainer: YObject {
     class Name: YObject {
@@ -151,86 +151,24 @@ final class YObjectTests2: XCTestCase {
             ])
         ])
         let inner = root0.children[0].children[0]
-        
         XCTAssert(inner.parent?.value.parent?.value === root0)
         
         map0["root"] = root0
-        
         XCTAssert(map0["root"]?.children[0].children[0].parent?.value.parent?.value === map0["root"])
         
         try test.sync()
-        
         let root1 = try XCTUnwrap(map1["root"])
-        
         XCTAssert(root1.children[0].children[0].parent?.value.parent?.value === root1)
         
         let root0Copy = root0.smartCopy()
-        
         XCTAssertEqual(root0Copy.children[0].children[0].parent?.value.parent?.value.objectID, root0Copy.objectID)
-    }
-    
-    
-    func testSmartCopyNodeGraph() throws {
-        class OutSocket: YObject {
-            @Property var connection: YReference<InSocket>?
-            
-            required init() {
-                super.init()
-                self.register(_connection, for: "connection")
-            }
-        }
-        OutSocket.registerAuto()
         
-        class InSocket: YObject {
-            @Property var connection: YReference<OutSocket>?
-            
-            required init() {
-                super.init()
-                self.register(_connection, for: "connection")
-            }
-        }
-        InSocket.registerAuto()
+        map0["rootcopy"] = root0Copy
+        try test.sync()
         
-        class Node: YObject {
-            @Property var name: String = ""
-            
-            convenience init(name: String) {
-                self.init()
-                self.name = name
-            }
-            
-            required init() {
-                super.init()
-                self.register(_name, for: "name")
-            }
-        }
-        Node.registerAuto()
-        
-        class AddNode: Node {
-            @Property var input0: InSocket?
-            @Property var input1: InSocket?
-            @Property var output: OutSocket?
-            
-            required init() {
-                super.init()
-                self.register(_input0, for: "i0")
-                self.register(_input1, for: "i1")
-                self.register(_output, for: "o1")
-            }
-        }
-        
-        class Graph: YObject {
-            @WProperty var nodes: YArray<Node> = []
-            
-            required init() {
-                super.init()
-                self.register(_nodes, for: "nodes")
-            }
-        }
-        Graph.registerAuto()
-        
-        let graph = Graph()
-        
-        
+        let root1Copy = try XCTUnwrap(map1["rootcopy"])
+        print(root1Copy)
+
+//        XCTAssertEqual(root1Copy.children[0].children[0].parent?.value.parent?.value.objectID, root1Copy.objectID)
     }
 }

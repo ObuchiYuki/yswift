@@ -85,6 +85,7 @@ extension YArray: Hashable where Element: Hashable {
 }
 
 extension YArray: YElement {
+    public static var isReference: Bool { false }
     public func persistenceObject() -> Any? { self.opaque }
     public static func fromPersistence(_ opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueArray) }
 }
