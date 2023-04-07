@@ -5,8 +5,6 @@
 //  Created by yuki on 2023/04/01.
 //
 
-import Promise
-
 final public class YReference<T: YObject> {
     
     public var value: T { YObjectStore.shared.object(for: objectID) as! T }

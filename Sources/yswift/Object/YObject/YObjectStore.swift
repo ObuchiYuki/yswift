@@ -5,8 +5,6 @@
 //  Created by yuki on 2023/04/01.
 //
 
-import Promise
-
 final class YObjectStore {
     
     static let shared = YObjectStore()

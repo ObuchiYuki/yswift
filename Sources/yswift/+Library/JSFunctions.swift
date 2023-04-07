@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Promise
 
 func optionalEqual<T>(_ a: T?, _ b: T?, compare: (T, T) -> Bool) -> Bool {
     if a == nil && b == nil { return true }

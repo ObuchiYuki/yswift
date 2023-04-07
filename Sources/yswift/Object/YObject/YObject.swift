@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import Promise
 
 final public class YObjectEvent: YEvent {
     public var keysChanged: Set<String?>

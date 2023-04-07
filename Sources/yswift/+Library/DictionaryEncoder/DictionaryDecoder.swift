@@ -552,12 +552,14 @@ extension _DictionaryDecoder : SingleValueDecodingContainer {
 
     private func expectNonNull<T>(_ type: T.Type) throws {
         guard !self.decodeNil() else {
-            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Expected \(type) but found null value instead."))
+            throw DecodingError.valueNotFound(
+                type, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Expected \(type) but found null value instead.")
+            )
         }
     }
     
     func decodeNil() -> Bool {
-        return self.storage.topContainer is NSNull
+        self.storage.topContainer == nil || self.storage.topContainer is NSNull
     }
     
     func decode(_ type: Bool.Type) throws -> Bool {
@@ -806,12 +808,12 @@ extension _DictionaryDecoder {
     
     fileprivate func unbox(_ value: Any?, as type: Float.Type) throws -> Float? {
         guard !(value is NSNull) else { return nil }
-        return value as? Float
+        return value as? NSNumber as? Float
     }
     
     fileprivate func unbox(_ value: Any?, as type: Double.Type) throws -> Double? {
         guard !(value is NSNull) else { return nil }
-        return value as? Double
+        return value as? NSNumber as? Double
     }
     
     fileprivate func unbox(_ value: Any?, as type: String.Type) throws -> String? {
