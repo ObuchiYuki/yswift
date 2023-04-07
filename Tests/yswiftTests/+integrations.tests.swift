@@ -59,21 +59,49 @@ final class IntegrationsTests: XCTestCase {
     
     func testStructExisting() throws {
         let test = try YTest<Any>(docs: 2)
-        let map0 = test.swiftyMap(CGPoint.self, 0), map1 = test.swiftyMap(CGPoint.self, 1)
-
-        print(CGPoint(x: 12, y: 10).persistenceObject())
-        map0["point"] = CGPoint(x: 12, y: 10)
         
-        print(map0.opaque)
+        class Container: YObject {
+            @Property var point: CGPoint = .zero
+            @Property var size: CGSize = .zero
+            @Property var rect: CGRect = .zero
+            
+            required init() {
+                super.init()
+                self.register(_point, for: "p")
+                self.register(_size, for: "s")
+                self.register(_rect, for: "r")
+            }
+            
+            convenience init(point: CGPoint, size: CGSize, rect: CGRect) {
+                self.init()
+                self.point = point
+                self.size = size
+                self.rect = rect
+            }
+        }
+        Container.registerAuto()
+        
+        let map0 = test.swiftyMap(Container.self, 0),
+            map1 = test.swiftyMap(Container.self, 1)
+        
+        let container0 = Container(
+            point: CGPoint(x: 12, y: 36),
+            size: CGSize(width: 21, height: 89),
+            rect: CGRect(x: 12, y: 23, width: 34, height: 45)
+        )
+        
+        map0["container"] = container0
         
         try test.sync()
-
-        print(map1.opaque)
         
-        let point1 = try XCTUnwrap(map1["point"])
-
-        XCTAssertEqual(point1, CGPoint(x: 12, y: 10))
+        let container1 = try XCTUnwrap(map1["container"])
+        
+        XCTAssertEqual(container1.point, CGPoint(x: 12, y: 36))
+        XCTAssertEqual(container1.size, CGSize(width: 21, height: 89))
+        XCTAssertEqual(container1.rect, CGRect(x: 12, y: 23, width: 34, height: 45))
     }
 }
 
+extension CGRect: YElement {}
+extension CGSize: YElement {}
 extension CGPoint: YElement {}
