@@ -27,7 +27,7 @@ class DictionaryDecoder {
     
     init() {}
     
-    func decode<T : Decodable>(_ type: T.Type, from content: Any) throws -> T {
+    func decode<T : Decodable>(_ type: T.Type, from content: Any?) throws -> T {
         let decoder = _DictionaryDecoder(referencing: content, options: self.options)
         guard let value = try decoder.unbox(content, as: type) else {
             throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: [], debugDescription: "The given data did not contain a top-level value."))

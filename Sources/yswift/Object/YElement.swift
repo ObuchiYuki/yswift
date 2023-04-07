@@ -10,8 +10,9 @@ import Foundation
 /// `YElement` should be light weight wrapper
 public protocol YElement {
     static var isReference: Bool { get }
-    func persistenceObject() -> Any?
     static func fromPersistence(_ opaque: Any?) -> Self
+    
+    func persistenceObject() -> Any?
 }
 
 extension YElement {
@@ -20,8 +21,9 @@ extension YElement {
 
 extension YOpaqueObject: YElement {
     public static var isReference: Bool { false }
-    public func persistenceObject() -> Any? { self }
     public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
+    
+    public func persistenceObject() -> Any? { self }
 }
 
 // ============================================================================== //
@@ -31,8 +33,9 @@ public protocol YPrimitive: YElement {}
 
 extension YPrimitive {
     public static var isReference: Bool { false }
-    public func persistenceObject() -> Any? { self }
     public static func fromPersistence(_ opaque: Any?) -> Self { opaque as! Self }
+    
+    public func persistenceObject() -> Any? { self }
 }
 
 extension Int: YPrimitive {}
@@ -81,3 +84,4 @@ extension Optional: YElement where Wrapped: YElement {
         }
     }
 }
+

@@ -4,6 +4,29 @@ import Combine
 @testable import yswift
 
 final class IntegrationsTests: XCTestCase {
+    
+    func testMapObject() throws {
+        class Person: YObject {
+            @Property var name: String = ""
+            convenience init(name: String) { self.init(); self.name = name }
+            required init() { super.init(); self.register(_name, for: "name") }
+        }
+        Person.registerAuto()
+        
+        let test = try YTest<Any>(docs: 1)
+        let map0 = test.swiftyMap(Person.self, 0),
+            array0 = test.swiftyArray(Person.self, 0)
+
+        let alice0 = Person(name: "Alice")
+        map0["alice"] = alice0
+        array0.append(alice0)
+        let alice0_map = try XCTUnwrap(map0["alice"])
+        let alice0_array = try XCTUnwrap(array0.first)
+        
+        XCTAssert(alice0 === alice0_map)
+        XCTAssert(alice0 === alice0_array)
+    }
+    
     func testEnum() throws {
         enum Sex: Int, YRawRepresentable { case man = 0, weman = 1 }
         

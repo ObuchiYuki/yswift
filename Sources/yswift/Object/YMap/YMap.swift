@@ -10,7 +10,7 @@ import Combine
 
 final public class YMap<Value: YElement>: YWrapperObject {
     public let opaque: YOpaqueMap
-    
+        
     public init(opaque: YOpaqueMap) { self.opaque = opaque }
     
     public convenience init() { self.init(opaque: YOpaqueMap()) }
