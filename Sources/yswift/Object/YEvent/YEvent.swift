@@ -78,10 +78,10 @@ public class YEvent {
         return self.changes().delta
     }
 
-    func adds(_ struct_: YStruct) -> Bool {
+    func adds(_ struct_: YStructure) -> Bool {
         return struct_.id.clock >= (self.transaction.beforeState[struct_.id.client] ?? 0)
     }
-    func deletes(_ struct_: YStruct) -> Bool {
+    func deletes(_ struct_: YStructure) -> Bool {
         return self.transaction.deleteSet.isDeleted(struct_.id)
     }
 

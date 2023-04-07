@@ -18,7 +18,7 @@ extension YItem {
 }
 
 /// Abstract class that represents any content.
-final class YItem: YStruct, JSHashable {
+final class YItem: YStructure, JSHashable {
     
     // =========================================================================== //
     // MARK: - Properties -
@@ -27,10 +27,10 @@ final class YItem: YStruct, JSHashable {
     var origin: YID?
 
     /// The item that is currently to the left of this item.
-    var left: YStruct?
+    var left: YStructure?
 
     /// The item that is currently to the right of this item.
-    var right: YStruct?
+    var right: YStructure?
 
     /// The item that was originally to the right of this item. */
     var rightOrigin: YID?
@@ -80,7 +80,7 @@ final class YItem: YStruct, JSHashable {
         return YID(client: self.id.client, clock: self.id.clock + self.length - 1)
     }
 
-    init(id: YID, left: YStruct?, origin: YID?, right: YStruct?, rightOrigin: YID?, parent: Parent?, parentSub: String?, content: any YContent) {
+    init(id: YID, left: YStructure?, origin: YID?, right: YStructure?, rightOrigin: YID?, parent: Parent?, parentSub: String?, content: any YContent) {
         self.origin = origin
         self.left = left
         self.right = right
@@ -253,7 +253,7 @@ final class YItem: YStruct, JSHashable {
         if self.parentKey != nil, self.right != nil { self.delete(transaction) }
     }
     
-    override func merge(with right: YStruct) -> Bool {
+    override func merge(with right: YStructure) -> Bool {
         guard let right = right as? YItem else { return false }
         guard right.origin == self.lastID,
               self.right === right,

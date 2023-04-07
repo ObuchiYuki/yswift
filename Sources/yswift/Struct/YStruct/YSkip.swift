@@ -7,12 +7,12 @@
 
 import Foundation
 
-final class YSkip: YStruct {
+final class YSkip: YStructure {
     static let refID: UInt8 = 10
 
     override var deleted: Bool { true }
 
-    func mergeWith(_ right: YStruct) -> Bool {
+    func mergeWith(_ right: YStructure) -> Bool {
         guard let skip = right as? YSkip else { return false }
         self.length += skip.length
         return true

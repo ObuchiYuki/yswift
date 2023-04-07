@@ -552,12 +552,10 @@ final class YArrayTests: XCTestCase {
     }
     
     func testRepeatGeneratingYarrayTests_FindFaidSeed() throws {
-        try XCTSkipIf(true)
-        
         for _ in 0..<1000 {
             let seed = Int32.random(in: 0..<Int32.max/2)
-            print(seed)
-            try YTest<Any>(docs: 5, seed: 243939758)
+//            print("seed = \(seed)")
+            try YTest<Any>(docs: 5, seed: seed)
                 .randomTests(self.arrayTransactions, iterations: 100)
         }
     }

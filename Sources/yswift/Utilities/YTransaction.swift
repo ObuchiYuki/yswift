@@ -48,7 +48,7 @@ final public class YTransaction {
     var subdocsRemoved: Set<YDocument> = Set()
     var subdocsLoaded: Set<YDocument> = Set()
     
-    var _mergeStructs: RefArray<YStruct> = []
+    var _mergeStructs: RefArray<YStructure> = []
 
     init(_ doc: YDocument, origin: Any?, local: Bool) {
         self.doc = doc
@@ -154,7 +154,7 @@ final public class YTransaction {
                 let firstChangePos = max(YStructStore.findIndexSS(structs: structs, clock: beforeClock), 1)
 
                 for i in (firstChangePos..<structs.count).reversed() {
-                    YStruct.tryMerge(withLeft: structs, pos: i)
+                    YStructure.tryMerge(withLeft: structs, pos: i)
                 }
             }
         })
@@ -165,11 +165,11 @@ final public class YTransaction {
             let structs = store.clients[client]!
             let replacedStructPos = YStructStore.findIndexSS(structs: structs, clock: clock)
             if replacedStructPos + 1 < structs.count {
-                YStruct.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
+                YStructure.tryMerge(withLeft: structs, pos: replacedStructPos + 1)
             }
             
             if replacedStructPos > 0 {
-                YStruct.tryMerge(withLeft: structs, pos: replacedStructPos)
+                YStructure.tryMerge(withLeft: structs, pos: replacedStructPos)
             }
         }
         if !transaction.local && transaction.afterState[doc.clientID] != transaction.beforeState[doc.clientID] {

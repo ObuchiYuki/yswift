@@ -7,12 +7,12 @@
 
 import Foundation
 
-final class YGC: YStruct {
+final class YGC: YStructure {
     static let refID: UInt8 = 0
     
     override var deleted: Bool { true }
 
-    override func merge(with right: YStruct) -> Bool {
+    override func merge(with right: YStructure) -> Bool {
         guard let gc = right as? YGC else { return false }
         self.length += gc.length
         return true

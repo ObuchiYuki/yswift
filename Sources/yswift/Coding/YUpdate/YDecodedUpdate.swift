@@ -9,16 +9,16 @@ import Foundation
 import lib0
 
 final public class YDecodedUpdate {
-    var structs: [YStruct]
+    var structs: [YStructure]
     var deleteSets: YDeleteSet
     
-    init(structs: [YStruct], deleteSets: YDeleteSet) {
+    init(structs: [YStructure], deleteSets: YDeleteSet) {
         self.structs = structs
         self.deleteSets = deleteSets
     }
     
     public init(_ update: Data, YDecoder: (LZDecoder) throws -> YUpdateDecoder = YUpdateDecoderV1.init) throws {
-        var structs: [YStruct] = []
+        var structs: [YStructure] = []
         let updateDecoder = try YDecoder(LZDecoder(update))
         let lazyDecoder = try YLazyStructReader(updateDecoder, filterSkips: false)
         var curr = lazyDecoder.curr

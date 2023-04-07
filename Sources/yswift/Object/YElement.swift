@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// `YElement` should be light weight wrapper
 public protocol YElement {
     static var isReference: Bool { get }
     func persistenceObject() -> Any?

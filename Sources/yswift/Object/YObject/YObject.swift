@@ -72,7 +72,7 @@ open class YObject: YOpaqueObject {
             table[self.objectID] = map.objectID
         }
         for (key, value) in self.elementSequence() {
-            if case .smartcopy(_, let writers) = YObject.initContext, key.starts(with: "&") {
+            if case .smartcopy(_, let writers) = YObject.initContext, key == "_" || key.starts(with: "&") {
                 self._copyWithSmartCopy(map: map, value: value, key: key, writers: writers)
             } else if let value = value as? YOpaqueObject {
                 map._setValue(value.copy(), for: key)

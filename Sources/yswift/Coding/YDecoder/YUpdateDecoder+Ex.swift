@@ -19,9 +19,9 @@ extension YDocument {
 
 final class StructRef: CustomStringConvertible {
     var i: Int
-    var refs: [YStruct?]
+    var refs: [YStructure?]
     
-    init(i: Int, refs: [YStruct?]) { self.i = i; self.refs = refs }
+    init(i: Int, refs: [YStructure?]) { self.i = i; self.refs = refs }
     
     var description: String { "StructRef(i: \(i), refs: \(refs))" }
 }
@@ -34,7 +34,7 @@ extension YUpdateDecoder {
         
         for _ in 0..<numOfStateUpdates {
             let numberOfStructs = try Int(self.restDecoder.readUInt())
-            var refs = [YStruct?](repeating: nil, count: numberOfStructs)
+            var refs = [YStructure?](repeating: nil, count: numberOfStructs)
             let client = try self.readClient()
             var clock = try Int(self.restDecoder.readUInt())
                         

@@ -38,4 +38,42 @@ final class IntegrationsTests: XCTestCase {
         XCTAssertEqual(alice1.name, "Alice")
         XCTAssertEqual(alice1.sex, .weman)
     }
+    
+    func testStruct() throws {
+        struct Point: Hashable, Codable, YElement {
+            var x: Float
+            var y: Float
+        }
+                
+        let test = try YTest<Any>(docs: 2)
+        let map0 = test.swiftyMap(Point.self, 0), map1 = test.swiftyMap(Point.self, 1)
+
+        map0["point"] = Point(x: 12, y: 10)
+        
+        try test.sync()
+        
+        let point1 = try XCTUnwrap(map1["point"])
+        
+        XCTAssertEqual(point1, Point(x: 12, y: 10))
+    }
+    
+    func testStructExisting() throws {
+        let test = try YTest<Any>(docs: 2)
+        let map0 = test.swiftyMap(CGPoint.self, 0), map1 = test.swiftyMap(CGPoint.self, 1)
+
+        print(CGPoint(x: 12, y: 10).persistenceObject())
+        map0["point"] = CGPoint(x: 12, y: 10)
+        
+        print(map0.opaque)
+        
+        try test.sync()
+
+        print(map1.opaque)
+        
+        let point1 = try XCTUnwrap(map1["point"])
+
+        XCTAssertEqual(point1, CGPoint(x: 12, y: 10))
+    }
 }
+
+extension CGPoint: YElement {}

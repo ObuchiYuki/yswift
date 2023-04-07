@@ -5,7 +5,7 @@
 //  Created by yuki on 2023/03/15.
 //
 
-class YStruct {
+class YStructure {
     let id: YID
     var length: Int
     
@@ -16,7 +16,7 @@ class YStruct {
 
     var deleted: Bool { fatalError() }
 
-    func merge(with right: YStruct) -> Bool { return false }
+    func merge(with right: YStructure) -> Bool { return false }
 
     func encode(into encoder: any YUpdateEncoder, offset: Int) { fatalError() }
 
@@ -25,8 +25,8 @@ class YStruct {
     func getMissing(_ transaction: YTransaction, store: YStructStore) -> Int? { nil }
 }
 
-extension YStruct {
-    func slice(diff: Int) -> YStruct { // no Skip return
+extension YStructure {
+    func slice(diff: Int) -> YStructure { // no Skip return
         let left = self
         
         if left is YGC {
@@ -52,7 +52,7 @@ extension YStruct {
         }
     }
 
-    static func tryMerge(withLeft structs: RefArray<YStruct>, pos: Int) {
+    static func tryMerge(withLeft structs: RefArray<YStructure>, pos: Int) {
         let left = structs[pos - 1]
         let right = structs[pos]
         

@@ -39,7 +39,7 @@ extension YLazyStructWriter {
         }
     }
 
-    func write(_ struct_: YStruct /* not Skip */, offset: Int) throws {
+    func write(_ struct_: YStructure /* not Skip */, offset: Int) throws {
         // flush curr if we start another client
         if self.written > 0 && self.currClient != struct_.id.client {
             self.flush()

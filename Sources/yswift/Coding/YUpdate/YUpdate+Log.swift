@@ -18,7 +18,7 @@ extension YUpdate {
 
     private func _logUpdate(YDecoder: (LZDecoder) throws -> YUpdateDecoder) {
         do {
-            var structs: [YStruct] = []
+            var structs: [YStructure] = []
             let updateDecoder = try YDecoder(LZDecoder(self.data))
             let lazyDecoder = try YLazyStructReader(updateDecoder, filterSkips: false)
             

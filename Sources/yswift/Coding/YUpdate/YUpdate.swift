@@ -215,7 +215,7 @@ extension YUpdate {
     
     private static func _mergeUpdates(updates: [YUpdate], YDecoder: (LZDecoder) throws -> YUpdateDecoder, YEncoder: () -> YUpdateEncoder) throws -> YUpdate {
         struct StructWrite {
-            let struct_: YStruct
+            let struct_: YStructure
             let offset: Int
         }
         

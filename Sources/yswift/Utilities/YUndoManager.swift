@@ -401,7 +401,7 @@ extension YUndoManager {
         static func followRedone(store: YStructStore, id: YID) -> StructRedone {
             var nextID: YID? = id
             var diff = 0
-            var item: YStruct? = nil
+            var item: YStructure? = nil
             repeat {
                 if diff > 0 {
                     nextID = YID(client: nextID!.client, clock: nextID!.clock + diff)
@@ -432,8 +432,8 @@ extension YItem {
         let ownClientID = doc.clientID
         
         var parentItem = self.parent!.object!._objectItem
-        var left: YStruct? = nil
-        var right: YStruct? = nil
+        var left: YStructure? = nil
+        var right: YStructure? = nil
 
         if let uparentItem = parentItem, uparentItem.deleted {
             

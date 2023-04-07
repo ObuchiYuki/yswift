@@ -18,7 +18,7 @@ let package = Package(
             name: "yswift",
             dependencies: [
                 .product(name: "Promise", package: "Promise"),
-                .product(name: "lib0", package: "lib0-swift")
+                .product(name: "lib0", package: "lib0-swift"),
             ],
             swiftSettings: [
                 .unsafeFlags([

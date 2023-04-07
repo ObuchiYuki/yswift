@@ -10,7 +10,7 @@ import Foundation
 final class YDeleteSet {
     var clients: [Int: RefArray<YDeleteItem>] = [:]
 
-    func iterate(_ transaction: YTransaction, body: (YStruct) throws -> Void) rethrows {
+    func iterate(_ transaction: YTransaction, body: (YStructure) throws -> Void) rethrows {
         
         return try self.clients.forEach{ clientid, deletes in
             for i in 0..<deletes.count {
@@ -117,7 +117,7 @@ final class YDeleteSet {
                 var si = mostRightIndexToCheck, struct_ = structs[si];
                 
                 while si > 0 && struct_.id.clock >= deleteItem.clock {
-                    YStruct.tryMerge(withLeft: structs, pos: si)
+                    YStructure.tryMerge(withLeft: structs, pos: si)
                     si -= 1
                     struct_ = structs[si]
                 }
@@ -182,7 +182,7 @@ final class YDeleteSet {
                     var len = struct_.length
                     
                     if i + 1 < structs.count {
-                        var next: YStruct? = structs[i+1]
+                        var next: YStructure? = structs[i+1]
                         
                         while let unext = next, i+1 < structs.count && unext.deleted {
                             len += unext.length

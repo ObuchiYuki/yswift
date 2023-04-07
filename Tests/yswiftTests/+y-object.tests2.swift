@@ -18,6 +18,12 @@ class NameContainer: YObject {
 
 final class YObjectTests2: XCTestCase {
     
+    func testInfinity() throws {
+        let container = NSMutableDictionary()
+        container["inf"] = NSNumber(value: Float.infinity)
+        print(container)
+    }
+    
     override func setUp() {
         NameContainer.registerAuto()
         NameContainer.Name.registerAuto()
@@ -161,14 +167,14 @@ final class YObjectTests2: XCTestCase {
         XCTAssert(root1.children[0].children[0].parent?.value.parent?.value === root1)
         
         let root0Copy = root0.smartCopy()
-        XCTAssertEqual(root0Copy.children[0].children[0].parent?.value.parent?.value.objectID, root0Copy.objectID)
         
+        XCTAssertEqual(root0Copy.children[0].children[0].parent?.value.parent?.value.objectID, root0Copy.objectID)
+
         map0["rootcopy"] = root0Copy
         try test.sync()
-        
-        let root1Copy = try XCTUnwrap(map1["rootcopy"])
-        print(root1Copy)
 
-//        XCTAssertEqual(root1Copy.children[0].children[0].parent?.value.parent?.value.objectID, root1Copy.objectID)
+        let root1Copy = try XCTUnwrap(map1["rootcopy"])
+
+        XCTAssertEqual(root1Copy.children[0].children[0].parent?.value.parent?.value.objectID, root1Copy.objectID)
     }
 }

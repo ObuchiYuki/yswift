@@ -10,8 +10,14 @@ import Foundation
 extension YObject {
     
     func _copyWithSmartCopy(map: YObject, value: Any?, key: String, writers: RefDictionary<YObjectID, (YObjectID) -> ()>) {
+        if key == YObject.objectIDKey { return }
+        
+        assert(key.starts(with: "&"))
+        
         if let id = value as? Int {
-            writers[YObjectID(id)] = { map._setValue($0.persistenceObject(), for: key) }
+            writers[YObjectID(id)] = {
+                map._setValue($0.persistenceObject(), for: key)
+            }
         } else if let value = value as? [Int] {
             var takeValues = [YObjectID]()
             for id in value {

@@ -18,7 +18,7 @@ extension YDocument {
 }
 
 extension YUpdateEncoder {
-    func writeStructs(structs: RefArray<YStruct>, client: Int, clock: Int) {
+    func writeStructs(structs: RefArray<YStructure>, client: Int, clock: Int) {
         // write first id
         let clock = max(clock, structs[0].id.clock) // make sure the first id exists
         let startNewStructs = YStructStore.findIndexSS(structs: structs, clock: clock)

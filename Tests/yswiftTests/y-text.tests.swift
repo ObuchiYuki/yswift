@@ -673,8 +673,8 @@ final class YTextTests: XCTestCase {
 
 }
 
-extension YStruct {
-    var asItemRight: YStruct? {
+extension YStructure {
+    var asItemRight: YStructure? {
         return (self as? YItem)?.right
     }
     var asItemContentString: YStringContent? {

@@ -21,7 +21,7 @@ final class PendingStrcut: CustomStringConvertible {
 }
 
 final class YStructStore {
-    var clients: [Int: RefArray<YStruct>] = [:]
+    var clients: [Int: RefArray<YStructure>] = [:]
     var pendingStructs: PendingStrcut? = nil
     var pendingDs: YUpdate? = nil
 
@@ -58,7 +58,7 @@ final class YStructStore {
         }
     }
 
-    func addStruct(_ struct_: YStruct) {
+    func addStruct(_ struct_: YStructure) {
         var structs = self.clients[struct_.id.client]
         if structs == nil {
             structs = []
@@ -75,7 +75,7 @@ final class YStructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func find(_ id: YID) -> YStruct {
+    func find(_ id: YID) -> YStructure {
         let structs = self.clients[id.client]!
         return structs.value[YStructStore.findIndexSS(structs: structs, clock: id.clock)]
     }
@@ -99,7 +99,7 @@ final class YStructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func getItemCleanEnd(_ transaction: YTransaction, id: YID) -> YStruct {
+    func getItemCleanEnd(_ transaction: YTransaction, id: YID) -> YStructure {
         let structs = self.clients[id.client]!
         
         let index = YStructStore.findIndexSS(structs: structs, clock: id.clock)
@@ -112,18 +112,18 @@ final class YStructStore {
     }
 
     /** Replace `item` with `newitem` in store */
-    func replaceStruct(_ struct_: YStruct, newStruct: YStruct) {
+    func replaceStruct(_ struct_: YStructure, newStruct: YStructure) {
         self.clients[struct_.id.client]![
             YStructStore.findIndexSS(structs: self.clients[struct_.id.client]!, clock: struct_.id.clock)
         ] = newStruct
     }
 
     /** Iterate over a range of structs */
-    static func iterateStructs(transaction: YTransaction, structs: RefArray<YStruct>, clockStart: Int, len: Int, f: (YStruct) throws -> Void) rethrows {
+    static func iterateStructs(transaction: YTransaction, structs: RefArray<YStructure>, clockStart: Int, len: Int, f: (YStructure) throws -> Void) rethrows {
         if len == 0 { return }
         let clockEnd = clockStart + len
         var index = self.findIndexCleanStart(transaction: transaction, structs: structs, clock: clockStart)
-        var struct_: YStruct
+        var struct_: YStructure
         repeat {
             struct_ = structs.value[index]
             index += 1
@@ -136,7 +136,7 @@ final class YStructStore {
 
 
     /** Perform a binary search on a sorted array */
-    static func findIndexSS(structs: RefArray<YStruct>, clock: Int) -> Int {
+    static func findIndexSS(structs: RefArray<YStructure>, clock: Int) -> Int {
         var left = 0
         var right = structs.count - 1
         var mid = structs[right]
@@ -167,7 +167,7 @@ final class YStructStore {
 //        throw YSwiftError.unexpectedCase
     }
 
-    static func findIndexCleanStart(transaction: YTransaction, structs: RefArray<YStruct>, clock: Int) -> Int {
+    static func findIndexCleanStart(transaction: YTransaction, structs: RefArray<YStructure>, clock: Int) -> Int {
         let index = YStructStore.findIndexSS(structs: structs, clock: clock)
         let struct_ = structs[index]
         if struct_.id.clock < clock && struct_ is YItem {
@@ -183,7 +183,7 @@ extension YStructStore {
     func integrateStructs(transaction: YTransaction, clientsStructRefs: RefDictionary<Int, StructRef>) throws -> PendingStrcut? {
         let store = self
         
-        var stack: [YStruct] = []
+        var stack: [YStructure] = []
         var clientsStructRefsIds = clientsStructRefs.value.keys.sorted(by: <)
         if clientsStructRefsIds.count == 0 {
             return nil
@@ -219,7 +219,7 @@ extension YStructStore {
             }
         }
 
-        var stackHead: YStruct = curStructsTarget!.refs[curStructsTarget!.i]!
+        var stackHead: YStructure = curStructsTarget!.refs[curStructsTarget!.i]!
         curStructsTarget!.i += 1
         var state = [Int: Int]()
 

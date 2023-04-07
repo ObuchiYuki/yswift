@@ -9,16 +9,16 @@ import Foundation
 
 // Swift has no generator. So just providing API.
 final class YLazyStructReader {
-    private(set) var curr: YStruct?
+    private(set) var curr: YStructure?
     private(set) var done: Bool
     
-    private var gen: Array<YStruct>.Iterator
+    private var gen: Array<YStructure>.Iterator
     private let filterSkips: Bool
     
     init(_ decoder: YUpdateDecoder, filterSkips: Bool) throws {
         
         // TODO: lazy!
-        var array = [YStruct]()
+        var array = [YStructure]()
         try lazyStructReaderGenerator(decoder, yield: {
             array.append($0)
         })
@@ -30,7 +30,7 @@ final class YLazyStructReader {
         _ = try self.next()
     }
 
-    func next() throws -> YStruct? {
+    func next() throws -> YStructure? {
         repeat {
             self.curr = self.gen.next()
         } while (self.filterSkips && self.curr != nil && self.curr is YSkip)
@@ -38,7 +38,7 @@ final class YLazyStructReader {
     }
 }
 
-fileprivate func lazyStructReaderGenerator(_ decoder: YUpdateDecoder, yield: (YStruct) -> ()) throws {
+fileprivate func lazyStructReaderGenerator(_ decoder: YUpdateDecoder, yield: (YStructure) -> ()) throws {
 
     let numOfStateUpdates = try decoder.restDecoder.readUInt()
     
