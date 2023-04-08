@@ -10,8 +10,8 @@ import lib0
 
 
 protocol YUpdateEncoder: YDeleteSetEncoder {
-    func writeLeftID(_ id: YID)
-    func writeRightID(_ id: YID)
+    func writeLeftID(_ id: YIdentifier)
+    func writeRightID(_ id: YIdentifier)
     func writeClient(_ client: Int)
     func writeInfo(_ info: UInt8)
     func writeString(_ s: String)
@@ -26,12 +26,12 @@ protocol YUpdateEncoder: YDeleteSetEncoder {
 
 class YUpdateEncoderV1: YDeleteSetEncoderV1, YUpdateEncoder {
     
-    func writeLeftID(_ id: YID) {
+    func writeLeftID(_ id: YIdentifier) {
         self.restEncoder.writeUInt(UInt(id.client))
         self.restEncoder.writeUInt(UInt(id.clock))
     }
 
-    func writeRightID(_ id: YID) {
+    func writeRightID(_ id: YIdentifier) {
         self.restEncoder.writeUInt(UInt(id.client))
         self.restEncoder.writeUInt(UInt(id.clock))
     }
@@ -114,12 +114,12 @@ class YUpdateEncoderV2: YDeleteSetEncoderV2, YUpdateEncoder {
         return encoder.data
     }
 
-    func writeLeftID(_ id: YID) {
+    func writeLeftID(_ id: YIdentifier) {
         self.clientEncoder.write(UInt(id.client))
         self.leftClockEncoder.write(id.clock)
     }
 
-    func writeRightID(_ id: YID) {
+    func writeRightID(_ id: YIdentifier) {
         self.clientEncoder.write(UInt(id.client))
         self.rightClockEncoder.write(id.clock)
     }

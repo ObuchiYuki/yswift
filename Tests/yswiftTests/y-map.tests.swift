@@ -351,7 +351,7 @@ final class YMapTests: XCTestCase {
         map1.set("map", value: _map1)
         
         var calls = 0
-        var dmapid: YID?
+        var dmapid: YIdentifier?
         map1.observeDeep({ events, _ in
             do {
                 try events.forEach({ event in
@@ -471,8 +471,8 @@ final class YMapTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let docs = test.docs, map0 = test.map[0]
 
-        var changes: YEventChange? = nil
-        var keyChange: YEventKey? = nil
+        var changes: YEvent.Change? = nil
+        var keyChange: YEvent.Key? = nil
         
         map0.observe{ e, _ in changes = e.changes() }
         

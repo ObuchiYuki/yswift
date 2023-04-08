@@ -8,11 +8,11 @@
 extension YItem {
     enum Parent {
         case string(String)
-        case id(YID)
+        case id(YIdentifier)
         case object(YOpaqueObject)
         
         var string: String? { if case .string(let parent) = self { return parent }; return nil }
-        var id: YID? { if case .id(let parent) = self { return parent }; return nil }
+        var id: YIdentifier? { if case .id(let parent) = self { return parent }; return nil }
         var object: YOpaqueObject? { if case .object(let parent) = self { return parent }; return nil }
     }
 }
@@ -24,7 +24,7 @@ final class YItem: YStructure, JSHashable {
     // MARK: - Properties -
 
     /// The item that was originally to the left of this item.
-    var origin: YID?
+    var origin: YIdentifier?
 
     /// The item that is currently to the left of this item.
     var left: YStructure?
@@ -33,13 +33,13 @@ final class YItem: YStructure, JSHashable {
     var right: YStructure?
 
     /// The item that was originally to the right of this item. */
-    var rightOrigin: YID?
+    var rightOrigin: YIdentifier?
     
     var parent: Parent?
     
     var parentKey: String?
     
-    var redone: YID?
+    var redone: YIdentifier?
     
     var content: any YContent
 
@@ -75,12 +75,12 @@ final class YItem: YStructure, JSHashable {
     }
 
     /// Computes the last content address of this Item.
-    var lastID: YID {
+    var lastID: YIdentifier {
         if self.length == 1 { return self.id }
-        return YID(client: self.id.client, clock: self.id.clock + self.length - 1)
+        return YIdentifier(client: self.id.client, clock: self.id.clock + self.length - 1)
     }
 
-    init(id: YID, left: YStructure?, origin: YID?, right: YStructure?, rightOrigin: YID?, parent: Parent?, parentSub: String?, content: any YContent) {
+    init(id: YIdentifier, left: YStructure?, origin: YIdentifier?, right: YStructure?, rightOrigin: YIdentifier?, parent: Parent?, parentSub: String?, content: any YContent) {
         self.origin = origin
         self.left = left
         self.right = right
@@ -146,7 +146,7 @@ final class YItem: YStructure, JSHashable {
             self.id.clock += offset
             self.left = transaction.doc.store.getItemCleanEnd(
                 transaction,
-                id: YID(client: self.id.client, clock: self.id.clock - 1)
+                id: YIdentifier(client: self.id.client, clock: self.id.clock - 1)
             )
             self.origin = (self.left as? YItem)?.lastID
             self.content = self.content.splice(offset)
@@ -285,7 +285,7 @@ final class YItem: YStructure, JSHashable {
     }
 
     override func encode(into encoder: YUpdateEncoder, offset: Int) {
-        let origin = offset > 0 ? YID(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
+        let origin = offset > 0 ? YIdentifier(client: self.id.client, clock: self.id.clock + offset - 1) : self.origin
         let rightOrigin = self.rightOrigin
         let parentSub = self.parentKey
         
@@ -387,9 +387,9 @@ extension YItem {
         let client = self.id.client, clock = self.id.clock
         
         let rightItem = YItem(
-            id: YID(client: client, clock: clock + diff),
+            id: YIdentifier(client: client, clock: clock + diff),
             left: self,
-            origin: YID(client: client, clock: clock + diff - 1),
+            origin: YIdentifier(client: client, clock: clock + diff - 1),
             right: self.right,
             rightOrigin: self.rightOrigin,
             parent: self.parent,
@@ -399,7 +399,7 @@ extension YItem {
         if self.deleted { rightItem.deleted = true }
         if self.keep { rightItem.keep = true }
         
-        if let redone = self.redone { rightItem.redone = YID(client: redone.client, clock: redone.clock + diff) }
+        if let redone = self.redone { rightItem.redone = YIdentifier(client: redone.client, clock: redone.clock + diff) }
         
         self.right = rightItem
         if let rightRightItem = rightItem.right as? YItem { rightRightItem.left = rightItem }

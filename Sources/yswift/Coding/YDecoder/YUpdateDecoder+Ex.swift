@@ -47,16 +47,16 @@ extension YUpdateDecoder {
                 switch contentType {
                 case 0:
                     let len = try self.readLen()
-                    refs[i] = YGC(id: YID(client: client, clock: clock), length: len)
+                    refs[i] = YGC(id: YIdentifier(client: client, clock: clock), length: len)
                     clock += len
                 case 10:
                     let len = try Int(self.restDecoder.readUInt())
-                    refs[i] = YSkip(id: YID(client: client, clock: clock), length: len)
+                    refs[i] = YSkip(id: YIdentifier(client: client, clock: clock), length: len)
                     clock += len
                 default:
                     let cantCopyParentInfo = (info & (0b0100_0000 | 0b1000_0000)) == 0
                     let struct_ = try YItem(
-                        id: YID(client: client, clock: clock),
+                        id: YIdentifier(client: client, clock: clock),
                         left: nil,
                         origin: (info & 0b1000_0000) == 0b1000_0000 ? self.readLeftID() : nil, // origin
                         right: nil,

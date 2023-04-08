@@ -71,9 +71,9 @@ final public class YTransaction {
         return true
     }
 
-    func nextID() -> YID {
+    func nextID() -> YIdentifier {
         let y = self.doc
-        return YID(client: y.clientID, clock: y.store.getState(y.clientID))
+        return YIdentifier(client: y.clientID, clock: y.store.getState(y.clientID))
     }
 
     func addChangedType(_ type: YOpaqueObject, parentSub: String?) {

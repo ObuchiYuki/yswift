@@ -226,7 +226,7 @@ final public class YUndoManager: JSHashable {
                             let redone = StructRedone.followRedone(store: store, id: struct_.id)
                             var item = redone.item, diff = redone.diff
                             if diff > 0 {
-                                item = YStructStore.getItemCleanStart(transaction, id: YID(client: item.id.client, clock: item.id.clock + diff))
+                                item = YStructStore.getItemCleanStart(transaction, id: YIdentifier(client: item.id.client, clock: item.id.clock + diff))
                             }
                             struct_ = item
                         }
@@ -398,13 +398,13 @@ extension YUndoManager {
             self.diff = diff
         }
         
-        static func followRedone(store: YStructStore, id: YID) -> StructRedone {
-            var nextID: YID? = id
+        static func followRedone(store: YStructStore, id: YIdentifier) -> StructRedone {
+            var nextID: YIdentifier? = id
             var diff = 0
             var item: YStructure? = nil
             repeat {
                 if diff > 0 {
-                    nextID = YID(client: nextID!.client, clock: nextID!.clock + diff)
+                    nextID = YIdentifier(client: nextID!.client, clock: nextID!.clock + diff)
                 }
                 item = store.find(nextID!)
                 diff = nextID!.clock - item!.id.clock
@@ -515,7 +515,7 @@ extension YItem {
             }
         }
         let nextClock = store.getState(ownClientID)
-        let nextId = YID(client: ownClientID, clock: nextClock)
+        let nextId = YIdentifier(client: ownClientID, clock: nextClock)
         let redoneItem = YItem(
             id: nextId,
             left: left,

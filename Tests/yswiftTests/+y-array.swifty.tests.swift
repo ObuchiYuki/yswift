@@ -133,14 +133,14 @@ final class YArraySwiftyTests: XCTestCase {
         let test = try YTest<Any>(docs: 1)
         let array = test.swiftyArray(Int.self, 0)
         
-        var deltas = [YEventDelta]()
+        var deltas = [YEvent.Delta]()
         array.opaqueEventPublisher
             .sink{ deltas.append(contentsOf: $0.delta()) }
             .store(in: &objectBag)
         
         array.append(12876)
         
-        XCTAssertEqual(deltas, [ YEventDelta(insert: [12876]) ])
+        XCTAssertEqual(deltas, [ YEvent.Delta(insert: [12876]) ])
     }
     
     func testArrayNoneExclusiveAccess() throws {

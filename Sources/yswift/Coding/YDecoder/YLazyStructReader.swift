@@ -52,13 +52,13 @@ fileprivate func lazyStructReaderGenerator(_ decoder: YUpdateDecoder, yield: (YS
             if info == 10 {
                 let len = try Int(decoder.restDecoder.readUInt())
                 yield(
-                    YSkip(id: YID(client: client, clock: clock), length: len)
+                    YSkip(id: YIdentifier(client: client, clock: clock), length: len)
                 )
                 clock += len
             } else if (info & 0b0001_1111) != 0 {
                 let cantCopyParentInfo = (info & (0b0100_0000 | 0b1000_0000)) == 0
                 let struct_ = try YItem(
-                    id: YID(client: client, clock: clock),
+                    id: YIdentifier(client: client, clock: clock),
                     left: nil,
                     origin: (info & 0b1000_0000) == 0b1000_0000 ? decoder.readLeftID() : nil, // origin
                     right: nil,
@@ -71,7 +71,7 @@ fileprivate func lazyStructReaderGenerator(_ decoder: YUpdateDecoder, yield: (YS
                 clock += struct_.length
             } else {
                 let len = try decoder.readLen()
-                yield(YGC(id: YID(client: client, clock: clock), length: len))
+                yield(YGC(id: YIdentifier(client: client, clock: clock), length: len))
                 clock += len
             }
         }

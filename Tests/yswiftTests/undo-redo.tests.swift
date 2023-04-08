@@ -66,19 +66,19 @@ final class UndoRedoTests: XCTestCase {
         
         text0.format(1, length: 3, attributes: ["bold": true])
         XCTAssertEqual(text0.toDelta(), [
-            YEventDelta(insert: "b"),
-            YEventDelta(insert: "cxy", attributes: ["bold": true]),
-            YEventDelta(insert: "z")
+            YEvent.Delta(insert: "b"),
+            YEvent.Delta(insert: "cxy", attributes: ["bold": true]),
+            YEvent.Delta(insert: "z")
         ])
         undoManager.undo()
         XCTAssertEqual(text0.toDelta(), [
-            YEventDelta(insert: "bcxyz")
+            YEvent.Delta(insert: "bcxyz")
         ])
         undoManager.redo()
         XCTAssertEqual(text0.toDelta(), [
-            YEventDelta(insert: "b"),
-            YEventDelta(insert: "cxy", attributes: ["bold": true]),
-            YEventDelta(insert: "z")
+            YEvent.Delta(insert: "b"),
+            YEvent.Delta(insert: "cxy", attributes: ["bold": true]),
+            YEvent.Delta(insert: "z")
         ])
     }
     
@@ -575,9 +575,9 @@ final class UndoRedoTests: XCTestCase {
         try doc2.applyUpdate(doc.encodeStateAsUpdate())
 
         let expect = [
-            YEventDelta(insert: "Attack ships "),
-            YEventDelta(insert: "on fire", attributes: ["bold": true ]),
-            YEventDelta(insert: " off the shoulder of Orion.")
+            YEvent.Delta(insert: "Attack ships "),
+            YEvent.Delta(insert: "on fire", attributes: ["bold": true ]),
+            YEvent.Delta(insert: " off the shoulder of Orion.")
         ]
         XCTAssertEqual(text.toDelta(), expect)
         XCTAssertEqual(text2.toDelta(), expect)

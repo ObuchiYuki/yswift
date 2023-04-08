@@ -9,8 +9,8 @@ import Foundation
 import lib0
 
 protocol YUpdateDecoder: YDeleteSetDecoder {
-    func readLeftID() throws -> YID
-    func readRightID() throws -> YID
+    func readLeftID() throws -> YIdentifier
+    func readRightID() throws -> YIdentifier
     func readClient() throws -> Int
     func readInfo() throws -> UInt8
     func readString() throws -> String
@@ -24,15 +24,15 @@ protocol YUpdateDecoder: YDeleteSetDecoder {
 }
 
 final class YUpdateDecoderV1: YDeleteSetDecoderV1, YUpdateDecoder {
-    func readLeftID() throws -> YID {
-        return try YID(
+    func readLeftID() throws -> YIdentifier {
+        return try YIdentifier(
             client: Int(self.restDecoder.readUInt()),
             clock: Int(self.restDecoder.readUInt())
         )
     }
 
-    func readRightID() throws -> YID {
-        return try YID(
+    func readRightID() throws -> YIdentifier {
+        return try YIdentifier(
             client: Int(self.restDecoder.readUInt()),
             clock: Int(self.restDecoder.readUInt())
         )
@@ -108,15 +108,15 @@ class YUpdateDecoderV2: YDeleteSetDecoderV2, YUpdateDecoder {
         try super.init(decoder)
     }
 
-    func readLeftID() throws -> YID {
-        return try YID(
+    func readLeftID() throws -> YIdentifier {
+        return try YIdentifier(
             client: Int(self.clientDecoder.read()),
             clock: self.leftClockDecoder.read()
         )
     }
 
-    func readRightID() throws -> YID {
-        return try YID(
+    func readRightID() throws -> YIdentifier {
+        return try YIdentifier(
             client: Int(self.clientDecoder.read()),
             clock: self.rightClockDecoder.read()
         )

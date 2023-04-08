@@ -14,12 +14,12 @@ public struct YSwiftError: LocalizedError, CustomStringConvertible {
     static let integretyCheckFail = YSwiftError("Integrety Check Fail")
     static let originDocGC = YSwiftError("origin Doc must not be garbage collected")
     
-    public let message: String
+    let message: String
     let backtrace: Backtrace
     
     public var description: String { "\(message)\n\(backtrace)" }
     
-    public init(_ message: String) {
+    init(_ message: String) {
         self.message = message
         self.backtrace = Backtrace(dropFirstSymbols: 1)
     }

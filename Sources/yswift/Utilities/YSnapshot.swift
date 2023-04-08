@@ -45,7 +45,7 @@ final public class YSnapshot: JSHashable {
         // check if we already split for this snapshot
         if !meta.contains(self) {
             for (client, clock) in self.stateVectors where clock < store.getState(client) {
-                YStructStore.getItemCleanStart(transaction, id: YID(client: client, clock: clock))
+                YStructStore.getItemCleanStart(transaction, id: YIdentifier(client: client, clock: clock))
             }
             self.deleteSet.iterate(transaction, body: {_ in })
             _ = meta.insert(self)
@@ -68,7 +68,7 @@ final public class YSnapshot: JSHashable {
 
             for (client, clock) in self.stateVectors where clock != 0 {
                 if clock < originDoc.store.getState(client) {
-                    YStructStore.getItemCleanStart(transaction, id: YID(client: client, clock: clock))
+                    YStructStore.getItemCleanStart(transaction, id: YIdentifier(client: client, clock: clock))
                 }
                 let structs = originDoc.store.clients[client] ?? []
                 let lastStructIndex = YStructStore.findIndexSS(structs: structs, clock: clock - 1)

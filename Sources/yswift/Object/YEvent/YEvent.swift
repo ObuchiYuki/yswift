@@ -13,9 +13,9 @@ public class YEvent {
     public var currentTarget: YOpaqueObject
     public var transaction: YTransaction
     
-    var _changes: YEventChange? = nil
-    var _keys: [String: YEventKey]? = nil
-    var _delta: [YEventDelta]? = nil
+    var _changes: YEvent.Change? = nil
+    var _keys: [String: YEvent.Key]? = nil
+    var _delta: [YEvent.Delta]? = nil
 
     init(_ target: YOpaqueObject, transaction: YTransaction) {
         self.target = target
@@ -27,10 +27,10 @@ public class YEvent {
         return YEvent.getPathTo(parent: self.currentTarget, child: self.target)
     }
 
-    public var keys: [String: YEventKey] {
+    public var keys: [String: YEvent.Key] {
         if (self._keys != nil) { return self._keys! }
 
-        var keys = [String: YEventKey]()
+        var keys = [String: YEvent.Key]()
         let target = self.target
         let changed = self.transaction.changed[target]!
 
@@ -38,7 +38,7 @@ public class YEvent {
             if key == nil { return }
             
             let item = target.storage[key!]!
-            var action: YEventAction!
+            var action: YEvent.Action!
             var oldValue: Any?
 
             if self.adds(item) {
@@ -66,7 +66,7 @@ public class YEvent {
                 } else { return }
             }
 
-            let event = YEventKey(action: action, oldValue: oldValue)
+            let event = YEvent.Key(action: action, oldValue: oldValue)
             keys[key!] = event
         }
 
@@ -74,7 +74,7 @@ public class YEvent {
         return keys
     }
 
-    public func delta() -> [YEventDelta] {
+    public func delta() -> [YEvent.Delta] {
         return self.changes().delta
     }
 
@@ -85,14 +85,14 @@ public class YEvent {
         return self.transaction.deleteSet.isDeleted(struct_.id)
     }
 
-    public func changes() -> YEventChange {
+    public func changes() -> YEvent.Change {
         if (self._changes != nil) { return self._changes! }
         
-        var changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: [])
+        var changes = YEvent.Change(added: Set(), deleted: Set(), keys: self.keys, delta: [])
         let changed = self.transaction.changed[self.target]!
         
         if changed.contains(nil) {
-            var lastDelta: YEventDelta? = nil
+            var lastDelta: YEvent.Delta? = nil
             func packDelta() {
                 if lastDelta != nil { changes.delta.append(lastDelta!) }
             }
@@ -104,7 +104,7 @@ public class YEvent {
                     if self.deletes(item!) && !self.adds(item!) {
                         if lastDelta == nil || lastDelta!.delete == nil {
                             packDelta()
-                            lastDelta = YEventDelta(delete: 0)
+                            lastDelta = YEvent.Delta(delete: 0)
                         }
                         lastDelta!.delete! += item!.length
                         changes.deleted.insert(item!)
@@ -113,14 +113,14 @@ public class YEvent {
                     if self.adds(item!) {
                         if lastDelta == nil || lastDelta!.insert == nil {
                             packDelta()
-                            lastDelta = YEventDelta(insert: [])
+                            lastDelta = YEvent.Delta(insert: [Any?]())
                         }
-                        lastDelta!.insert = lastDelta!.insert as! [Any] + item!.content.values
+                        lastDelta!.insert = lastDelta!.insert as! [Any?] + item!.content.values
                         changes.added.insert(item!)
                     } else {
                         if lastDelta == nil || lastDelta!.retain == nil {
                             packDelta()
-                            lastDelta = YEventDelta(retain: 0)
+                            lastDelta = YEvent.Delta(retain: 0)
                         }
                         lastDelta!.retain! += item!.length
                     }

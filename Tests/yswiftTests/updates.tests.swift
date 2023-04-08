@@ -37,9 +37,9 @@ final class UpdatesTests: XCTestCase {
         try docs[1].applyUpdateV2(update)
 
         XCTAssertEqual(text1.toDelta(), [
-            YEventDelta(insert: "c", attributes: ["i": true]),
-            YEventDelta(insert: "b"),
-            YEventDelta(insert: "a", attributes: ["i": true]),
+            YEvent.Delta(insert: "c", attributes: ["i": true]),
+            YEvent.Delta(insert: "b"),
+            YEvent.Delta(insert: "a", attributes: ["i": true]),
         ])
 
         try YAssertEqualDocs(docs)
@@ -90,11 +90,11 @@ final class UpdatesTests: XCTestCase {
             serverUpdates.insert(update, at: serverUpdates.count)
         }
         let yText = yDoc.getText("textBlock")
-        yText.applyDelta([ YEventDelta(insert: "r") ])
-        yText.applyDelta([ YEventDelta(insert: "o") ])
-        yText.applyDelta([ YEventDelta(insert: "n") ])
-        yText.applyDelta([ YEventDelta(insert: "e") ])
-        yText.applyDelta([ YEventDelta(insert: "n") ])
+        yText.applyDelta([ YEvent.Delta(insert: "r") ])
+        yText.applyDelta([ YEvent.Delta(insert: "o") ])
+        yText.applyDelta([ YEvent.Delta(insert: "n") ])
+        yText.applyDelta([ YEvent.Delta(insert: "e") ])
+        yText.applyDelta([ YEvent.Delta(insert: "n") ])
 
         let yDoc1 = YDocument()
         try yDoc1.applyUpdate(serverUpdates[0])

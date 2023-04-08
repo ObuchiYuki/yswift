@@ -118,7 +118,7 @@ extension YOpaqueObject {
 
         func packJsonContent() {
             if (jsonContent.count <= 0) { return }
-            let id = YID(client: ownClientId, clock: store.getState(ownClientId))
+            let id = YIdentifier(client: ownClientId, clock: store.getState(ownClientId))
             let content = YAnyContent(jsonContent)
             left = YItem(
                 id: id,
@@ -142,19 +142,19 @@ extension YOpaqueObject {
             } else {
                 packJsonContent()
                 if (content is Data) {
-                    let id = YID(client: ownClientId, clock: store.getState(ownClientId))
+                    let id = YIdentifier(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = YBinaryContent(content as! Data)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     left!.integrate(transaction: transaction, offset: 0)
                 } else if content is YDocument {
-                    let id = YID(client: ownClientId, clock: store.getState(ownClientId))
+                    let id = YIdentifier(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = YDocumentContent(content as! YDocument)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     
                     left!.integrate(transaction: transaction, offset: 0)
                     
                 } else if content is YOpaqueObject {
-                    let id = YID(client: ownClientId, clock: store.getState(ownClientId))
+                    let id = YIdentifier(client: ownClientId, clock: store.getState(ownClientId))
                     let icontent = YObjectContent(content as! YOpaqueObject)
                     left = YItem(id: id, left: left, origin: left?.lastID, right: right, rightOrigin: right?.id, parent: .object(self), parentSub: nil, content: icontent)
                     left!.integrate(transaction: transaction, offset: 0)
@@ -201,7 +201,7 @@ extension YOpaqueObject {
             if !n!.deleted && n!.countable {
                 if index <= n!.length {
                     if index < n!.length {
-                        let id = YID(client: n!.id.client, clock: n!.id.clock + index)
+                        let id = YIdentifier(client: n!.id.client, clock: n!.id.clock + index)
                         YStructStore.getItemCleanStart(transaction, id: id)
                     }
                     break
@@ -245,7 +245,7 @@ extension YOpaqueObject {
         while item != nil && index > 0 {
             if !item!.deleted && item!.countable {
                 if index < item!.length {
-                    let id = YID(client: item!.id.client, clock: item!.id.clock + index)
+                    let id = YIdentifier(client: item!.id.client, clock: item!.id.clock + index)
                     _ = YStructStore.getItemCleanStart(transaction, id: id)
                 }
                 index -= item!.length
@@ -257,7 +257,7 @@ extension YOpaqueObject {
         while (length > 0 && item != nil) {
             if !item!.deleted {
                 if length < item!.length {
-                    let id = YID(client: item!.id.client, clock: item!.id.clock + length)
+                    let id = YIdentifier(client: item!.id.client, clock: item!.id.clock + length)
                     _ = YStructStore.getItemCleanStart(transaction, id: id)
                 }
                 item!.delete(transaction)

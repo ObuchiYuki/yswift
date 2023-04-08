@@ -24,7 +24,7 @@ final class YDeleteSet {
         }
     }
 
-    func isDeleted(_ id: YID) -> Bool {
+    func isDeleted(_ id: YIdentifier) -> Bool {
         let dis = self.clients[id.client]
         return dis != nil && YDeleteItem.findIndex(dis!, clock: id.clock) != nil
     }

@@ -133,7 +133,7 @@ extension YOpaqueObject {
     }
 }
 
-public protocol YWrapperObject: YElement {
+protocol YWrapperObject: YElement {
     associatedtype Opaque: YOpaqueObject
     associatedtype Publisher: Combine.Publisher<Self, Never>
     

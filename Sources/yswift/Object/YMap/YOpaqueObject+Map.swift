@@ -34,7 +34,7 @@ extension YOpaqueObject {
                 }
             }
         }
-        let id = YID(client: ownClientId, clock: doc.store.getState(ownClientId))
+        let id = YIdentifier(client: ownClientId, clock: doc.store.getState(ownClientId))
         let item = YItem(id: id, left: left, origin: left?.lastID, right: nil, rightOrigin: nil, parent: .object(self), parentSub: key, content: content)
         item.integrate(transaction: transaction, offset: 0)
     }

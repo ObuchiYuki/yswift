@@ -75,20 +75,20 @@ final class YStructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func find(_ id: YID) -> YStructure {
+    func find(_ id: YIdentifier) -> YStructure {
         let structs = self.clients[id.client]!
         return structs.value[YStructStore.findIndexSS(structs: structs, clock: id.clock)]
     }
 
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func getItem(_ id: YID) -> YItem {
+    func getItem(_ id: YIdentifier) -> YItem {
         return self.find(id) as! YItem
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
     @discardableResult
-    static func getItemCleanStart(_ transaction: YTransaction, id: YID) -> YItem {
+    static func getItemCleanStart(_ transaction: YTransaction, id: YIdentifier) -> YItem {
         let index = self.findIndexCleanStart(
             transaction: transaction,
             structs: transaction.doc.store.clients[id.client]!,
@@ -99,7 +99,7 @@ final class YStructStore {
     }
 
     /** Expects that id is actually in store. This function throws or is an infinite loop otherwise. */
-    func getItemCleanEnd(_ transaction: YTransaction, id: YID) -> YStructure {
+    func getItemCleanEnd(_ transaction: YTransaction, id: YIdentifier) -> YStructure {
         let structs = self.clients[id.client]!
         
         let index = YStructStore.findIndexSS(structs: structs, clock: id.clock)

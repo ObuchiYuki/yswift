@@ -330,7 +330,7 @@ final class YArrayTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let array0 = test.array[0], docs = test.docs
 
-        var changes: YEventChange? = nil
+        var changes: YEvent.Change? = nil
         array0.observe{ e, _ in changes = e.changes() }
         
         let newArr = YOpaqueArray()
@@ -339,7 +339,7 @@ final class YArrayTests: XCTestCase {
         var wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 2)
         XCTAssertEqual(wchanges.deleted.count, 0)
-        XCTAssertEqual(wchanges.delta, [YEventDelta(insert: [newArr, 4, "dtrn"])])
+        XCTAssertEqual(wchanges.delta, [YEvent.Delta(insert: [newArr, 4, "dtrn"])])
 
 
         changes = nil
@@ -348,7 +348,7 @@ final class YArrayTests: XCTestCase {
         wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 0)
         XCTAssertEqual(wchanges.deleted.count, 2)
-        XCTAssertEqual(wchanges.delta, [YEventDelta(delete: 2)])
+        XCTAssertEqual(wchanges.delta, [YEvent.Delta(delete: 2)])
 
         changes = nil
         array0.insert(0.1, at: 1)
@@ -356,7 +356,7 @@ final class YArrayTests: XCTestCase {
         wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 1)
         XCTAssertEqual(wchanges.deleted.count, 0)
-        XCTAssertEqual(wchanges.delta, [YEventDelta(retain: 1), YEventDelta(insert: [0.1])])
+        XCTAssertEqual(wchanges.delta, [YEvent.Delta(retain: 1), YEvent.Delta(insert: [0.1])])
 
         try YAssertEqualDocs(docs)
     }

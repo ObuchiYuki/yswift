@@ -6,10 +6,10 @@
 //
 
 class YStructure {
-    let id: YID
+    let id: YIdentifier
     var length: Int
     
-    init(id: YID, length: Int) {
+    init(id: YIdentifier, length: Int) {
         self.id = id
         self.length = length
     }
@@ -31,18 +31,18 @@ extension YStructure {
         
         if left is YGC {
             let client = left.id.client, clock = left.id.clock
-            return YGC(id: YID(client: client, clock: clock + diff), length: left.length - diff)
+            return YGC(id: YIdentifier(client: client, clock: clock + diff), length: left.length - diff)
         } else if left is YSkip {
             let client = left.id.client, clock = left.id.clock
-            return YSkip(id: YID(client: client, clock: clock + diff), length: left.length - diff)
+            return YSkip(id: YIdentifier(client: client, clock: clock + diff), length: left.length - diff)
         } else {
             let leftItem = left as! YItem
             let client = leftItem.id.client, clock = leftItem.id.clock
             
             return YItem(
-                id: YID(client: client, clock: clock + diff),
+                id: YIdentifier(client: client, clock: clock + diff),
                 left: nil,
-                origin: YID(client: client, clock: clock + diff - 1),
+                origin: YIdentifier(client: client, clock: clock + diff - 1),
                 right: nil,
                 rightOrigin: leftItem.rightOrigin,
                 parent: leftItem.parent,

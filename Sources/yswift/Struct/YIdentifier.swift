@@ -8,7 +8,7 @@
 import Foundation
 import lib0
 
-final public class YID: Equatable {
+final public class YIdentifier: Equatable {
     /// Client id
     var client: Int
     /// unique per client id, continuous Int */
@@ -24,14 +24,14 @@ final public class YID: Equatable {
         encoder.writeUInt(UInt(self.clock))
     }
 
-    static func decode(_ decoder: LZDecoder) throws -> YID {
-        return YID(
+    static func decode(_ decoder: LZDecoder) throws -> YIdentifier {
+        return YIdentifier(
             client: Int(try decoder.readUInt()),
             clock: Int(try decoder.readUInt())
         )
     }
     
-    public static func == (lhs: YID, rhs: YID) -> Bool {
+    public static func == (lhs: YIdentifier, rhs: YIdentifier) -> Bool {
         return lhs.client == rhs.client && lhs.clock == rhs.clock
     }
 }

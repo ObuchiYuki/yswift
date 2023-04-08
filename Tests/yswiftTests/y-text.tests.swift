@@ -6,15 +6,15 @@ final class YTextTests: XCTestCase {
     
     func testDeltaBug() throws {
         let initialDelta = [
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-28eea923-9cbb-4b6f-a950-cf7fd82bc087"
             ]),
-            YEventDelta(insert: "\n\n\n", attributes: [
+            YEvent.Delta(insert: "\n\n\n", attributes: [
                 "table-col": [
                     "width": "150"
                 ]
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-9144be72-e528-4f91-b0b2-82d20408e9ea",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -27,7 +27,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-639adacb-1516-43ed-b272-937c55669a1c",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -40,7 +40,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-6302ca4a-73a3-4c25-8c1e-b542f048f1c6",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -53,7 +53,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-ceeddd05-330e-4f86-8017-4a3a060c4627",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -66,7 +66,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-37b19322-cb57-4e6f-8fad-0d1401cae53f",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -79,7 +79,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-468a69b5-9332-450b-9107-381d593de249",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -92,7 +92,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-26b1d252-9b2e-4808-9b29-04e76696aa3c",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -105,7 +105,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-6af97ba7-8cf9-497a-9365-7075b938837b",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -118,7 +118,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-107e273e-86bc-44fd-b0d7-41ab55aca484",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -131,11 +131,11 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-38161f9c-6f6d-44c5-b086-54cc6490f1e3"
             ]),
-            YEventDelta(insert: "Content after table"),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "Content after table"),
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-15630542-ef45-412d-9415-88f0052238ce"
             ])
         ]
@@ -143,20 +143,20 @@ final class YTextTests: XCTestCase {
         let ytext = ydoc1.getText()
         ytext.applyDelta(initialDelta)
         let addingDash = [
-            YEventDelta(retain: 12),
-            YEventDelta(insert: "-")
+            YEvent.Delta(retain: 12),
+            YEvent.Delta(insert: "-")
         ]
         ytext.applyDelta(addingDash)
         let addingSpace = [
-            YEventDelta(retain: 13),
-            YEventDelta(insert: " ")
+            YEvent.Delta(retain: 13),
+            YEvent.Delta(insert: " ")
         ]
         ytext.applyDelta(addingSpace)
         
         let addingList = [
-            YEventDelta(retain: 12),
-            YEventDelta(delete: 2),
-            YEventDelta(retain: 1, attributes: [
+            YEvent.Delta(retain: 12),
+            YEvent.Delta(delete: 2),
+            YEvent.Delta(retain: 1, attributes: [
                 "table-cell-line": nil,
                 "list": [
                     "rowspan": "1",
@@ -170,15 +170,15 @@ final class YTextTests: XCTestCase {
         ytext.applyDelta(addingList)
         let result = ytext.toDelta()
         let expectedResult = [
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-28eea923-9cbb-4b6f-a950-cf7fd82bc087"
             ]),
-            YEventDelta(insert: "\n\n\n", attributes: [
+            YEvent.Delta(insert: "\n\n\n", attributes: [
                 "table-col": [
                     "width": "150"
                 ]
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-9144be72-e528-4f91-b0b2-82d20408e9ea",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -191,7 +191,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-639adacb-1516-43ed-b272-937c55669a1c",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -204,7 +204,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-6302ca4a-73a3-4c25-8c1e-b542f048f1c6",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -217,7 +217,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-ceeddd05-330e-4f86-8017-4a3a060c4627",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -230,7 +230,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-37b19322-cb57-4e6f-8fad-0d1401cae53f",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -243,7 +243,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-468a69b5-9332-450b-9107-381d593de249",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -256,7 +256,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-26b1d252-9b2e-4808-9b29-04e76696aa3c",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -269,7 +269,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-6af97ba7-8cf9-497a-9365-7075b938837b",
                 "table-cell-line": [
                     "rowspan": "1",
@@ -282,7 +282,7 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "list": [
                     "rowspan": "1",
                     "colspan": "1",
@@ -296,11 +296,11 @@ final class YTextTests: XCTestCase {
                 "rowspan": "1",
                 "colspan": "1"
             ]),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-38161f9c-6f6d-44c5-b086-54cc6490f1e3"
             ]),
-            YEventDelta(insert: "Content after table"),
-            YEventDelta(insert: "\n", attributes: [
+            YEvent.Delta(insert: "Content after table"),
+            YEvent.Delta(insert: "\n", attributes: [
                 "block-id": "block-15630542-ef45-412d-9415-88f0052238ce"
             ])
         ]
@@ -318,7 +318,7 @@ final class YTextTests: XCTestCase {
         text0.format(0, length: 3, attributes: ["bold": true])
         text1.format(2, length: 2, attributes: ["bold": true])
         
-        var deltas: [[YEventDelta]] = []
+        var deltas: [[YEvent.Delta]] = []
         
         text1.observe{ event, _ in
             if (event.delta().count > 0) {
@@ -329,8 +329,8 @@ final class YTextTests: XCTestCase {
         try connector.flushAllMessages()
         
         XCTAssertEqual(deltas, [[
-            YEventDelta(retain: 3, attributes: ["bold": true]),
-            YEventDelta(retain: 2, attributes: ["bold": nil])
+            YEvent.Delta(retain: 3, attributes: ["bold": true]),
+            YEvent.Delta(retain: 2, attributes: ["bold": nil])
         ]])
     }
     
@@ -338,7 +338,7 @@ final class YTextTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let text0 = test.text[0], docs = test.docs
         
-        var delta: [YEventDelta]?
+        var delta: [YEvent.Delta]?
         text0.observe{ event, _ in delta = event.delta() }
         
         text0.delete(0, length: 0)
@@ -348,18 +348,18 @@ final class YTextTests: XCTestCase {
         text0.insert(0, text: "abc")
         
         XCTAssert(text0.toString() == "abc", "Basic insert works")
-        XCTAssertEqual(delta, [YEventDelta(insert: "abc")])
+        XCTAssertEqual(delta, [YEvent.Delta(insert: "abc")])
         
         text0.delete(0, length: 1)
         
         XCTAssert(text0.toString() == "bc", "Basic delete works (position 0)")
-        XCTAssertEqual(delta, [YEventDelta(delete: 1)])
+        XCTAssertEqual(delta, [YEvent.Delta(delete: 1)])
         
         text0.delete(1, length: 1)
         
         XCTAssert(text0.toString() == "b", "Basic delete works (position 1)")
         
-        XCTAssertEqual(delta, [YEventDelta(retain: 1), YEventDelta(delete: 1)])
+        XCTAssertEqual(delta, [YEvent.Delta(retain: 1), YEvent.Delta(delete: 1)])
         
         docs[0].transact{_ in
             text0.insert(0, text: "1")
@@ -374,46 +374,46 @@ final class YTextTests: XCTestCase {
         let test = try YTest<Any>(docs: 2)
         let text0 = test.text[0], docs = test.docs
         
-        var delta: [YEventDelta]?
+        var delta: [YEvent.Delta]?
         text0.observe{ event, _ in delta = event.delta() }
         
         text0.insert(0, text: "abc", attributes: ["bold": true])
         
         XCTAssertEqual(text0.toString(), "abc")
-        XCTAssertEqual(text0.toDelta(), [YEventDelta(insert: "abc", attributes: ["bold": true])])
-        XCTAssertEqual(delta, [YEventDelta(insert: "abc", attributes: ["bold": true] )])
+        XCTAssertEqual(text0.toDelta(), [YEvent.Delta(insert: "abc", attributes: ["bold": true])])
+        XCTAssertEqual(delta, [YEvent.Delta(insert: "abc", attributes: ["bold": true] )])
 
         text0.delete(0, length: 1)
 
         XCTAssertEqual(text0.toString(), "bc")
-        XCTAssertEqual(text0.toDelta(), [YEventDelta(insert: "bc", attributes: ["bold": true])])
-        XCTAssertEqual(delta, [YEventDelta(delete: 1)])
+        XCTAssertEqual(text0.toDelta(), [YEvent.Delta(insert: "bc", attributes: ["bold": true])])
+        XCTAssertEqual(delta, [YEvent.Delta(delete: 1)])
 
         text0.delete(1, length: 1)
 
         XCTAssertEqual(text0.toString(), "b", "Basic delete works (position 1)")
-        XCTAssertEqual(text0.toDelta(), [YEventDelta(insert: "b", attributes: ["bold": true])])
-        XCTAssertEqual(delta, [YEventDelta(retain: 1), YEventDelta(delete: 1)])
+        XCTAssertEqual(text0.toDelta(), [YEvent.Delta(insert: "b", attributes: ["bold": true])])
+        XCTAssertEqual(delta, [YEvent.Delta(retain: 1), YEvent.Delta(delete: 1)])
         
         text0.insert(0, text: "z", attributes: ["bold": true])
         
         XCTAssertEqual(text0.toString(), "zb")
-        XCTAssertEqual(text0.toDelta(), [YEventDelta(insert: "zb", attributes: ["bold": true])])
-        XCTAssertEqual(delta, [YEventDelta(insert: "z", attributes: ["bold": true])])
+        XCTAssertEqual(text0.toDelta(), [YEvent.Delta(insert: "zb", attributes: ["bold": true])])
+        XCTAssertEqual(delta, [YEvent.Delta(insert: "z", attributes: ["bold": true])])
         
         let contentString = try XCTUnwrap(text0._start?.right?.asItemRight?.asItemRight?.asItemContentString)
         XCTAssertEqual(contentString.string, "b", "Does not insert duplicate attribute marker")
         
         text0.insert(0, text: "y")
         XCTAssertEqual(text0.toString(), "yzb")
-        XCTAssertEqual(text0.toDelta(), [YEventDelta(insert: "y"), YEventDelta(insert: "zb", attributes: ["bold": true])])
-        XCTAssertEqual(delta, [YEventDelta(insert: "y")])
+        XCTAssertEqual(text0.toDelta(), [YEvent.Delta(insert: "y"), YEvent.Delta(insert: "zb", attributes: ["bold": true])])
+        XCTAssertEqual(delta, [YEvent.Delta(insert: "y")])
         
         text0.format(0, length: 2, attributes: ["bold": nil])
         
         XCTAssertEqual(text0.toString(), "yzb")
-        XCTAssertEqual(text0.toDelta(), [YEventDelta(insert: "yz"), YEventDelta(insert: "b", attributes: ["bold": true])])
-        XCTAssertEqual(delta, [YEventDelta(retain: 1), YEventDelta(retain: 1, attributes: ["bold": nil] )])
+        XCTAssertEqual(text0.toDelta(), [YEvent.Delta(insert: "yz"), YEvent.Delta(insert: "b", attributes: ["bold": true])])
+        XCTAssertEqual(delta, [YEvent.Delta(retain: 1), YEvent.Delta(retain: 1, attributes: ["bold": nil] )])
                                              
         try YAssertEqualDocs(docs)
     }
@@ -423,19 +423,19 @@ final class YTextTests: XCTestCase {
         let testText = ydoc.getText("test")
         testText.insert(0, text: "Test\nMulti-line\nFormatting")
         testText.applyDelta([
-            YEventDelta(retain: 4, attributes: ["bold": true]),
-            YEventDelta(retain: 1),
-            YEventDelta(retain: 10, attributes: ["bold": true]),
-            YEventDelta(retain: 1),
-            YEventDelta(retain: 10, attributes: ["bold": true])
+            YEvent.Delta(retain: 4, attributes: ["bold": true]),
+            YEvent.Delta(retain: 1),
+            YEvent.Delta(retain: 10, attributes: ["bold": true]),
+            YEvent.Delta(retain: 1),
+            YEvent.Delta(retain: 10, attributes: ["bold": true])
         ])
         
         XCTAssertEqual(testText.toDelta(), [
-            YEventDelta(insert: "Test", attributes: ["bold": true]),
-            YEventDelta(insert: "\n"),
-            YEventDelta(insert: "Multi-line", attributes: ["bold": true]),
-            YEventDelta(insert: "\n"),
-            YEventDelta(insert: "Formatting", attributes: ["bold": true])
+            YEvent.Delta(insert: "Test", attributes: ["bold": true]),
+            YEvent.Delta(insert: "\n"),
+            YEvent.Delta(insert: "Multi-line", attributes: ["bold": true]),
+            YEvent.Delta(insert: "\n"),
+            YEvent.Delta(insert: "Formatting", attributes: ["bold": true])
         ])
     }
 
@@ -443,17 +443,17 @@ final class YTextTests: XCTestCase {
         let ydoc = YDocument()
         let testText = ydoc.getText("test")
         testText.applyDelta([
-            YEventDelta(insert: "Text"),
-            YEventDelta(insert: "\n", attributes: ["title": true]),
-            YEventDelta(insert: "\nText"),
-            YEventDelta(insert: "\n", attributes: ["title": true]),
+            YEvent.Delta(insert: "Text"),
+            YEvent.Delta(insert: "\n", attributes: ["title": true]),
+            YEvent.Delta(insert: "\nText"),
+            YEvent.Delta(insert: "\n", attributes: ["title": true]),
         ])
         
         XCTAssertEqual(testText.toDelta(), [
-            YEventDelta(insert: "Text"),
-            YEventDelta(insert: "\n", attributes: ["title": true]),
-            YEventDelta(insert: "\nText"),
-            YEventDelta(insert: "\n", attributes: ["title": true]),
+            YEvent.Delta(insert: "Text"),
+            YEvent.Delta(insert: "\n", attributes: ["title": true]),
+            YEvent.Delta(insert: "\nText"),
+            YEvent.Delta(insert: "\n", attributes: ["title": true]),
         ])
     }
 
@@ -462,20 +462,20 @@ final class YTextTests: XCTestCase {
         let testText = ydoc.getText("test")
         
         testText.applyDelta([
-            YEventDelta(insert: "Text"),
-            YEventDelta(insert: "\n", attributes: ["title": true]),
-            YEventDelta(insert: "\n"),
+            YEvent.Delta(insert: "Text"),
+            YEvent.Delta(insert: "\n", attributes: ["title": true]),
+            YEvent.Delta(insert: "\n"),
         ])
         
         testText.applyDelta([
-            YEventDelta(retain: 4),
-            YEventDelta(delete: 1),
-            YEventDelta(retain: 1, attributes: ["title": true]),
+            YEvent.Delta(retain: 4),
+            YEvent.Delta(delete: 1),
+            YEvent.Delta(retain: 1, attributes: ["title": true]),
         ])
         
         XCTAssertEqual(testText.toDelta(), [
-            YEventDelta(insert: "Text"),
-            YEventDelta(insert: "\n", attributes: ["title": true]),
+            YEvent.Delta(insert: "Text"),
+            YEvent.Delta(insert: "\n", attributes: ["title": true]),
         ])
     }
     
@@ -484,11 +484,11 @@ final class YTextTests: XCTestCase {
         let text0 = test.text[0]
         
         text0.applyDelta([
-            YEventDelta(insert: ["linebreak": "s"])
+            YEvent.Delta(insert: ["linebreak": "s"])
         ])
         
         XCTAssertEqual(text0.toDelta(), [
-            YEventDelta(insert: ["linebreak": "s"])
+            YEvent.Delta(insert: ["linebreak": "s"])
         ])
     }
 
@@ -497,7 +497,7 @@ final class YTextTests: XCTestCase {
         let text0 = test.text[0], text1 = test.text[1], connector = test.connector
         
         text0.applyDelta([
-            YEventDelta(insert: ["key": "val"])
+            YEvent.Delta(insert: ["key": "val"])
         ])
         
         XCTAssertEqualJSON(text0.toDelta()[0].insert, ["key": "val"])
@@ -524,25 +524,25 @@ final class YTextTests: XCTestCase {
         let text0 = test.text[0], doc0 = test.docs[0]
         
         text0.applyDelta([
-            YEventDelta(insert: "abcd"),
+            YEvent.Delta(insert: "abcd"),
         ])
         let snapshot1 = YSnapshot(doc: doc0)
         text0.applyDelta([
-            YEventDelta(retain: 1),
-            YEventDelta(insert: "x"),
-            YEventDelta(delete: 1),
+            YEvent.Delta(retain: 1),
+            YEvent.Delta(insert: "x"),
+            YEvent.Delta(delete: 1),
         ])
         let snapshot2 = YSnapshot(doc: doc0)
         text0.applyDelta([
-            YEventDelta(retain: 2),
-            YEventDelta(delete: 3),
-            YEventDelta(insert: "x"),
-            YEventDelta(delete: 1),
+            YEvent.Delta(retain: 2),
+            YEvent.Delta(delete: 3),
+            YEvent.Delta(insert: "x"),
+            YEvent.Delta(delete: 1),
         ])
         let state1 = text0.toDelta(snapshot1)
-        XCTAssertEqual(state1, [YEventDelta(insert: "abcd")])
+        XCTAssertEqual(state1, [YEvent.Delta(insert: "abcd")])
         let state2 = text0.toDelta(snapshot2)
-        XCTAssertEqual(state2, [YEventDelta(insert: "axcd")])
+        XCTAssertEqual(state2, [YEvent.Delta(insert: "axcd")])
         let state2Diff = text0.toDelta(snapshot2, prevSnapshot: snapshot1)
         
         state2Diff.forEach{ v in
@@ -552,10 +552,10 @@ final class YTextTests: XCTestCase {
             }
         }
         XCTAssertEqual(state2Diff, [
-            YEventDelta(insert: "a" ),
-            YEventDelta(insert: "x", attributes: ["ychange": ["type": "added"]]),
-            YEventDelta(insert: "b", attributes: ["ychange": ["type": "removed"]]),
-            YEventDelta(insert: "cd")
+            YEvent.Delta(insert: "a" ),
+            YEvent.Delta(insert: "x", attributes: ["ychange": ["type": "added"]]),
+            YEvent.Delta(insert: "b", attributes: ["ychange": ["type": "removed"]]),
+            YEvent.Delta(insert: "cd")
         ])
     }
 
@@ -564,15 +564,15 @@ final class YTextTests: XCTestCase {
         let text0 = test.text[0], doc0 = test.docs[0]
         
         text0.applyDelta([
-            YEventDelta(insert: "abcd"),
+            YEvent.Delta(insert: "abcd"),
         ])
         let snapshot1 = YSnapshot(doc: doc0)
         text0.applyDelta([
-            YEventDelta(retain: 4),
-            YEventDelta(insert: "e"),
+            YEvent.Delta(retain: 4),
+            YEvent.Delta(insert: "e"),
         ])
         let state1 = text0.toDelta(snapshot1)
-        XCTAssertEqual(state1, [YEventDelta(insert: "abcd")])
+        XCTAssertEqual(state1, [YEvent.Delta(insert: "abcd")])
     }
 
     func testToJson() throws {
@@ -593,9 +593,9 @@ final class YTextTests: XCTestCase {
         let delta0 = text0.toDelta()
         
         XCTAssertEqual(delta0, [
-            YEventDelta(insert: "a", attributes: ["bold": true] ),
-            YEventDelta(insert: ["image": "imageSrc.png"], attributes: ["width": 100]),
-            YEventDelta(insert: "b", attributes: ["bold": true])
+            YEvent.Delta(insert: "a", attributes: ["bold": true] ),
+            YEvent.Delta(insert: ["image": "imageSrc.png"], attributes: ["width": 100]),
+            YEvent.Delta(insert: "b", attributes: ["bold": true])
         ])
     }
 
@@ -608,9 +608,9 @@ final class YTextTests: XCTestCase {
         
         let delta0 = text0.toDelta()
         XCTAssertEqual(delta0, [
-            YEventDelta(insert: "a", attributes: ["bold": true]),
-            YEventDelta(insert: ["image": "imageSrc.png"]),
-            YEventDelta(insert: "b", attributes: ["bold": true])
+            YEvent.Delta(insert: "a", attributes: ["bold": true]),
+            YEvent.Delta(insert: ["image": "imageSrc.png"]),
+            YEvent.Delta(insert: "b", attributes: ["bold": true])
         ], "toDelta does not set attributes key when no attributes are present")
     }
 
@@ -666,7 +666,7 @@ final class YTextTests: XCTestCase {
 //        let filteredDeltas = deltas.filter(d => d.length > 0)
 //        XCTAssert(filteredDeltas.length === 2)
 //        XCTAssertEqual(filteredDeltas[0], [
-//            YEventDelta(retain: 1, attributes: ["LIST_STYLES": "number"]),
+//            YEvent.Delta(retain: 1, attributes: ["LIST_STYLES": "number"]),
 //        ])
 //        XCTAssertEqual(filteredDeltas[0], filteredDeltas[1])
 //    }

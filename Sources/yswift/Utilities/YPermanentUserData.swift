@@ -140,7 +140,7 @@ final public class YPermanentUserData {
         return self.clients[clientid]
     }
 
-    public func getUserByDeletedId(_ id: YID) -> String? {
+    public func getUserByDeletedId(_ id: YIdentifier) -> String? {
         for (userDescription, ds) in self.dss {
             if ds.isDeleted(id) {
                 return userDescription

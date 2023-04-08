@@ -7,9 +7,11 @@
 
 import Foundation
 
-public enum YChangeAction: String {
-    case removed = "removed"
-    case added = "added"
+extension YText {
+    public enum ChangeAction: String {
+        case removed = "removed"
+        case added = "added"
+    }
 }
 
 public protocol YTextAttributeValue {}
@@ -91,7 +93,7 @@ final class ItemTextListPosition {
                 if !self.right!.deleted {
                     if count < self.right!.length {
                         // split right
-                        let id = YID(client: self.right!.id.client, clock: self.right!.id.clock + count)
+                        let id = YIdentifier(client: self.right!.id.client, clock: self.right!.id.clock + count)
                         YStructStore.getItemCleanStart(transaction, id: id)
                     }
                     self.index += self.right!.length
@@ -156,7 +158,7 @@ func insertNegatedAttributes(
         let left = currPos.left
         let right = currPos.right
         let nextFormat = YItem(
-            id: YID(client: ownClientId, clock: doc.store.getState(ownClientId)),
+            id: YIdentifier(client: ownClientId, clock: doc.store.getState(ownClientId)),
             left: left,
             origin: left?.lastID,
             right: right,
@@ -221,7 +223,7 @@ func insertAttributes(
                         
             let left = currPos.left, right = currPos.right
             currPos.right = YItem(
-                id: YID(client: ownClientId, clock: doc.store.getState(ownClientId)),
+                id: YIdentifier(client: ownClientId, clock: doc.store.getState(ownClientId)),
                 left: left,
                 origin: left?.lastID,
                 right: right,
@@ -243,7 +245,7 @@ func insertText(
     transaction: YTransaction,
     parent: YOpaqueObject,
     currPos: ItemTextListPosition,
-    text: YEventDeltaInsertType,
+    text: Any?,
     attributes: YTextAttributes
 ) {
     currPos.currentAttributes.forEach({ key, _ in
@@ -270,7 +272,7 @@ func insertText(
         YArraySearchMarker.updateChanges(parent.serchMarkers!, index: currPos.index, len: content.count)
     }
     right = YItem(
-        id: YID(client: ownClientId, clock: doc.store.getState(ownClientId)),
+        id: YIdentifier(client: ownClientId, clock: doc.store.getState(ownClientId)),
         left: left,
         origin: left?.lastID,
         right: right,
@@ -338,7 +340,7 @@ func formatText(
                 if length < currPos.right!.length {
                     YStructStore.getItemCleanStart(
                         transaction,
-                        id: YID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
+                        id: YIdentifier(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
                     )
                 }
                 length -= currPos.right!.length
@@ -355,7 +357,7 @@ func formatText(
         }
         
         currPos.right = YItem(
-            id: YID(client: ownClientId, clock: doc.store.getState(ownClientId)),
+            id: YIdentifier(client: ownClientId, clock: doc.store.getState(ownClientId)),
             left: currPos.left,
             origin: currPos.left?.lastID,
             right: currPos.right,
@@ -490,7 +492,7 @@ func deleteText(
                 currPos.right!.content is YStringContent {
                 if length < currPos.right!.length {
                     YStructStore.getItemCleanStart(
-                        transaction, id: YID(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
+                        transaction, id: YIdentifier(client: currPos.right!.id.client, clock: currPos.right!.id.clock + length)
                     )
                 }
                 length -= currPos.right!.length
@@ -540,18 +542,18 @@ final public class YTextEvent: YEvent {
         })
     }
     
-    public override func changes() -> YEventChange {
+    public override func changes() -> Change {
         if self._changes == nil {
-            let changes = YEventChange(added: Set(), deleted: Set(), keys: self.keys, delta: self.delta())
+            let changes = Change(added: Set(), deleted: Set(), keys: self.keys, delta: self.delta())
             self._changes = changes
         }
         return self._changes!
     }
 
-    public override func delta() -> [YEventDelta] {
+    public override func delta() -> [Delta] {
         if (self._delta != nil) { return self._delta! }
         
-        let deltas: RefArray<YEventDelta> = []
+        let deltas: RefArray<YEvent.Delta> = []
 
         self.target.document?.transact({ transaction in
             let currentAttributes = YTextAttributes([:]) // saves all current attributes for insert
@@ -561,20 +563,20 @@ final public class YTextEvent: YEvent {
             
             let attributes = YTextAttributes([:]) // counts added or removed attributes for retain
             
-            var insert: YEventDeltaInsertType = ""
+            var insert: Any? = ""
             var retain = 0
             var deleteLen = 0
 
             func addDelta() {
                 if (action == nil) { return }
 
-                var delta: YEventDelta
+                var delta: YEvent.Delta
 
                 if action == .delete {
-                    delta = YEventDelta(delete: deleteLen)
+                    delta = YEvent.Delta(delete: deleteLen)
                     deleteLen = 0
                 } else if action == .insert {
-                    delta = YEventDelta(insert: insert)
+                    delta = YEvent.Delta(insert: insert)
                     if currentAttributes.count > 0 {
                         delta.attributes = [:]
                         currentAttributes.forEach({ key, value in
@@ -585,7 +587,7 @@ final public class YTextEvent: YEvent {
                     }
                     insert = ""
                 } else {
-                    delta = YEventDelta(retain: retain)
+                    delta = YEvent.Delta(retain: retain)
                     if attributes.value.keys.count > 0 {
                         delta.attributes = [:]
                         for key in attributes.value.keys {
@@ -605,7 +607,7 @@ final public class YTextEvent: YEvent {
                         if !self.deletes(item!) {
                             addDelta()
                             action = .insert
-                            insert = item!.content.values[0] as! YEventDeltaInsertType
+                            insert = item!.content.values[0]
                             addDelta()
                         }
                     } else if self.deletes(item!) {
@@ -816,7 +818,7 @@ final public class YText: YOpaqueObject {
         return self.toString()
     }
     
-    public func applyDelta(_ delta: [YEventDelta], sanitize: Bool = true) {
+    public func applyDelta(_ delta: [YEvent.Delta], sanitize: Bool = true) {
         if self.document != nil {
             self.document!.transact({ transaction in
                 let currPos = ItemTextListPosition(left: nil, right: self._start, index: 0, currentAttributes: [:])
@@ -825,7 +827,7 @@ final public class YText: YOpaqueObject {
                     if op.insert != nil {
                         let ins =
                             (!sanitize && op.insert! is String && i == delta.count - 1 && currPos.right == nil && (op.insert as! String).last == "\n")
-                                ? String((op.insert as! String)[..<(op.insert as! String).endIndex]) as YEventDeltaInsertType
+                                ? String((op.insert as! String)[..<(op.insert as! String).endIndex])
                                 : op.insert!
                         
                         if !(ins is String) || (ins as! String).count > 0 {
@@ -856,9 +858,9 @@ final public class YText: YOpaqueObject {
     public func toDelta(
         _ snapshot: YSnapshot? = nil,
         prevSnapshot: YSnapshot? = nil,
-        computeYChange: ((YChangeAction, YID) -> YTextAttributeValue)? = nil
-    ) -> [YEventDelta] {
-        var ops: [YEventDelta] = []
+        computeYChange: ((YText.ChangeAction, YIdentifier) -> YTextAttributeValue)? = nil
+    ) -> [YEvent.Delta] {
+        var ops: [YEvent.Delta] = []
         let currentAttributes: YTextAttributes = [:]
         
         let doc = self.document!
@@ -874,7 +876,7 @@ final public class YText: YOpaqueObject {
                     addAttributes = true
                     attributes.value[key] = value
                 })
-                let op = YEventDelta(insert: str)
+                let op = YEvent.Delta(insert: str)
                 if addAttributes {
                     op.attributes = attributes
                 }
@@ -926,7 +928,7 @@ final public class YText: YOpaqueObject {
                         str += (n!.content as! YStringContent).string as String
                     case n!.content is YObjectContent || n!.content is YEmbedContent:
                         packStr()
-                        let op: YEventDelta = .init(insert: (n!.content.values[0] as! YEventDeltaInsertType))
+                        let op: YEvent.Delta = .init(insert: n!.content.values[0])
                         if currentAttributes.count > 0 {
                             op.attributes = [:]
                             currentAttributes.forEach({ key, value in
@@ -975,7 +977,7 @@ final public class YText: YOpaqueObject {
     }
 
     // OLD: insertEmbed(_ index: Int, embed: Object|object, attributes: YTextAttributes = {})
-    public func insertEmbed(_ index: Int, embed: YEventDeltaInsertType, attributes: [String: (any YTextAttributeValue)?]?) {
+    public func insertEmbed(_ index: Int, embed: Any?, attributes: [String: (any YTextAttributeValue)?]?) {
         if self.document != nil {
             self.document!.transact{ transaction in
                 let pos = ItemTextListPosition.find(transaction, parent: self, index: index)
