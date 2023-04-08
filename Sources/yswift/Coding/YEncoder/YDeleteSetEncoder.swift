@@ -8,9 +8,9 @@
 import Foundation
 import lib0
 
-public protocol YDeleteSetEncoder {
+protocol YDeleteSetEncoder {
     var restEncoder: LZEncoder { get set }
-    var updateVersion: YUpdate.Version { get }
+    var updateVersion: YUpdateVersion { get }
     
     func resetDeleteSetValue()
     func writeDeleteSetClock(_ clock: Int)
@@ -22,52 +22,52 @@ extension YDeleteSetEncoder {
     func toUpdate() -> YUpdate { YUpdate(toData(), version: self.updateVersion) }
 }
 
-public class YDeleteSetEncoderV1: YDeleteSetEncoder {
-    public var restEncoder = LZEncoder()
+class YDeleteSetEncoderV1: YDeleteSetEncoder {
+    var restEncoder = LZEncoder()
     
-    public var updateVersion: YUpdate.Version { .v1 }
+    var updateVersion: YUpdateVersion { .v1 }
 
-    public init() {}
+    init() {}
 
-    public func toData() -> Data {
+    func toData() -> Data {
         return self.restEncoder.data
     }
 
-    public func resetDeleteSetValue() {}
+    func resetDeleteSetValue() {}
 
-    public func writeDeleteSetClock(_ clock: Int) {
+    func writeDeleteSetClock(_ clock: Int) {
         self.restEncoder.writeUInt(UInt(clock))
     }
 
-    public func writeDeleteSetLen(_ len: Int) {
+    func writeDeleteSetLen(_ len: Int) {
         self.restEncoder.writeUInt(UInt(len))
     }
 }
 
-public class YDeleteSetEncoderV2: YDeleteSetEncoder {
-    public var restEncoder = LZEncoder()
+class YDeleteSetEncoderV2: YDeleteSetEncoder {
+    var restEncoder = LZEncoder()
     
-    public var updateVersion: YUpdate.Version { .v2 }
+    var updateVersion: YUpdateVersion { .v2 }
     
     private var dsCurrVal = 0
 
-    public init() {}
+    init() {}
 
-    public func toData() -> Data {
+    func toData() -> Data {
         return self.restEncoder.data
     }
 
-    public func resetDeleteSetValue() {
+    func resetDeleteSetValue() {
         self.dsCurrVal = 0
     }
 
-    public func writeDeleteSetClock(_ clock: Int) {
+    func writeDeleteSetClock(_ clock: Int) {
         let diff = clock - self.dsCurrVal
         self.dsCurrVal = clock
         self.restEncoder.writeUInt(UInt(diff))
     }
 
-    public func writeDeleteSetLen(_ len: Int) {
+    func writeDeleteSetLen(_ len: Int) {
         assert(len != 0, "Unexpected case")
 //        if len == 0 {
 //            throw YSwiftError.unexpectedCase

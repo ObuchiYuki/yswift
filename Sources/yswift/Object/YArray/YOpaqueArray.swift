@@ -137,7 +137,7 @@ final public class YOpaqueArray: YOpaqueObject {
         self.callObservers(transaction: transaction, event: YOpaqueArrayEvent(self, transaction: transaction))
     }
 
-    public override func _write(_ encoder: YUpdateEncoder) {
+    override func _write(_ encoder: YUpdateEncoder) {
         encoder.writeTypeRef(YArrayRefID)
     }
 }

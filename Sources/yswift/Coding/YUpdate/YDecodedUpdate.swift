@@ -17,7 +17,7 @@ final public class YDecodedUpdate {
         self.deleteSets = deleteSets
     }
     
-    public init(_ update: Data, YDecoder: (LZDecoder) throws -> YUpdateDecoder = YUpdateDecoderV1.init) throws {
+    init(_ update: Data, YDecoder: (LZDecoder) throws -> YUpdateDecoder = YUpdateDecoderV1.init) throws {
         var structs: [YStructure] = []
         let updateDecoder = try YDecoder(LZDecoder(update))
         let lazyDecoder = try YLazyStructReader(updateDecoder, filterSkips: false)

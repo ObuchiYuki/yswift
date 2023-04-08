@@ -1055,7 +1055,7 @@ final public class YText: YOpaqueObject {
         return self.mapGetAll() as? [String : (any YTextAttributeValue)?] ?? [:]
     }
 
-    public override func _write(_ encoder: YUpdateEncoder) {
+    override func _write(_ encoder: YUpdateEncoder) {
         encoder.writeTypeRef(YTextRefID)
     }
 }

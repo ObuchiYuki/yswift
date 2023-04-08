@@ -94,26 +94,27 @@ final public class YSnapshot: JSHashable {
 
 // Coding
 extension YSnapshot {
-    public func encodeV2(_ encoder: YDeleteSetEncoder = YDeleteSetEncoderV2()) throws -> Data {
+    public func encode() throws -> Data {
+        try self._encode(YDeleteSetEncoderV1())
+    }
+    public func encodeV2() throws -> Data {
+        try self._encode(YDeleteSetEncoderV2())
+    }
+    
+    static public func decode(_ buf: Data) throws -> YSnapshot {
+        try self._decode(buf, decoder: YDeleteSetDecoderV1(LZDecoder(buf)))
+    }
+    static public func decodeV2(_ buf: Data) throws -> YSnapshot {
+        try self._decode(buf, decoder: YDeleteSetDecoderV2(LZDecoder(buf)))
+    }
+    
+    private func _encode(_ encoder: YDeleteSetEncoder) throws -> Data {
         self.deleteSet.encode(into: encoder)
         try encoder.writeStateVector(from: self.stateVectors)
         return encoder.toData()
     }
-    
-    public func encode() throws -> Data {
-        return try self.encodeV2(YDeleteSetEncoderV1())
-    }
-    
-    static public func decodeV2(_ buf: Data, decoder: YDeleteSetDecoder? = nil) throws -> YSnapshot {
-        let decoder = try decoder ?? YDeleteSetDecoderV2(LZDecoder(buf))
-        return YSnapshot(
-            deleteSet: try YDeleteSet.decode(decoder: decoder),
-            stateVectors: try decoder.readStateVector()
-        )
-    }
-    
-    static public func decode(_ buf: Data) throws -> YSnapshot {
-        return try YSnapshot.decodeV2(buf, decoder: YDeleteSetDecoderV1(LZDecoder(buf)))
+    private static func _decode(_ buf: Data, decoder: YDeleteSetDecoder) throws -> YSnapshot {
+        YSnapshot(deleteSet: try YDeleteSet.decode(decoder: decoder), stateVectors: try decoder.readStateVector())
     }
 }
 

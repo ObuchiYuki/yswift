@@ -8,15 +8,20 @@
 import Foundation
 import lib0
 
+public enum YUpdateVersion { case v1, v2 }
+
 public struct YUpdate {
-    public enum Version { case v1, v2 }
+#if DEBUG
+    public let version: YUpdateVersion
+#endif
     
     public let data: Data
-    public let version: Version
     
-    public init(_ data: Data, version: Version) {
+    public init(_ data: Data, version: YUpdateVersion) {
         self.data = data
+#if DEBUG
         self.version = version
+#endif
     }
 }
 

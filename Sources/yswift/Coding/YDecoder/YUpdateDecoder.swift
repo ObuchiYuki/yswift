@@ -8,7 +8,7 @@
 import Foundation
 import lib0
 
-public protocol YUpdateDecoder: YDeleteSetDecoder {
+protocol YUpdateDecoder: YDeleteSetDecoder {
     func readLeftID() throws -> YID
     func readRightID() throws -> YID
     func readClient() throws -> Int
@@ -23,64 +23,64 @@ public protocol YUpdateDecoder: YDeleteSetDecoder {
     func readJSON() throws -> Any?
 }
 
-final public class YUpdateDecoderV1: YDeleteSetDecoderV1, YUpdateDecoder {
-    public func readLeftID() throws -> YID {
+final class YUpdateDecoderV1: YDeleteSetDecoderV1, YUpdateDecoder {
+    func readLeftID() throws -> YID {
         return try YID(
             client: Int(self.restDecoder.readUInt()),
             clock: Int(self.restDecoder.readUInt())
         )
     }
 
-    public func readRightID() throws -> YID {
+    func readRightID() throws -> YID {
         return try YID(
             client: Int(self.restDecoder.readUInt()),
             clock: Int(self.restDecoder.readUInt())
         )
     }
 
-    public func readClient() throws -> Int {
+    func readClient() throws -> Int {
         return try Int(self.restDecoder.readUInt())
     }
 
-    public func readInfo() -> UInt8 {
+    func readInfo() -> UInt8 {
         return self.restDecoder.readUInt8()
     }
 
-    public func readString() throws -> String {
+    func readString() throws -> String {
         return try self.restDecoder.readString()
     }
 
-    public func readParentInfo() throws -> Bool {
+    func readParentInfo() throws -> Bool {
         return try self.restDecoder.readUInt() == 1
     }
 
-    public func readTypeRef() throws -> Int {
+    func readTypeRef() throws -> Int {
         return try Int(self.restDecoder.readUInt())
     }
 
-    public func readLen() throws -> Int {
+    func readLen() throws -> Int {
         return try Int(self.restDecoder.readUInt())
     }
 
-    public func readAny() throws -> Any? {
+    func readAny() throws -> Any? {
         return try self.restDecoder.readAny()
     }
 
-    public func readBuf() throws -> Data {
+    func readBuf() throws -> Data {
         return try self.restDecoder.readData()
     }
 
-    public func readKey() throws -> String {
+    func readKey() throws -> String {
         return try self.restDecoder.readString()
     }
     
-    public func readJSON() throws -> Any? {
+    func readJSON() throws -> Any? {
         let data = try self.restDecoder.readData()
         return try! JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
     }
 }
 
-public class YUpdateDecoderV2: YDeleteSetDecoderV2, YUpdateDecoder {
+class YUpdateDecoderV2: YDeleteSetDecoderV2, YUpdateDecoder {
     var keys: [String] = []
     
     let keyClockDecoder: LZIntDiffOptRleDecoder
@@ -93,7 +93,7 @@ public class YUpdateDecoderV2: YDeleteSetDecoderV2, YUpdateDecoder {
     let typeRefDecoder: LZUIntOptRleDecoder
     let lenDecoder: LZUIntOptRleDecoder
 
-    public required init(_ decoder: LZDecoder) throws {
+    required init(_ decoder: LZDecoder) throws {
         _ = try decoder.readUInt() // read feature flag - currently unused
         self.keyClockDecoder = LZIntDiffOptRleDecoder(try decoder.readData())
         self.clientDecoder = LZUIntOptRleDecoder(try decoder.readData())
@@ -108,53 +108,53 @@ public class YUpdateDecoderV2: YDeleteSetDecoderV2, YUpdateDecoder {
         try super.init(decoder)
     }
 
-    public func readLeftID() throws -> YID {
+    func readLeftID() throws -> YID {
         return try YID(
             client: Int(self.clientDecoder.read()),
             clock: self.leftClockDecoder.read()
         )
     }
 
-    public func readRightID() throws -> YID {
+    func readRightID() throws -> YID {
         return try YID(
             client: Int(self.clientDecoder.read()),
             clock: self.rightClockDecoder.read()
         )
     }
 
-    public func readClient() throws -> Int {
+    func readClient() throws -> Int {
         return try Int(self.clientDecoder.read())
     }
 
-    public func readInfo() throws -> UInt8 {
+    func readInfo() throws -> UInt8 {
         return try self.infoDecoder.read()
     }
 
-    public func readString() throws -> String {
+    func readString() throws -> String {
         return try self.stringDecoder.read()
     }
 
-    public func readParentInfo() throws -> Bool {
+    func readParentInfo() throws -> Bool {
         return try self.parentInfoDecoder.read() == 1
     }
 
-    public func readTypeRef() throws -> Int {
+    func readTypeRef() throws -> Int {
         return try Int(self.typeRefDecoder.read())
     }
 
-     public func readLen() throws -> Int {
+     func readLen() throws -> Int {
         return try Int(self.lenDecoder.read())
     }
 
-    public func readAny() throws -> Any? {
+    func readAny() throws -> Any? {
         return try self.restDecoder.readAny()
     }
 
-    public func readBuf() throws -> Data {
+    func readBuf() throws -> Data {
         return try self.restDecoder.readData()
     }
 
-    public func readKey() throws -> String {
+    func readKey() throws -> String {
         let keyClock = try self.keyClockDecoder.read()
         if keyClock < self.keys.count {
             return self.keys[keyClock]
@@ -165,7 +165,7 @@ public class YUpdateDecoderV2: YDeleteSetDecoderV2, YUpdateDecoder {
         }
     }
     
-    public func readJSON() throws -> Any? {
+    func readJSON() throws -> Any? {
         return try self.restDecoder.readAny()
     }
 }

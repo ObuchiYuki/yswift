@@ -18,7 +18,7 @@ extension YDocument {
 
 extension YDeleteSetEncoder {
     
-    public func writeStateVector(from stateVector: [Int: Int]) throws {
+    func writeStateVector(from stateVector: [Int: Int]) throws {
         self.restEncoder.writeUInt(UInt(stateVector.count))
         
         for (client, clock) in stateVector.sorted(by: { $0.key > $1.key }) {
@@ -26,16 +26,16 @@ extension YDeleteSetEncoder {
             self.restEncoder.writeUInt(UInt(clock))
         }
     }
-    public func writeStateVector(from doc: YDocument) throws {
+    func writeStateVector(from doc: YDocument) throws {
         try self.writeStateVector(from: doc.store.getStateVector())
     }
 
-    public func encodeStateVector(from stateVector: [Int: Int]) throws -> Data {
+    func encodeStateVector(from stateVector: [Int: Int]) throws -> Data {
         try self.writeStateVector(from: stateVector)
         return self.toData()
     }
 
-    public func encodeStateVector(from doc: YDocument) throws -> Data {
+    func encodeStateVector(from doc: YDocument) throws -> Data {
         try self.writeStateVector(from: doc)
         return self.toData()
     }

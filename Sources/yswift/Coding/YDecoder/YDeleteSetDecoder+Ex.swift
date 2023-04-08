@@ -8,7 +8,7 @@
 import Foundation
 
 extension YDeleteSetDecoder {
-    public func readStateVector() throws -> [Int: Int] {
+    func readStateVector() throws -> [Int: Int] {
         var ss = [Int:Int]()
         let ssLength = try self.restDecoder.readUInt()
         for _ in 0..<ssLength {

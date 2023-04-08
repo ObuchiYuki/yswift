@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import yswift
+@testable import yswift
 import lib0
 
 final public class YUpdateEnvironment {
@@ -65,7 +65,7 @@ final public class YUpdateEnvironment {
 
     static let v2 = YUpdateEnvironment(
         mergeUpdates: { try YUpdate.mergedV2($0) },
-        encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: YUpdateEncoderV2()) },
+        encodeStateAsUpdate: { try $0.encodeStateAsUpdateV2(encodedStateVector: $1) },
         applyUpdate: { try $0.applyUpdateV2($1, origin: $2) },
         logUpdate: { $0.log() },
         parseUpdateMeta: { try $0.updateMetaV2() },
@@ -81,9 +81,9 @@ final public class YUpdateEnvironment {
         mergeUpdates: { updates in
             let ydoc = YDocument(YDocument.Options(gc: false))
             try updates.forEach{ try ydoc.applyUpdateV2($0) }
-            return try ydoc.encodeStateAsUpdate(encoder: YUpdateEncoderV2())
+            return try ydoc.encodeStateAsUpdateV2()
         },
-        encodeStateAsUpdate: { try $0.encodeStateAsUpdate(encodedStateVector: $1, encoder: YUpdateEncoderV2()) },
+        encodeStateAsUpdate: { try $0.encodeStateAsUpdateV2(encodedStateVector: $1) },
         applyUpdate: { try $0.applyUpdateV2($1, origin: $2) },
         logUpdate: { $0.log() },
         parseUpdateMeta: { try $0.updateMetaV2() },
@@ -95,7 +95,7 @@ final public class YUpdateEnvironment {
         diffUpdate: { update, sv in
             let ydoc = YDocument(YDocument.Options(gc: false))
             try ydoc.applyUpdateV2(update)
-            return try ydoc.encodeStateAsUpdate(encodedStateVector: sv, encoder: YUpdateEncoderV2())
+            return try ydoc.encodeStateAsUpdateV2(encodedStateVector: sv)
         }
     )
 

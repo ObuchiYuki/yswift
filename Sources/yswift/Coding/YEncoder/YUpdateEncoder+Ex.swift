@@ -8,12 +8,16 @@
 import Foundation
 
 extension YDocument {
-    public func encodeStateAsUpdate(encodedStateVector: Data? = nil, encoder: YUpdateEncoder = YUpdateEncoderV1()) throws -> YUpdate {
-        try encoder.encodeStateAsUpdate(doc: self, encodedStateVector: encodedStateVector)
+    public func encodeStateAsUpdate(encodedStateVector: Data? = nil) throws -> YUpdate {
+        try _encodeStateAsUpdate(encodedStateVector: encodedStateVector, encoder: YUpdateEncoderV1())
     }
     
     public func encodeStateAsUpdateV2(encodedStateVector: Data? = nil) throws -> YUpdate {
-        try self.encodeStateAsUpdate(encodedStateVector: encodedStateVector, encoder: YUpdateEncoderV2())
+        try _encodeStateAsUpdate(encodedStateVector: encodedStateVector, encoder: YUpdateEncoderV2())
+    }
+    
+    private func _encodeStateAsUpdate(encodedStateVector: Data? = nil, encoder: YUpdateEncoder) throws -> YUpdate {
+        try encoder.encodeStateAsUpdate(doc: self, encodedStateVector: encodedStateVector)
     }
 }
 
@@ -64,7 +68,7 @@ extension YUpdateEncoder {
         YDeleteSet.createFromStructStore(doc.store).encode(into: self)
     }
 
-    public func encodeStateAsUpdate(doc: YDocument, encodedStateVector: Data? = nil) throws -> YUpdate {
+    func encodeStateAsUpdate(doc: YDocument, encodedStateVector: Data? = nil) throws -> YUpdate {
         let encoder = self
         
         let encodedStateVector = encodedStateVector ?? Data([0])
