@@ -44,11 +44,13 @@ extension YTextAttributes {
     }
 }
 
+extension YText {
+    public enum Action: String {
+        case delete = "delete"
+        case insert = "insert"
+        case retain = "retain"
+    }
 
-public enum YTextAction: String {
-    case delete = "delete"
-    case insert = "insert"
-    case retain = "retain"
 }
 
 final class ItemTextListPosition {
@@ -559,7 +561,7 @@ final public class YTextEvent: YEvent {
             let currentAttributes = YTextAttributes([:]) // saves all current attributes for insert
             let oldAttributes = YTextAttributes([:])
             var item = self.target._start
-            var action: YTextAction? = nil
+            var action: YText.Action? = nil
             
             let attributes = YTextAttributes([:]) // counts added or removed attributes for retain
             

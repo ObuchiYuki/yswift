@@ -8,26 +8,28 @@
 import Foundation
 import lib0
 
-public enum YUpdateVersion { case v1, v2 }
-
 public struct YUpdate {
-#if DEBUG
-    public let version: YUpdateVersion
-#endif
+    public enum Version { case v1, v2 }
+    
+    #if DEBUG
+    public let version: Version
+    #endif
     
     public let data: Data
     
-    public init(_ data: Data, version: YUpdateVersion) {
+    public init(_ data: Data, version: Version) {
         self.data = data
-#if DEBUG
+        #if DEBUG
         self.version = version
-#endif
+        #endif
     }
 }
 
-public struct YUpdateMeta: Equatable {
-    public let from: [Int: Int]
-    public let to: [Int: Int]
+extension YUpdate {
+    public struct Meta: Equatable {
+        public let from: [Int: Int]
+        public let to: [Int: Int]
+    }
 }
 
 extension YUpdate: Equatable, Hashable {}
@@ -54,10 +56,10 @@ extension YUpdate {
         try self._encodeStateVectorFromUpdate(YEncoder: YDeleteSetEncoderV2.init, YDecoder: YUpdateDecoderV2.init)
     }
     
-    public func updateMeta() throws -> YUpdateMeta {
+    public func updateMeta() throws -> Meta {
         return try self._parseUpdateMeta(YDecoder: YUpdateDecoderV1.init)
     }
-    public func updateMetaV2() throws -> YUpdateMeta {
+    public func updateMetaV2() throws -> Meta {
         return try self._parseUpdateMeta(YDecoder: YUpdateDecoderV2.init)
     }
 
@@ -69,12 +71,16 @@ extension YUpdate {
     }
     
     public func toV2() throws -> YUpdate {
+        #if DEBUG
         assert(self.version == .v1)
+        #endif
         return try self._convertUpdateFormat(YDecoder: YUpdateDecoderV1.init, YEncoder: YUpdateEncoderV2.init)
     }
 
     public func toV1() throws -> YUpdate {
+        #if DEBUG
         assert(self.version == .v2)
+        #endif
         return try self._convertUpdateFormat(YDecoder: YUpdateDecoderV2.init, YEncoder: YUpdateEncoderV1.init)
     }
     
@@ -142,7 +148,7 @@ extension YUpdate {
         return encoder.toUpdate()
     }
 
-    private func _parseUpdateMeta(YDecoder: (LZDecoder) throws -> YUpdateDecoder = YUpdateDecoderV2.init) throws -> YUpdateMeta {
+    private func _parseUpdateMeta(YDecoder: (LZDecoder) throws -> YUpdateDecoder = YUpdateDecoderV2.init) throws -> Meta {
         var from: [Int: Int] = [:]
         var to: [Int: Int] = [:]
         
@@ -167,7 +173,7 @@ extension YUpdate {
             
             to[currClient] = currClock
         }
-        return YUpdateMeta(from: from, to: to)
+        return Meta(from: from, to: to)
     }
     
     

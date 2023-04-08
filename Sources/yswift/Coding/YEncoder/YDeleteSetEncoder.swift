@@ -10,7 +10,7 @@ import lib0
 
 protocol YDeleteSetEncoder {
     var restEncoder: LZEncoder { get set }
-    var updateVersion: YUpdateVersion { get }
+    var updateVersion: YUpdate.Version { get }
     
     func resetDeleteSetValue()
     func writeDeleteSetClock(_ clock: Int)
@@ -25,7 +25,7 @@ extension YDeleteSetEncoder {
 class YDeleteSetEncoderV1: YDeleteSetEncoder {
     var restEncoder = LZEncoder()
     
-    var updateVersion: YUpdateVersion { .v1 }
+    var updateVersion: YUpdate.Version { .v1 }
 
     init() {}
 
@@ -47,7 +47,7 @@ class YDeleteSetEncoderV1: YDeleteSetEncoder {
 class YDeleteSetEncoderV2: YDeleteSetEncoder {
     var restEncoder = LZEncoder()
     
-    var updateVersion: YUpdateVersion { .v2 }
+    var updateVersion: YUpdate.Version { .v2 }
     
     private var dsCurrVal = 0
 

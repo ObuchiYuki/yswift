@@ -14,7 +14,7 @@ final public class YUpdateEnvironment {
     let encodeStateAsUpdate: (_ doc: YDocument, _ encodedTargetStateVector: Data?) throws -> YUpdate
     let applyUpdate: (_ ydoc: YDocument, _ update: YUpdate, _ origin: Any?) throws -> Void
     let logUpdate: (_ update: YUpdate) -> Void
-    let parseUpdateMeta: (_ update: YUpdate) throws -> YUpdateMeta
+    let parseUpdateMeta: (_ update: YUpdate) throws -> YUpdate.Meta
     let encodeStateVectorFromUpdate: (_ update: YUpdate) throws -> Data
     let encodeStateVector_Doc: (_ doc: YDocument) throws -> Data
     let encodeStateVector_SV: (_ doc: [Int: Int]) throws -> Data
@@ -27,7 +27,7 @@ final public class YUpdateEnvironment {
         encodeStateAsUpdate: @escaping (YDocument, Data?) throws -> YUpdate,
         applyUpdate: @escaping (YDocument, YUpdate, Any?) throws -> Void,
         logUpdate: @escaping (YUpdate) -> Void,
-        parseUpdateMeta: @escaping (YUpdate) throws -> YUpdateMeta,
+        parseUpdateMeta: @escaping (YUpdate) throws -> YUpdate.Meta,
         encodeStateVectorFromUpdate: @escaping (YUpdate) throws -> Data,
         encodeStateVector_Doc: @escaping (YDocument) throws -> Data,
         encodeStateVector_SV: @escaping ([Int : Int]) throws -> Data,

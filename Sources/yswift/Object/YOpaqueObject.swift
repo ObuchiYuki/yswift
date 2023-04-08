@@ -132,14 +132,3 @@ extension YOpaqueObject {
         fatalError("Key not found. \(self)")
     }
 }
-
-protocol YWrapperObject: YElement {
-    associatedtype Opaque: YOpaqueObject
-    associatedtype Publisher: Combine.Publisher<Self, Never>
-    
-    var opaque: Opaque { get }
-    
-    var publisher: Publisher { get }
-    
-    init(opaque: Opaque)
-}

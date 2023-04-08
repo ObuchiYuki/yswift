@@ -339,7 +339,7 @@ final class YArrayTests: XCTestCase {
         var wchanges = try XCTUnwrap(changes)
         XCTAssertEqual(wchanges.added.count, 2)
         XCTAssertEqual(wchanges.deleted.count, 0)
-        XCTAssertEqual(wchanges.delta, [YEvent.Delta(insert: [newArr, 4, "dtrn"])])
+        XCTAssertEqual(wchanges.delta, [YEvent.Delta(insert: [newArr, 4, "dtrn"] as [Any?])])
 
 
         changes = nil
