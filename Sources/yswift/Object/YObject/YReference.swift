@@ -18,7 +18,7 @@ final public class YReference<T: YObject> {
     public static func reference(for object: T) -> YReference<T> { .init(object) }
 }
 
-extension YReference: YPrimitive {
+extension YReference: YValue {
     public static var isReference: Bool { true }
     
     public func toOpaque() -> Any? { self.objectID.value }

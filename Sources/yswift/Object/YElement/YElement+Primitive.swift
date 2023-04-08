@@ -7,9 +7,9 @@
 
 import Foundation
 
-public protocol YPrimitive: YElement, YPasteboardCopy {}
+public protocol YValue: YElement, YPasteboardCopy {}
 
-protocol _YPrimitiveValue: YPrimitive {}
+protocol _YPrimitiveValue: YValue {}
 extension _YPrimitiveValue {
     public static var isReference: Bool { false }
     
@@ -50,7 +50,7 @@ extension Array: YPasteboardCopy where Element: YPasteboardCopy {
         (content as? [NSDictionary?]).map{ $0.compactMap{ Element.fromPropertyList($0) } }
     }
 }
-extension Array: YElement, YPrimitive where Element: YPrimitive {
+extension Array: YElement, YValue where Element: YValue {
     public static var isReference: Bool { Element.isReference }
     
     public func toOpaque() -> Any? { self.map{ $0.toOpaque() } }
@@ -60,7 +60,7 @@ extension Array: YElement, YPrimitive where Element: YPrimitive {
     }
 }
 
-extension Dictionary: YPasteboardCopy where Key == String, Value: YPrimitive {
+extension Dictionary: YPasteboardCopy where Key == String, Value: YValue {
     public func toPropertyList() -> Any? {
         self.mapValues{ $0.toPropertyList() } as NSDictionary
     }
@@ -68,7 +68,7 @@ extension Dictionary: YPasteboardCopy where Key == String, Value: YPrimitive {
         (content as? [String: NSDictionary])?.compactMapValues{ Value.fromPropertyList($0) }
     }
 }
-extension Dictionary: YElement, YPrimitive where Key == String, Value: YPrimitive {
+extension Dictionary: YElement, YValue where Key == String, Value: YValue {
     public static var isReference: Bool { Value.isReference }
     
     public func toOpaque() -> Any? { self.mapValues{ $0.toOpaque() } }

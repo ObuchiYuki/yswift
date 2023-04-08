@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol YCodable: YPrimitive, Codable {}
+public protocol YCodable: YValue, Codable {}
 
 private let opaqueEncoder = DictionaryEncoder(dataEncoding: .nsdata)
 private let opaqueDecoder = DictionaryDecoder()

@@ -7,8 +7,8 @@
 
 import Foundation
 
-public protocol YRawRepresentable: YPrimitive {
-    associatedtype RawValue: YPrimitive
+public protocol YRawRepresentable: YValue {
+    associatedtype RawValue: YValue
 
     var rawValue: RawValue { get }
 
