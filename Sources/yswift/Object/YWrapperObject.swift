@@ -15,5 +15,8 @@ public protocol YWrapperObject: YElement {
     
     var publisher: Publisher { get }
     
+    static var isWrappingReference: Bool { get }
+    
     init(opaque: Opaque)
 }
+

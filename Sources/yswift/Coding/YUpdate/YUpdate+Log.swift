@@ -8,6 +8,7 @@
 import Foundation
 import lib0
 
+#if DEBUG
 extension YUpdate {
     public func log() {
         switch self.version {
@@ -35,3 +36,4 @@ extension YUpdate {
     }
 
 }
+#endif

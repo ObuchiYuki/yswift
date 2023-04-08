@@ -37,7 +37,7 @@ extension YEvent.Delta: CustomStringConvertible {
 
 extension YEvent.Delta: Equatable {
     public static func == (lhs: YEvent.Delta, rhs: YEvent.Delta) -> Bool {
-        return optionalEqual(lhs.insert, rhs.insert, compare: { jsStrictEqual($0, $1) })
+        return optionalEqual(lhs.insert, rhs.insert, compare: { equalJSON($0, $1) })
         && lhs.retain == rhs.retain
         && lhs.delete == rhs.delete
         && optionalEqual(lhs.attributes, rhs.attributes, compare: { $0.isEqual(to: $1) })

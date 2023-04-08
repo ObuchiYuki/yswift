@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-final public class YArray<Element: YElement>: YWrapperObject {
+final public class YArray<Element: YElement> {
     public let opaque: YOpaqueArray
     
     public var count: Int { self.opaque.count }
@@ -82,6 +82,10 @@ extension YArray: Hashable where Element: Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(self.toArray())
     }
+}
+
+extension YArray: YWrapperObject {
+    public static var isWrappingReference: Bool { Element.isReference }
 }
 
 extension YArray: YElement {

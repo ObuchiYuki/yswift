@@ -10,17 +10,13 @@ import Combine
 
 extension YObject {
     public func register<T: YWrapperObject>(_ property: WProperty<T>, for key: String) {
-        self._register(property, for: key)
+        if T.isWrappingReference {
+            self._register(property, for: "&\(key)")
+        } else {
+            self._register(property, for: key)
+        }
     }
-    
-    public func register<T: YObject>(_ property: WProperty<YArray<YReference<T>>>, for key: String) {
-        self._register(property, for: "&\(key)")
-    }
-    
-    public func register<T: YObject>(_ property: WProperty<YMap<YReference<T>>>, for key: String) {
-        self._register(property, for: "&\(key)")
-    }
-    
+        
     private func _register<T: YElement>(_ property: WProperty<T>, for key: String) {
         property.storage.getter = {[unowned self] in T.fromOpaque(self._getValue(for: key)) }
         if case .decode = YObject.initContext {} else {

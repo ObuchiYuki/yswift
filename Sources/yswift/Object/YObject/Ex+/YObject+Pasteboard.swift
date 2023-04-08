@@ -1,94 +1,47 @@
 //
 //  File.swift
-//  
 //
-//  Created by yuki on 2023/04/08.
+//
+//  Created by yuki on 2023/04/07.
 //
 
-protocol YObjectExtension: YObject {}
-extension YObject: YObjectExtension{}
+import Foundation
 
-#if canImport(Cocoa)
-import Cocoa
+private let encoder = DictionaryEncoder()
+private let decoder = DictionaryDecoder()
 
-extension NSPasteboard {
-    public struct ObjectType<T: YPasteboardCopy>: ExpressibleByStringLiteral {
-        public let type: NSPasteboard.PasteboardType
+private struct YCopyContext: Codable {
+    enum CopyType: String, Codable {
+        case reference = "ref"
+        case copy = "copy"
+    }
+    
+    let type: CopyType
+    let objectID: YObjectID
+}
+
+extension YObject: YPasteboardReferenceCopy {
+    public func toPropertyList() -> Any? {
+        assert(objectID != nil, "You cannot encode object without objectID.")
+        let context = YCopyContext(type: .copy, objectID: self.objectID)
+        return try! encoder.encode(context) as! NSDictionary
+    }
+    
+    public func toReferencePropertyList() -> Any? {
+        assert(objectID != nil, "You cannot encode object without objectID.")
+        let context = YCopyContext(type: .reference, objectID: self.objectID)
+        return try! encoder.encode(context) as! NSDictionary
+    }
+    
+    public static func fromPropertyList(_ content: Any?) -> Self? {
+        guard let content = content else { return nil }
+        guard let context = try? decoder.decode(YCopyContext.self, from: content) else { return nil }
+        guard let object = YObjectStore.shared.object(for: context.objectID) as? Self else { return nil }
         
-        public init(type: NSPasteboard.PasteboardType) {
-            self.type = type
-        }
-        public init(rawValue: String) {
-            self.type = .init(rawValue)
-        }
-        public init(stringLiteral value: StringLiteralType) {
-            self.type = .init(value)
+        switch context.type {
+        case .copy: return object.smartCopy()
+        case .reference: return object
         }
     }
 }
 
-extension YPasteboardCopy {
-    public func pasteBoardDataStorage(forType type: NSPasteboard.ObjectType<Self>) -> NSPasteboardWriting {
-        let item = NSPasteboardItem()
-        item.setObject(self, forType: type)
-        return item
-    }
-}
-
-extension YPasteboardReferenceCopy {
-    public func pasteBoardRefStorage(forType type: NSPasteboard.ObjectType<Self>) -> NSPasteboardWriting {
-        let item = NSPasteboardItem()
-        item.setObjectRef(self, forType: type)
-        return item
-    }
-}
-
-extension NSPasteboardItem {
-    public func object<T: YPasteboardCopy>(forType type: NSPasteboard.ObjectType<T>) -> NSDictionary? {
-        self.propertyList(forType: type.type).flatMap{ $0 as? NSDictionary }
-    }
-    
-    public func setObject<T: YPasteboardCopy>(_ node: T, forType type: NSPasteboard.ObjectType<T>) {
-        guard let propertyList = node.toPropertyList() else { return }
-        self.setPropertyList(propertyList, forType: type.type)
-    }
-    public func setObjectRef<T: YPasteboardReferenceCopy>(_ node: T, forType type: NSPasteboard.ObjectType<T>) {
-        guard let propertyList = node.toReferencePropertyList() else { return }
-        self.setPropertyList(propertyList, forType: type.type)
-    }
-}
-
-extension NSPasteboard {
-    @discardableResult public func declareType<T: YPasteboardCopy>(_ type: NSPasteboard.ObjectType<T>, owner: Any?) -> Int {
-        self.declareTypes([type.type], owner: owner)
-    }
-    @discardableResult public func addTypes<T: YPasteboardCopy>(_ type: NSPasteboard.ObjectType<T>, owner: Any?) -> Int {
-        self.addTypes([type.type], owner: owner)
-    }
-    
-    public func canReadType(_ type: NSPasteboard.PasteboardType) -> Bool {
-        self.canReadItem(withDataConformingToTypes: [type.rawValue])
-    }
-    public func canReadType<T: YPasteboardCopy>(_ type: NSPasteboard.ObjectType<T>) -> Bool {
-        self.canReadItem(withDataConformingToTypes: [type.type.rawValue])
-    }
-    public func objects<T: YPasteboardCopy>(type: NSPasteboard.ObjectType<T>) -> [T]? {
-        self.pasteboardItems?.compactMap{ $0.object(forType: type) }.compactMap{ T.fromPropertyList($0) }
-    }
-    
-    public func setObjects<T: YPasteboardCopy>(_ nodes: [T], forType type: NSPasteboard.ObjectType<T>) {
-        self.writeObjects(nodes.map{ $0.pasteBoardDataStorage(forType: type) })
-    }
-    
-    public func setObjectsRef<T: YPasteboardReferenceCopy>(_ nodes: [T], forType type: NSPasteboard.ObjectType<T>) {
-        self.writeObjects(nodes.map{ $0.pasteBoardRefStorage(forType: type) })
-    }
-}
-
-extension NSView {
-    public func registerForDraggedType<T: YPasteboardCopy>(_ type: NSPasteboard.ObjectType<T>) {
-        self.registerForDraggedTypes([type.type])
-    }
-}
-
-#endif

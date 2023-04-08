@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-final public class YMap<Value: YElement>: YWrapperObject {
+final public class YMap<Value: YElement> {
     public let opaque: YOpaqueMap
         
     public init(opaque: YOpaqueMap) { self.opaque = opaque }
@@ -67,6 +67,10 @@ extension YMap {
     public func toDictionary() -> [String: Value] {
         Dictionary(uniqueKeysWithValues: self)
     }
+}
+
+extension YMap: YWrapperObject {
+    public static var isWrappingReference: Bool { Value.isReference }
 }
 
 extension YMap: YElement {
