@@ -16,9 +16,16 @@ public protocol YRawRepresentable: YPrimitive {
 }
 
 extension YRawRepresentable {
-    public func persistenceObject() -> Any? { self.rawValue }
+    public func toOpaque() -> Any? { self.rawValue }
     
-    public static func fromPersistence(_ opaque: Any?) -> Self {
+    public static func fromOpaque(_ opaque: Any?) -> Self {
         Self.init(rawValue: opaque as! Self.RawValue)!
+    }
+    
+    public func toPropertyList() -> Any? { self.rawValue }
+    
+    public static func fromPropertyList(_ content: Any?) -> Self? {
+        guard let rawValue = content as? RawValue else { return nil }
+        return Self.init(rawValue: rawValue)
     }
 }

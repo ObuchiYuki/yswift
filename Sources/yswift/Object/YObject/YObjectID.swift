@@ -62,6 +62,17 @@ extension YObjectID {
 
 extension YObjectID: YElement {
     public static var isReference: Bool { false }
-    public func persistenceObject() -> Any? { return value }
-    public static func fromPersistence(_ opaque: Any?) -> YObjectID { YObjectID(opaque as! Int) }
+    public func toOpaque() -> Any? { return value }
+    public static func fromOpaque(_ opaque: Any?) -> YObjectID { YObjectID(opaque as! Int) }
+}
+
+extension YObjectID: Codable {
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
+    }
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.value = try container.decode(Int.self)
+    }
 }

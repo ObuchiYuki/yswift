@@ -20,9 +20,17 @@ final public class YReference<T: YObject> {
 
 extension YReference: YPrimitive {
     public static var isReference: Bool { true }
-    public func persistenceObject() -> Any? { self.objectID.value }
-    public static func fromPersistence(_ opaque: Any?) -> YReference<T> {
-        let id = YObjectID(opaque as! Int)
-        return YReference(objectID: id)
+    
+    public func toOpaque() -> Any? { self.objectID.value }
+    
+    public static func fromOpaque(_ opaque: Any?) -> YReference<T> {
+        YReference(objectID: YObjectID(opaque as! Int))
+    }
+    
+    public func toPropertyList() -> Any? { self.objectID.value }
+    
+    public static func fromPropertyList(_ content: Any?) -> YReference<T>? {
+        guard let content = content as? Int else { return nil }
+        return YReference(objectID: YObjectID(content))
     }
 }

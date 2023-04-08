@@ -22,9 +22,9 @@ extension YObject {
     }
     
     private func _register<T: YElement>(_ property: WProperty<T>, for key: String) {
-        property.storage.getter = {[unowned self] in T.fromPersistence(self._getValue(for: key)) }
+        property.storage.getter = {[unowned self] in T.fromOpaque(self._getValue(for: key)) }
         if case .decode = YObject.initContext {} else {
-            self._setValue(property.initialValue().persistenceObject(), for: key)
+            self._setValue(property.initialValue().toOpaque(), for: key)
         }
     }
 }

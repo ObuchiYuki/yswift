@@ -21,28 +21,28 @@ final public class YArray<Element: YElement>: YWrapperObject {
     public convenience init() { self.init(opaque: YOpaqueArray()) }
     
     public convenience init<S: Sequence>(_ contents: S) where S.Element == Element {
-        self.init(opaque: YOpaqueArray(contents.lazy.map{ $0.persistenceObject() }))
+        self.init(opaque: YOpaqueArray(contents.lazy.map{ $0.toOpaque() }))
     }
     
     public subscript(index: Int) -> Element {
-        Element.fromPersistence(self.opaque[index])
+        Element.fromOpaque(self.opaque[index])
     }
     public subscript<R: _RangeExpression>(range: R) -> [Element] {
-        self.opaque[range].map{ Element.fromPersistence($0) }
+        self.opaque[range].map{ Element.fromOpaque($0) }
     }
     
     public func append(_ content: Element) {
-        self.opaque.append(content.persistenceObject())
+        self.opaque.append(content.toOpaque())
     }
     public func append<S: Sequence>(contentsOf contents: S) where S.Element == Element {
-        self.opaque.append(contentsOf: contents.map{ $0.persistenceObject() })
+        self.opaque.append(contentsOf: contents.map{ $0.toOpaque() })
     }
     
     public func insert(_ content: Element, at index: Int) {
-        self.opaque.insert(content.persistenceObject(), at: index)
+        self.opaque.insert(content.toOpaque(), at: index)
     }
     public func insert<S: Sequence>(contentsOf contents: S, at index: Int) where S.Element == Element {
-        self.opaque.insert(contentsOf: contents.map{ $0.persistenceObject() }, at: index)
+        self.opaque.insert(contentsOf: contents.map{ $0.toOpaque() }, at: index)
     }
 
     public func delete(at index: Int) {
@@ -56,11 +56,11 @@ final public class YArray<Element: YElement>: YWrapperObject {
     }
     
     public func remove(at index: Int) -> Element {
-        Element.fromPersistence(opaque.remove(at: index))
+        Element.fromOpaque(opaque.remove(at: index))
     }
     
     public func assign(_ other: [Element]) {
-        opaque.assign(other.map{ $0.persistenceObject() })
+        opaque.assign(other.map{ $0.toOpaque() })
     }
     
     public func copy() -> YArray<Element> {
@@ -86,8 +86,8 @@ extension YArray: Hashable where Element: Hashable {
 
 extension YArray: YElement {
     public static var isReference: Bool { false }
-    public static func fromPersistence(_ opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueArray) }
-    public func persistenceObject() -> Any? { self.opaque }
+    public static func fromOpaque(_ opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueArray) }
+    public func toOpaque() -> Any? { self.opaque }
 }
 
 extension YArray: CustomStringConvertible {
@@ -96,7 +96,7 @@ extension YArray: CustomStringConvertible {
 
 extension YArray: Sequence {
     public func makeIterator() -> some IteratorProtocol<Element> {
-        return self.opaque.lazy.map{ Element.fromPersistence($0) }.makeIterator()
+        return self.opaque.lazy.map{ Element.fromOpaque($0) }.makeIterator()
     }
 }
 

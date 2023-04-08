@@ -63,7 +63,7 @@ final class IntegrationsTests: XCTestCase {
     }
     
     func testStruct() throws {
-        struct Point: Hashable, Codable, YElement {
+        struct Point: YCodable, Hashable {
             var x: Float
             var y: Float
         }
@@ -125,6 +125,6 @@ final class IntegrationsTests: XCTestCase {
     }
 }
 
-extension CGRect: YElement {}
-extension CGSize: YElement {}
-extension CGPoint: YElement {}
+extension CGRect: YCodable {}
+extension CGSize: YCodable {}
+extension CGPoint: YCodable {}

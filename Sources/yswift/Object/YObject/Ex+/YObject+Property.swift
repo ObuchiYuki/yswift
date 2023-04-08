@@ -54,19 +54,19 @@ extension YObject {
             get {
                 assert(self.storage.getter != nil, "Use of unregistred property. YObject.register(_:) to register property.")
                 
-                return self.storage.publisher?.value ?? Value.fromPersistence(self.storage.getter())
+                return self.storage.publisher?.value ?? Value.fromOpaque(self.storage.getter())
             }
             set {
                 assert(self.storage.setter != nil, "Use of unregistred property. YObject.register(_:) to register property.")
                 
-                self.storage.setter(newValue.persistenceObject())
+                self.storage.setter(newValue.toOpaque())
             }
         }
         public var projectedValue: some Publisher<Value, Never> {
             assert(self.storage.getter != nil, "Use of unregistred property. YObject.register(_:) to register property.")
             
             if self.storage.publisher == nil {
-                let value = Value.fromPersistence(self.storage.getter())
+                let value = Value.fromOpaque(self.storage.getter())
                 self.storage.publisher = CurrentValueSubject(value)
             }
             return self.storage.publisher!
@@ -76,14 +76,14 @@ extension YObject {
         let initialValue: () -> Any?
         
         public init(wrappedValue: @autoclosure @escaping () -> Value) {
-            self.initialValue = { wrappedValue().persistenceObject() }
+            self.initialValue = { wrappedValue().toOpaque() }
         }
         
         func send(_ value: Any?) {
             if let publisher = self.storage.publisher {
-                publisher.send(Value.fromPersistence(value))
+                publisher.send(Value.fromOpaque(value))
             } else {
-                self.storage.publisher = CurrentValueSubject(Value.fromPersistence(value))
+                self.storage.publisher = CurrentValueSubject(Value.fromOpaque(value))
             }
         }
     }

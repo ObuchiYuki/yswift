@@ -826,13 +826,11 @@ extension _DictionaryDecoder {
         return string
     }
     
-    fileprivate func unbox(_ value: Any?, as type: Date.Type) throws -> Date? {
-        guard !(value is NSNull) else { return nil }
-        return value as? Date
-    }
-    
     fileprivate func unbox(_ value: Any?, as type: Data.Type) throws -> Data? {
         guard !(value is NSNull) else { return nil }
+        if let value = value as? String {
+            return Data(base64Encoded: value)
+        }
         return value as? Data
     }
         

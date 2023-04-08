@@ -2,33 +2,29 @@ import Foundation
 
 final class DictionaryEncoder {
     var userInfo: [CodingUserInfoKey : Any] = [:]
-
-    final fileprivate class _Options {
-        let userInfo: [CodingUserInfoKey : Any]
-        
-        init(userInfo: [CodingUserInfoKey : Any]) { self.userInfo = userInfo }
+    
+    enum DataEncoding {
+        case nsdata
+        case base64
     }
 
-    fileprivate var options: _Options { _Options(userInfo: userInfo) }
+    final class Options {
+        var userInfo: [CodingUserInfoKey : Any] = [:]
+        var dataEncoding: DataEncoding = .nsdata
+    }
+
+    let options = Options()
 
     init() {}
+    
+    convenience init(dataEncoding: DataEncoding) {
+        self.init()
+        self.options.dataEncoding = dataEncoding
+    }
 
     func encode<T : Encodable>(_ value: T) throws -> Any? {
         let encoder = _DictionaryEncoder(options: self.options)
-
-        guard let topLevel = try encoder.box_(value) else {
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.self) did not encode any values."))
-        }
-        
-        if topLevel is NSNull {
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.self) encoded as null Dictionary fragment."))
-        } else if topLevel is NSNumber {
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.self) encoded as number Dictionary fragment."))
-        } else if topLevel is NSString {
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.self) encoded as string Dictionary fragment."))
-        }
-    
-        return topLevel 
+        return try encoder.box_(value)
     }
 }
 
@@ -40,11 +36,11 @@ private class _DictionaryEncoder : Encoder {
     
     fileprivate var storage: _DictionaryEncodingStorage
 
-    fileprivate let options: DictionaryEncoder._Options
+    fileprivate let options: DictionaryEncoder.Options
     
     fileprivate var canEncodeNewValue: Bool { self.storage.count == self.codingPath.count }
 
-    fileprivate init(options: DictionaryEncoder._Options, codingPath: [CodingKey] = []) {
+    fileprivate init(options: DictionaryEncoder.Options, codingPath: [CodingKey] = []) {
         self.options = options
         self.storage = _DictionaryEncodingStorage()
         self.codingPath = codingPath
@@ -311,10 +307,11 @@ extension _DictionaryEncoder {
     }
 
     fileprivate func box_<T : Encodable>(_ value: T) throws -> Any? {
-        if T.self == Date.self || T.self == NSDate.self {
-            return value
-        } else if T.self == Data.self || T.self == NSData.self {
-            return value
+        if T.self == Data.self || T.self == NSData.self {
+            switch self.options.dataEncoding {
+            case .nsdata: return value
+            case .base64: return (value as! Data).base64EncodedString()
+            }
         } else if T.self == URL.self || T.self == NSURL.self {
             return (value as! URL).absoluteString
         } else if T.self == CGFloat.self {
@@ -368,7 +365,7 @@ private class _DictionaryReferencingEncoder : _DictionaryEncoder {
         let value: Any
         switch self.storage.count {
         case 0: value = NSDictionary()
-        case 1: value = self.storage.popContainer()
+        case 1: value = self.storage.popContainer() ?? NSNull()
         default: fatalError("Referencing encoder deallocated with multiple containers on stack.")
         }
 

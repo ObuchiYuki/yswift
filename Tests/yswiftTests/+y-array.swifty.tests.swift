@@ -101,8 +101,8 @@ final class YArraySwiftyTests: XCTestCase {
         struct Point: Codable, Equatable, YElement {
             var x: Double, y: Double
             
-            func persistenceObject() -> Any? { ["x": x, "y": y] }
-            static func fromPersistence(_ opaque: Any?) -> Point {
+            func toOpaque() -> Any? { ["x": x, "y": y] }
+            static func fromOpaque(_ opaque: Any?) -> Point {
                 let opaque = opaque as! [String: Double]
                 return Point(x: opaque["x"]!, y: opaque["y"]!)
             }

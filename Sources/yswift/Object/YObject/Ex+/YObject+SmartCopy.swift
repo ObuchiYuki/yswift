@@ -16,7 +16,7 @@ extension YObject {
         
         if let id = value as? Int {
             writers[YObjectID(id)] = {
-                map._setValue($0.persistenceObject(), for: key)
+                map._setValue($0.toOpaque(), for: key)
             }
         } else if let value = value as? [Int] {
             var takeValues = [YObjectID]()
