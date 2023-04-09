@@ -3,7 +3,7 @@
 Swift version of [yjs](https://github.com/yjs/yjs). 
 
 [y-uniffi](https://github.com/y-crdt/y-uniffi) is a great yjs Swift implementation though,
-I have created a completely Swift reimplementation of yjs, as I do not yet have a nested Map, UndoManager, etc. implementation in y-uniffi 
+I have created a completely Swift reimplementation of yjs, as y-uniffi dose not yet have a nested Map, UndoManager, etc. implementation.
 
 ##### Important
 
