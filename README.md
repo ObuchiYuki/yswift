@@ -11,6 +11,18 @@ Now this library is based on yjs and implemented in Swift for a **personal** use
 
 
 
+## Install
+
+```
+dependencies: [
+    .package(url: "https://github.com/ObuchiYuki/yswift.git", branch: "1.0.0"),
+]
+```
+
+
+
+## Features
+
 
 -  Supported collaborative types:
   - [x] Text
