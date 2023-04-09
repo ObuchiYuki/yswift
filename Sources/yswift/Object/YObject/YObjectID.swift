@@ -8,9 +8,11 @@
 import Foundation
 
 public struct YObjectID: Hashable, CustomStringConvertible {
-    let value: Int
+    typealias RawValue = Int
+    
+    let value: RawValue
    
-    init(_ value: Int) {
+    init(_ value: RawValue) {
         self.value = value
         YObjectID.inMemoryAllocatedIDs.insert(value)
     }
@@ -37,9 +39,9 @@ extension YObjectID {
 
 extension YObjectID {
    
-    public static var compressedStringMemo = [Int: String]()
+    static var compressedStringMemo = [RawValue: String]()
        
-    func compressedString() -> String {
+    public func compressedString() -> String {
         if let cached = YObjectID.compressedStringMemo[self.value] { return cached }
         
         let data = withUnsafeBytes(of: self) { Data($0.dropLast()) }
@@ -62,7 +64,9 @@ extension YObjectID {
 
 extension YObjectID: YElement {
     public static var isReference: Bool { false }
+    
     public func toOpaque() -> Any? { return value }
+    
     public static func fromOpaque(_ opaque: Any?) -> YObjectID { YObjectID(opaque as! Int) }
 }
 

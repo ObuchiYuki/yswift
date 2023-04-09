@@ -5,6 +5,13 @@
 //  Created by yuki on 2023/04/01.
 //
 
+protocol _YObjectRefrence: YObject {}
+extension YObject: _YObjectRefrence {}
+
+extension _YObjectRefrence {
+    public func reference() -> YReference<Self> { .init(self) }
+}
+
 final public class YReference<T: YObject> {
     
     public var value: T { YObjectStore.shared.object(for: objectID) as! T }
@@ -15,7 +22,7 @@ final public class YReference<T: YObject> {
     
     public init(_ object: T) { self.objectID = object.objectID }
     
-    public static func reference(for object: T) -> YReference<T> { .init(object) }
+    public static func reference(_ object: T) -> YReference<T> { .init(object) }
 }
 
 extension YReference: YValue {

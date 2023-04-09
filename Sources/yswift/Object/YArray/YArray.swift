@@ -15,7 +15,6 @@ final public class YArray<Element: YElement> {
     
     public var isEmpty: Bool { self.opaque.count == 0 }
     
-    
     public init(opaque: YOpaqueArray) { self.opaque = opaque }
     
     public convenience init() { self.init(opaque: YOpaqueArray()) }
@@ -90,8 +89,9 @@ extension YArray: YWrapperObject {
 
 extension YArray: YElement {
     public static var isReference: Bool { false }
-    public static func fromOpaque(_ opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueArray) }
+    
     public func toOpaque() -> Any? { self.opaque }
+    public static func fromOpaque(_ opaque: Any?) -> Self { self.init(opaque: opaque as! YOpaqueArray) }
 }
 
 extension YArray: CustomStringConvertible {

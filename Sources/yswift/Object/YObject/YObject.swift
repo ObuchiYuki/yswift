@@ -56,12 +56,12 @@ open class YObject: YOpaqueObject {
 
     final public override func copy() -> Self {
         let map = Self()
-        if case .smartcopy(let table, _) = YObject.initContext {
-            table[self.objectID] = map.objectID
+        if case .smartcopy(let context) = YObject.initContext {
+            context.table[self.objectID.value] = map.objectID.value
         }
         for (key, value) in self.elementSequence() {
-            if case .smartcopy(_, let writers) = YObject.initContext, key == "_" || key.starts(with: "&") {
-                self._copyWithSmartCopy(map: map, value: value, key: key, writers: writers)
+            if case .smartcopy(let context) = YObject.initContext, key == YObject.objectIDKey || key.starts(with: "&") {
+                self._copyWithSmartCopy(map: map, value: value, key: key, context: context)
             } else if let value = value as? YOpaqueObject {
                 map._setValue(value.copy(), for: key)
             } else {
@@ -127,11 +127,15 @@ extension YObject {
     enum InitContext {
         case unspecified
         case decode
-        // [old:new], [old.raw:new_writer]
-        case smartcopy(RefDictionary<YObjectID, YObjectID>, RefDictionary<YObjectID, (YObjectID) -> ()>)
+        case smartcopy(SmartCopyContext)
     }
     
-    static let objectIDKey = "_"
+    final class SmartCopyContext {
+        var table: [YObjectID.RawValue: YObjectID.RawValue] = [:]
+        var writers: [YObjectID.RawValue: (YObjectID.RawValue) -> ()] = [:]
+    }
+    
+    static let objectIDKey = "#"
     static var initContext: InitContext = .unspecified
     static var typeIDTable: [ObjectIdentifier: Int] = [:]
 }

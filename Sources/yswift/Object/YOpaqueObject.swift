@@ -132,3 +132,9 @@ extension YOpaqueObject {
         fatalError("Key not found. \(self)")
     }
 }
+
+extension YOpaqueObject: YElement {
+    public static func fromOpaque(_ opaque: Any?) -> Self { opaque as! Self }
+    
+    public func toOpaque() -> Any? { self }
+}

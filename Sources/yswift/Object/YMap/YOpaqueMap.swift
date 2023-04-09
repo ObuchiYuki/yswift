@@ -41,7 +41,7 @@ final public class YOpaqueMap: YOpaqueObject {
         if let doc = self.document {
             doc.transact{ self.mapSet($0, key: key, value: value) }
         } else {
-            self._prelimContent[key] = value
+            self._prelimContent[key] = value ?? NSNull()
         }
     }
     

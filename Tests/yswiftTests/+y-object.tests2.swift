@@ -17,16 +17,70 @@ class NameContainer: YObject {
 }
 
 final class YObjectTests2: XCTestCase {
-    
-    func testInfinity() throws {
-        let container = NSMutableDictionary()
-        container["inf"] = NSNumber(value: Float.infinity)
-        print(container)
-    }
-    
     override func setUp() {
         NameContainer.registerAuto()
         NameContainer.Name.registerAuto()
+    }
+    
+    func testArrayOrMapWithReferenceSmartCopy() throws {
+        class Object: YObject, CustomStringConvertible {
+            @Property private(set) var name: String = ""
+            
+            @WProperty var children: YArray<Object> = []
+            
+            @WProperty var array: YArray<YReference<Object>> = []
+            @WProperty var arrayOptional: YArray<YReference<Object>?> = []
+            @WProperty var map: YMap<YReference<Object>> = [:]
+            @WProperty var mapOptional: YMap<YReference<Object>?> = [:]
+            
+            var description: String {
+                var components = [(String, Any?)]()
+                components.append(("#", self.objectID.value))
+                if !children.isEmpty { components.append(("children", children)) }
+                if !array.isEmpty { components.append(("array", array)) }
+                if !arrayOptional.isEmpty { components.append(("arrayOptional", arrayOptional)) }
+                if !map.isEmpty { components.append(("map", map)) }
+                if !mapOptional.isEmpty { components.append(("mapOptional", mapOptional)) }
+                return makeDescription(from: components)
+            }
+            
+            required init() {
+                super.init()
+                self.register(_name, for: "name")
+                self.register(_children, for: "children")
+                self.register(_array, for: "array")
+                self.register(_arrayOptional, for: "arrayOptional")
+                self.register(_map, for: "map")
+                self.register(_mapOptional, for: "mapOptional")
+            }
+            
+            convenience init(name: String) {
+                self.init()
+                self.name = name
+            }
+        }
+        Object.registerAuto()
+        
+        let parent = Object(name: "Parent")
+        let child0 = Object(name: "Child0")
+        let child1 = Object(name: "Child1")
+        let child2 = Object(name: "Child2")
+        let child3 = Object(name: "Child3")
+        
+        parent.children.assign([ child0, child1, child2, child3 ])
+        parent.array.append(child0.reference())
+        parent.arrayOptional.append(contentsOf: [child1.reference(), nil])
+        parent.map["child"] = child2.reference()
+        parent.mapOptional["child"] = child3.reference()
+        parent.mapOptional["child_nil"] = nil
+        
+        let parentCopy = parent.smartCopy()
+        
+        print(parent)
+        print(parentCopy)
+        
+        XCTAssert(parentCopy.array[0].value === parentCopy.children[0])
+        
     }
     
     func testReferenceObject() throws {
@@ -39,7 +93,7 @@ final class YObjectTests2: XCTestCase {
                 self.init()
                 self.name = name
                 self.children.append(contentsOf: children)
-                children.forEach{ $0.parent = .reference(for: self) }
+                children.forEach{ $0.parent = .reference(self) }
             }
             
             required init() {
@@ -136,7 +190,7 @@ final class YObjectTests2: XCTestCase {
                 self.init()
                 self.name = name
                 self.children.assign(children)
-                children.forEach{ $0.parent = .reference(for: self) }
+                children.forEach{ $0.parent = .reference(self) }
             }
             
             required init() {

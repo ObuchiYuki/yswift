@@ -7,21 +7,17 @@
 
 import Foundation
 
-extension YObject: CustomStringConvertible {
-    public var description: String {
-        var objectID: String?
+extension YObject {
+    public func makeDescription<S: Sequence>(from proprties: S) -> String where S.Element == (String, Any?) {
         var components = [String]()
                 
-        for var (key, value) in self.elementSequence().sorted(by: { $0.0 < $1.0 }) {
+        for var (key, value) in proprties {
             if key == YObject.objectIDKey {
-                objectID = YObjectID(value as! Int).compressedString()
-                key = "_"
-                continue
+                key = "id"
             }
-            
             if let _value = value, !(_value is NSNull) {
-                if let property = self._propertyTable[key], String(describing: type(of: property)).contains("YReference") {
-                    value = YObjectID(value as! Int).compressedString()
+                if let _value = _value as? any YWrapperObject {
+                    value = String(reflecting: _value.opaque)
                 } else {
                     value = String(reflecting: value!)
                 }
@@ -32,7 +28,18 @@ extension YObject: CustomStringConvertible {
             components.append("\(key): \(value!)")
         }
         
-        return "\(Self.self)(\(objectID!), \(components.joined(separator: ", ")))"
+        return "\(Self.self)(\(components.joined(separator: ", ")))"
+    }
+    
+    public func makeDescription(in keys: Set<String>) -> String {
+        self.makeDescription(from: self.elementSequence().filter{ keys.contains($0.0) }.sorted(by: { $0.0 < $1.0 }))
+    }
+}
+
+protocol YObjectAutoDescription: YObject, CustomStringConvertible {}
+extension YObjectAutoDescription {
+    public var description: String {
+        self.makeDescription(from: self.elementSequence().sorted(by: { $0.0 < $1.0 }))
     }
 }
 
