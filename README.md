@@ -26,7 +26,7 @@ dependencies: [
 
 -  Supported collaborative types:
   - [x] Text
-    - [x] text insertion (with variable offsets including configurable UTF-8, UTF-16 and UTF-32 mappings)
+    - [x] text insertion
     - [x] embedded elements insertion
     - [x] insertion of formatting attributes
     - [x] observe events and deltas
