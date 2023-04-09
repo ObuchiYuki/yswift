@@ -51,6 +51,25 @@ dependencies: [
 -  Transaction events:
   - [x] on event update
   - [x] on after transaction
+-  Tests
+
+  -  [x] yjs tests
+
+    -  [x] doc.tests
+    -  [x] encoding.tests
+    -  [x] snapshot.tests
+    -  [x] undo-redo.tests
+    -  [x] udpates.tests
+    -  [x] y-array.tests
+    -  [x] y-map.tests
+    -  [x] y-test.tests
+  -  [x] yswift tests
+
+    -  [x] y-array.swift.tests
+    -  [x] y-map.swift.tests
+    -  [x] y-object.swift.tests
+    -  [x] integration.swift.tests
+
 
 
 
