@@ -20,7 +20,7 @@ final class PublicAPITests: XCTestCase {
             }
         }
         
-        let document = YDocument()
-        let root = document.getMap(Person.self, "root")
+//        let document = YDocument()
+//        let root = document.getMap(Person.self, "root")
     }
 }

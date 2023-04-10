@@ -7,6 +7,7 @@
 
 import Foundation
 
+// TODO: remove
 protocol YText_or_YArray {
     var count: Int { get }
 }
