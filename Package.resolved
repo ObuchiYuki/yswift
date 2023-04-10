@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ObuchiYuki/lib0-swift.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "eb1808ac5997d280fb85299a5ba49ef0c0c7c4a8"
+        "revision" : "95456ae5489caf831ba57e0fb7e3496f23733156",
+        "version" : "1.0.1"
       }
     },
     {
@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ObuchiYuki/Promise.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "e90a0ab18fbb622fa7a7f1843ed870d047e2d5d6"
+        "revision" : "1f80e9bf2391451cbfd3f4674428937c802fbdcb",
+        "version" : "1.0.15"
       }
     }
   ],
