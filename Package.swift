@@ -19,11 +19,6 @@ let package = Package(
             dependencies: [
                 .product(name: "Promise", package: "Promise"),
                 .product(name: "lib0", package: "lib0-swift"),
-            ],
-            swiftSettings: [
-                .unsafeFlags([
-                    "-enforce-exclusivity=unchecked"
-                ]),
             ]
         ),
         .testTarget(name: "yswiftTests", dependencies: ["yswift"])
