@@ -38,9 +38,9 @@ public enum YSync {
         }
     }
 
-    public static func writeUpdate(encoder: LZEncoder, update: Data) {
+    public static func writeUpdate(encoder: LZEncoder, update: YUpdate) {
         encoder.writeUInt(MessageType.update.rawValue)
-        encoder.writeData(update)
+        encoder.writeData(update.data)
     }
     
     public static func readUpdate(decoder: LZDecoder, doc: YDocument, transactionOrigin: Any? = nil) {
