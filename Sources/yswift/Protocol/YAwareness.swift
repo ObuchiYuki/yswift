@@ -55,7 +55,7 @@ final public class YAwareness<State: YAwarenessValue> {
                 .map{ $0.key }
             
             if removedClients.count > 0 {
-                self._removeStates(of: removedClients)
+                self.removeStates(of: removedClients)
             }
         }
         
