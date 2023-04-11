@@ -99,23 +99,13 @@ extension YArray: CustomStringConvertible {
 }
 
 extension YArray: Sequence {
+    public var first: Element? { self.isEmpty ? nil : self[0] }
+    
+    public var last: Element? { self.isEmpty ? nil : self[self.count-1] }
+    
     public func makeIterator() -> some IteratorProtocol<Element> {
         return self.opaque.lazy.map{ Element.fromOpaque($0) }.makeIterator()
     }
-}
-
-extension YArray: RandomAccessCollection {
-    public var startIndex: Int { 0 }
-    
-    public var endIndex: Int { self.count }
-    
-    public func index(after i: Int) -> Int { i+1 }
-    
-    public func index(before i: Int) -> Int { i-1 }
-    
-    public func index(_ i: Int, offsetBy distance: Int) -> Int { i + distance }
-    
-    public func distance(from start: Int, to end: Int) -> Int { end - start }
 }
 
 extension YArray: ExpressibleByArrayLiteral {

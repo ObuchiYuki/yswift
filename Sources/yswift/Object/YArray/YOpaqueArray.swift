@@ -151,20 +151,6 @@ extension YOpaqueArray: Sequence {
     }
 }
 
-extension YOpaqueArray: RandomAccessCollection {
-    public var startIndex: Int { 0 }
-    
-    public var endIndex: Int { count }
-    
-    public func index(after i: Int) -> Int { i+1 }
-    
-    public func index(before i: Int) -> Int { i-1 }
-    
-    public func index(_ i: Int, offsetBy distance: Int) -> Int { i + distance }
-    
-    public func distance(from start: Int, to end: Int) -> Int { end - start }
-}
-
 extension YOpaqueArray: CustomStringConvertible {
     public var description: String {
         self.map{ $0 ?? "nil" }.description

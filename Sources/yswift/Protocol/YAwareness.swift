@@ -130,6 +130,23 @@ final public class YAwareness<State: YAwarenessValue> {
         return encoder.data
     }
     
+    public func removeStates(of clients: [Int]){
+        var removed: [Int] = []
+        for clientID in clients where self.states[clientID] != nil {
+            self.states.removeValue(forKey: clientID)
+            
+            if clientID == self.clientID {
+                guard let meta = self.meta[clientID] else { continue }
+                self.meta[clientID] = ClientMeta(clock: meta.clock + 1, lastUpdated: Date().timeIntervalSince1970)
+            }
+            removed.append(clientID)
+        }
+        if removed.count > 0 {
+            self._changePublisher.send(Update(added: [], updated: [], removed: removed))
+            self._updatePublisher.send(Update(added: [], updated: [], removed: removed))
+        }
+    }
+    
     private func _updateState(_ newValue: State?) {
         let clock = self.meta[clientID].map{ $0.clock + 1 } ?? 0
         let prevState = self.states[clientID]
@@ -155,23 +172,6 @@ final public class YAwareness<State: YAwarenessValue> {
             self._changePublisher.send(Update(added: added, updated: filteredUpdated, removed: removed))
         }
         self._updatePublisher.send(Update(added: added, updated: updated, removed: removed))
-    }
-    
-    private func _removeStates(of clients: [Int]){
-        var removed: [Int] = []
-        for clientID in clients where self.states[clientID] != nil {
-            self.states.removeValue(forKey: clientID)
-            
-            if clientID == self.clientID {
-                guard let meta = self.meta[clientID] else { continue }
-                self.meta[clientID] = ClientMeta(clock: meta.clock + 1, lastUpdated: Date().timeIntervalSince1970)
-            }
-            removed.append(clientID)
-        }
-        if removed.count > 0 {
-            self._changePublisher.send(Update(added: [], updated: [], removed: removed))
-            self._updatePublisher.send(Update(added: [], updated: [], removed: removed))
-        }
     }
 }
 
