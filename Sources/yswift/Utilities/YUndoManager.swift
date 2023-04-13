@@ -37,7 +37,7 @@ final public class YUndoManager: JSHashable {
     var redoStack: RefArray<StackItem> = []
     var lastChange: Date = Date.distantPast
     
-    private var afterTransactionDisposer: LZObservable.Disposer!
+    private var afterTransactionDisposer: LZObservableObject.Disposer!
     
     public convenience init<T: YWrapperObject>(_ scope: T, options: Options = .make()) {
         self.init([scope.opaque], options: options)
@@ -383,10 +383,10 @@ extension YUndoManager {
     }
     
     public enum Event {
-        public static let stackCleanred = LZObservable.EventName<CleanEvent>("stack-cleared")
-        public static let stackItemAdded = LZObservable.EventName<YUndoManager.ChangeEvent>("stack-item-added")
-        public static let stackItemPopped = LZObservable.EventName<YUndoManager.ChangeEvent>("stack-item-popped")
-        public static let stackItemUpdated = LZObservable.EventName<YUndoManager.ChangeEvent>("stack-item-updated")
+        public static let stackCleanred = LZObservableObject.EventName<CleanEvent>("stack-cleared")
+        public static let stackItemAdded = LZObservableObject.EventName<YUndoManager.ChangeEvent>("stack-item-added")
+        public static let stackItemPopped = LZObservableObject.EventName<YUndoManager.ChangeEvent>("stack-item-popped")
+        public static let stackItemUpdated = LZObservableObject.EventName<YUndoManager.ChangeEvent>("stack-item-updated")
     }
     
     final class StructRedone {

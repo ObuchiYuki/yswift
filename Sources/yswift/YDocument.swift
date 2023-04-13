@@ -10,7 +10,7 @@ import Promise
 import Combine
 import lib0
 
-public class YDocument: LZObservable, JSHashable {
+public class YDocument: LZObservableObject, JSHashable {
     public let guid: String
     public var gc: Bool
     

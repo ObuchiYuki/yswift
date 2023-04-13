@@ -31,7 +31,7 @@ final public class YUpdateEnvironment {
         encodeStateVectorFromUpdate: @escaping (YUpdate) throws -> Data,
         encodeStateVector_Doc: @escaping (YDocument) throws -> Data,
         encodeStateVector_SV: @escaping ([Int : Int]) throws -> Data,
-        updateEventName: LZObservable.EventName<(update: YUpdate, origin: Any?, YTransaction)>,
+        updateEventName: LZObservableObject.EventName<(update: YUpdate, origin: Any?, YTransaction)>,
         description: String,
         diffUpdate: @escaping (YUpdate, Data) throws -> YUpdate
     ) {

@@ -5,15 +5,98 @@ import lib0
 
 private let outdatedTimeout: TimeInterval = 30000
 
-public protocol YAwarenessValue: Codable {
-    init()
+final public class YAwareness<State: Codable> {
+    public typealias Update = YOpaqueAwareness.Update
+    public typealias Origin = YOpaqueAwareness.Origin
+    
+    
+    public let opaque: YOpaqueAwareness
+    
+    public var document: YDocument { opaque.document }
+    public var clientID: Int { opaque.clientID }
+    
+    public var updatePublisher: some Publisher<(update: Update, origin: Origin), Never> { opaque.updatePublisher }
+    public var changePublisher: some Publisher<(update: Update, origin: Origin), Never> { opaque.changePublisher }
+    public var errorPublisher: some Publisher<Error, Never> { _errorPublisher }
+    
+    @LZObservable
+    public var states: [Int: State] = [:]
+    
+    @LZObservable
+    public var localState: State? { didSet { self._setState(localState) } }
+    
+    private var _errorPublisher = PassthroughSubject<Error, Never>()
+    
+    private let _dictionaryEncoder = DictionaryEncoder(dataEncoding: .base64)
+    private let _dictionaryDecoder = DictionaryDecoder()
+    
+    private var _objectBag = [AnyCancellable]()
+    
+    public init(_ document: YDocument) {
+        self.opaque = YOpaqueAwareness(document)
+        
+        self.opaque.changePublisher
+            .sink{[unowned self] in self._handleChange($0.update) }.store(in: &_objectBag)
+    }
+    
+    public func applyUpdate(_ update: Data, origin: Origin) {
+        do {
+            try self.opaque.applyUpdate(update, origin: origin)
+        } catch {
+            self._errorPublisher.send(error)
+        }
+    }
+    
+    public func encodeUpdate(of clients: [Int]) -> Data? {
+        self.opaque.encodeUpdate(of: clients)
+    }
+    
+    public func encodeUpdateAll() -> Data? {
+        self.opaque.encodeUpdate(of: self.opaque.states.keys.map{ $0 })
+    }
+    
+    public func removeStates(of clients: [Int], origin: Origin) {
+        self.opaque.removeStates(of: clients, origin: origin)
+    }
+    
+    private func _setState(_ state: State?) {
+        do {
+            let state = try self._dictionaryEncoder.encode(state) as? YOpaqueAwareness.State
+            self.opaque.localState = state
+        } catch {
+            self._errorPublisher.send(error)
+        }
+    }
+    
+    private func _handleChange(_ udpate: YOpaqueAwareness.Update) {
+        for client in udpate.changed {
+            do {
+                let state = try self._dictionaryDecoder.decode(State?.self, from: self.opaque.states[client])
+                self.states[client] = state
+                if client == self.clientID {
+                    self.localState = state
+                }
+            } catch {
+                self._errorPublisher.send(error)
+            }
+        }
+    }
 }
 
-final public class YAwareness<State: YAwarenessValue> {
+final public class YOpaqueAwareness {
+    public typealias State = [String: Any?]
+    
     public struct Update {
         public let added: [Int]
         public let updated: [Int]
         public let removed: [Int]
+        public var changed: Set<Int> { Set(added + updated + removed) }
+    }
+    
+    public enum Origin {
+        case local
+        case timeout
+        case custom(Any?)
     }
     
     private struct ClientMeta {
@@ -24,19 +107,17 @@ final public class YAwareness<State: YAwarenessValue> {
     public let document: YDocument
     public let clientID: Int
     
+    @LZObservable
     public var states: [Int: State] = [:]
     
-    public var updatePublisher: some Publisher<Update, Never> { _updatePublisher }
-    public var changePublisher: some Publisher<Update, Never> { _changePublisher }
+    public var updatePublisher: some Publisher<(update: YOpaqueAwareness.Update, origin: Origin), Never> { _updatePublisher }
+    public var changePublisher: some Publisher<(update: YOpaqueAwareness.Update, origin: Origin), Never> { _changePublisher }
     
     private var meta: [Int: ClientMeta] = [:]
 
-    private let _updatePublisher = PassthroughSubject<Update, Never>()
-    private let _changePublisher = PassthroughSubject<Update, Never>()
+    private let _updatePublisher = PassthroughSubject<(update: YOpaqueAwareness.Update, origin: Origin), Never>()
+    private let _changePublisher = PassthroughSubject<(update: YOpaqueAwareness.Update, origin: Origin), Never>()
     private var _checkTimer: Timer!
-
-    private let jsonEncoder = JSONEncoder()
-    private let jsonDecoder = JSONDecoder()
     
     public init(_ document: YDocument) {
         self.document = document
@@ -55,7 +136,7 @@ final public class YAwareness<State: YAwarenessValue> {
                 .map{ $0.key }
             
             if removedClients.count > 0 {
-                self.removeStates(of: removedClients)
+                self.removeStates(of: removedClients, origin: .timeout)
             }
         }
         
@@ -63,15 +144,15 @@ final public class YAwareness<State: YAwarenessValue> {
             self._checkTimer.invalidate()
         }
         
-        self.localState = .init()
+        self.localState = [:]
     }
 
-    public var localState: State {
-        get { self.states[self.clientID] ?? .init() }
-        set { self._updateState(newValue) }
+    public var localState: State? {
+        get { self.states[self.clientID] }
+        set { self._updateLocalState(newValue) }
     }
 
-    public func applyUpdate(_ update: Data) throws {
+    public func applyUpdate(_ update: Data, origin: Origin) throws {
         let decoder = LZDecoder(update)
         let timestamp = Date().timeIntervalSince1970
         var added = [Int](), updated = [Int](), removed = [Int](), filteredUpdated = [Int]()
@@ -79,7 +160,7 @@ final public class YAwareness<State: YAwarenessValue> {
         for _ in 0..<(try decoder.readUInt()) {
             let clientID = Int(try decoder.readUInt())
             var clock = Int(try decoder.readUInt())
-            let state = try self.jsonDecoder.decode(Optional<State>.self, from: decoder.readData())
+            let state = try JSONSerialization.jsonObject(with: decoder.readData(), options: [.fragmentsAllowed]) as? [String: Any?]
             let clientMeta = self.meta[clientID]
             let prevState = self.states[clientID]
             let currentClock = clientMeta.map{ $0.clock } ?? 0
@@ -108,14 +189,14 @@ final public class YAwareness<State: YAwarenessValue> {
         }
         
         if added.count > 0 || filteredUpdated.count > 0 || removed.count > 0 {
-            self._changePublisher.send(Update(added: added, updated: filteredUpdated, removed: removed))
+            self._changePublisher.send((Update(added: added, updated: filteredUpdated, removed: removed), origin))
         }
         if added.count > 0 || updated.count > 0 || removed.count > 0 {
-            self._updatePublisher.send(Update(added: added, updated: updated, removed: removed))
+            self._updatePublisher.send((Update(added: added, updated: updated, removed: removed), origin))
         }
     }
 
-    public func encodeUpdate(of clients: [Int]) throws -> Data? {
+    public func encodeUpdate(of clients: [Int]) -> Data? {
         let encoder = LZEncoder()
         encoder.writeUInt(UInt(clients.count))
         
@@ -124,13 +205,13 @@ final public class YAwareness<State: YAwarenessValue> {
             guard let clock = self.meta[clientID]?.clock else { return nil }
             encoder.writeUInt(UInt(clientID))
             encoder.writeUInt(UInt(clock))
-            let data = try self.jsonEncoder.encode(state)
+            let data = try! JSONSerialization.data(withJSONObject: state ?? NSNull(), options: [.fragmentsAllowed])
             encoder.writeData(data)
         }
         return encoder.data
     }
     
-    public func removeStates(of clients: [Int]){
+    public func removeStates(of clients: [Int], origin: Origin) {
         var removed: [Int] = []
         for clientID in clients where self.states[clientID] != nil {
             self.states.removeValue(forKey: clientID)
@@ -142,12 +223,12 @@ final public class YAwareness<State: YAwarenessValue> {
             removed.append(clientID)
         }
         if removed.count > 0 {
-            self._changePublisher.send(Update(added: [], updated: [], removed: removed))
-            self._updatePublisher.send(Update(added: [], updated: [], removed: removed))
+            self._changePublisher.send((update: Update(added: [], updated: [], removed: removed), origin: origin))
+            self._updatePublisher.send((update: Update(added: [], updated: [], removed: removed), origin: origin))
         }
     }
     
-    private func _updateState(_ newValue: State?) {
+    private func _updateLocalState(_ newValue: State?) {
         let clock = self.meta[clientID].map{ $0.clock + 1 } ?? 0
         let prevState = self.states[clientID]
 
@@ -169,9 +250,9 @@ final public class YAwareness<State: YAwarenessValue> {
             if !equalJSON(prevState, newValue) { filteredUpdated.append(clientID) }
         }
         if added.count > 0 || filteredUpdated.count > 0 || removed.count > 0 {
-            self._changePublisher.send(Update(added: added, updated: filteredUpdated, removed: removed))
+            self._changePublisher.send((Update(added: added, updated: filteredUpdated, removed: removed), .local))
         }
-        self._updatePublisher.send(Update(added: added, updated: updated, removed: removed))
+        self._updatePublisher.send((Update(added: added, updated: updated, removed: removed), .local))
     }
 }
 
