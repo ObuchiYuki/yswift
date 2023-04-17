@@ -61,7 +61,7 @@ final public class YAwareness<State: Codable> {
     
     private func _setState(_ state: State?) {
         do {
-            let state = try self._dictionaryEncoder.encode(state) as? YOpaqueAwareness.State
+            let state = try self._dictionaryEncoder.encode(state)
             self.opaque.localState = state
         } catch {
             self._errorPublisher.send(error)
@@ -84,7 +84,7 @@ final public class YAwareness<State: Codable> {
 }
 
 final public class YOpaqueAwareness {
-    public typealias State = [String: Any?]
+    public typealias State = Any
     
     public struct Update {
         public let added: [Int]
@@ -144,7 +144,7 @@ final public class YOpaqueAwareness {
             self._checkTimer.invalidate()
         }
         
-        self.localState = [:]
+        self.localState = [String: Any]()
     }
 
     public var localState: State? {
