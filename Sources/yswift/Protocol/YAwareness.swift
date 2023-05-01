@@ -94,6 +94,7 @@ final public class YOpaqueAwareness {
     }
     
     public enum Origin {
+        case unspecified
         case local
         case timeout
         case custom(Any?)
@@ -152,7 +153,7 @@ final public class YOpaqueAwareness {
         set { self._updateLocalState(newValue) }
     }
 
-    public func applyUpdate(_ update: Data, origin: Origin) throws {
+    public func applyUpdate(_ update: Data, origin: Origin = .unspecified) throws {
         let decoder = LZDecoder(update)
         let timestamp = Date().timeIntervalSince1970
         var added = [Int](), updated = [Int](), removed = [Int](), filteredUpdated = [Int]()
@@ -211,7 +212,7 @@ final public class YOpaqueAwareness {
         return encoder.data
     }
     
-    public func removeStates(of clients: [Int], origin: Origin) {
+    public func removeStates(of clients: [Int], origin: Origin = .unspecified) {
         var removed: [Int] = []
         for clientID in clients where self.states[clientID] != nil {
             self.states.removeValue(forKey: clientID)
