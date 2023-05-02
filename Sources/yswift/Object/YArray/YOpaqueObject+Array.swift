@@ -166,7 +166,7 @@ extension YOpaqueObject {
         
         packJsonContent()
     }
-
+    
     // this -> parent
     func listInsert(_ contents: [Any?], at index: Int, _ transaction: YTransaction) {
         var index = index

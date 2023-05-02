@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ObuchiYuki/lib0-swift.git",
       "state" : {
-        "revision" : "c574c70bbe8c03c946fda0e28f4a3bdcfd3d8769",
-        "version" : "1.0.3"
+        "revision" : "001958e8384591bf11ad5f494cc525bb2367d5b7",
+        "version" : "1.0.4"
       }
     },
     {

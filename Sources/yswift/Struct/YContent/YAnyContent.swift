@@ -45,8 +45,7 @@ extension YAnyContent {
         let count = self.array.count
         encoder.writeLen(count - offset)
         for i in offset..<count {
-            let c = self.array[i]
-            encoder.writeAny(c)
+            encoder.writeAny(self.array[i])
         }
     }
     
