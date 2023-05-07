@@ -41,3 +41,40 @@ extension YReference: YValue {
         return YReference(objectID: YObjectID(content))
     }
 }
+
+extension YReference: Equatable {
+    public static func == (lhs: YReference<T>, rhs: YReference<T>) -> Bool {
+        lhs.objectID == rhs.objectID
+    }
+}
+
+extension YReference: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(objectID)
+    }
+}
+
+extension YReference: RawRepresentable {
+    public typealias RawValue = String
+    
+    public var rawValue: RawValue { objectID.compressedString() }
+    
+    public convenience init(rawValue: String) {
+        self.init(objectID: YObjectID(compressedString: rawValue))
+    }
+}
+
+extension YReference: Encodable {
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+extension YReference: Decodable {
+    public convenience init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self.init(rawValue: rawValue)
+    }
+}
