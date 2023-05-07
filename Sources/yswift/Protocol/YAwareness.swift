@@ -3,16 +3,14 @@ import Foundation
 import Combine
 import lib0
 
-private let outdatedTimeout: TimeInterval = 30000
+private let outdatedTimeout: TimeInterval = 30000 / 1000
 
 final public class YAwareness<State: Codable> {
     public typealias Update = YOpaqueAwareness.Update
     public typealias Origin = YOpaqueAwareness.Origin
     
+    public let opaque = YOpaqueAwareness()
     
-    public let opaque: YOpaqueAwareness
-    
-    public var document: YDocument { opaque.document }
     public var clientID: Int { opaque.clientID }
     
     public var updatePublisher: some Publisher<(update: Update, origin: Origin), Never> { opaque.updatePublisher }
@@ -32,9 +30,10 @@ final public class YAwareness<State: Codable> {
     
     private var _objectBag = [AnyCancellable]()
     
-    public init(_ document: YDocument) {
-        self.opaque = YOpaqueAwareness(document)
-        
+    public init() {}
+    
+    public func register(_ document: YDocument) {
+        self.opaque.register(document)
         self.opaque.changePublisher
             .sink{[unowned self] in self._handleChange($0.update) }.store(in: &_objectBag)
     }
@@ -84,12 +83,11 @@ final public class YAwareness<State: Codable> {
 }
 
 final public class YOpaqueAwareness {
-    public typealias State = Any
-    
     public struct Update {
         public let added: [Int]
         public let updated: [Int]
         public let removed: [Int]
+        
         public var changed: Set<Int> { Set(added + updated + removed) }
     }
     
@@ -105,11 +103,10 @@ final public class YOpaqueAwareness {
         let lastUpdated: Double
     }
         
-    public let document: YDocument
-    public let clientID: Int
+    public private(set) var clientID: Int = -1
     
     @LZObservable
-    public var states: [Int: State] = [:]
+    public var states: [Int: Any] = [:]
     
     public var updatePublisher: some Publisher<(update: YOpaqueAwareness.Update, origin: Origin), Never> { _updatePublisher }
     public var changePublisher: some Publisher<(update: YOpaqueAwareness.Update, origin: Origin), Never> { _changePublisher }
@@ -120,8 +117,10 @@ final public class YOpaqueAwareness {
     private let _changePublisher = PassthroughSubject<(update: YOpaqueAwareness.Update, origin: Origin), Never>()
     private var _checkTimer: Timer!
     
-    public init(_ document: YDocument) {
-        self.document = document
+    public init() {}
+    
+    public func register(_ document: YDocument) {
+        assert(clientID == -1, "This awareness already inialized.")
         self.clientID = document.clientID
         
         self._checkTimer = Timer.scheduledTimer(withTimeInterval: outdatedTimeout / 10, repeats: true) {[weak self] timer in
@@ -148,12 +147,17 @@ final public class YOpaqueAwareness {
         self.localState = [String: Any]()
     }
 
-    public var localState: State? {
-        get { self.states[self.clientID] }
+    public var localState: Any? {
+        get {
+            assert(clientID != -1)
+            return self.states[self.clientID]
+        }
         set { self._updateLocalState(newValue) }
     }
 
     public func applyUpdate(_ update: Data, origin: Origin = .unspecified) throws {
+        assert(clientID != -1, "Use of uninitialized awareness.")
+        
         let decoder = LZDecoder(update)
         let timestamp = Date().timeIntervalSince1970
         var added = [Int](), updated = [Int](), removed = [Int](), filteredUpdated = [Int]()
@@ -161,7 +165,8 @@ final public class YOpaqueAwareness {
         for _ in 0..<(try decoder.readUInt()) {
             let clientID = Int(try decoder.readUInt())
             var clock = Int(try decoder.readUInt())
-            let state = try JSONSerialization.jsonObject(with: decoder.readData(), options: [.fragmentsAllowed]) as? [String: Any?]
+            var state = try JSONSerialization.jsonObject(with: decoder.readData(), options: [.fragmentsAllowed]) as Any?
+            if state is NSNull { state = nil }
             let clientMeta = self.meta[clientID]
             let prevState = self.states[clientID]
             let currentClock = clientMeta.map{ $0.clock } ?? 0
@@ -198,6 +203,8 @@ final public class YOpaqueAwareness {
     }
 
     public func encodeUpdate(of clients: [Int]) -> Data? {
+        assert(clientID != -1, "Use of uninitialized awareness.")
+        
         let encoder = LZEncoder()
         encoder.writeUInt(UInt(clients.count))
         
@@ -213,6 +220,8 @@ final public class YOpaqueAwareness {
     }
     
     public func removeStates(of clients: [Int], origin: Origin = .unspecified) {
+        assert(clientID != -1, "Use of uninitialized awareness.")
+        
         var removed: [Int] = []
         for clientID in clients where self.states[clientID] != nil {
             self.states.removeValue(forKey: clientID)
@@ -229,7 +238,9 @@ final public class YOpaqueAwareness {
         }
     }
     
-    private func _updateLocalState(_ newValue: State?) {
+    private func _updateLocalState(_ newValue: Any?) {
+        assert(clientID != -1, "Use of uninitialized awareness.")
+        
         let clock = self.meta[clientID].map{ $0.clock + 1 } ?? 0
         let prevState = self.states[clientID]
 
@@ -257,22 +268,3 @@ final public class YOpaqueAwareness {
     }
 }
 
-
-
-
-//public func modifyUpdate(_ update: Data, modify: (Any) -> Any) throws -> Data {
-//    let decoder = LZDecoder(update)
-//    let encoder = LZEncoder()
-//    let len = try decoder.readUInt()
-//    encoder.writeUInt(len)
-//    for _ in 0..<len {
-//        let clientID = try decoder.readUInt()
-//        let clock = try decoder.readUInt()
-//        let state = try JSONSerialization.jsonObject(with: decoder.readData())
-//        let modifiedState = modify(state)
-//        encoder.writeUInt(clientID)
-//        encoder.writeUInt(clock)
-//        encoder.writeData(try JSONSerialization.data(withJSONObject: modifiedState))
-//    }
-//    return encoder.data
-//}
