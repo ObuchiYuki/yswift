@@ -23,8 +23,7 @@ final class YAwarenessTests: XCTestCase {
         print(awareness0.states)
         print(awareness1.states)
     }
-
-    
+        
     func testAwarenessSync() throws {
         let test = YAwarenessTest<Cursor>(count: 2)
         

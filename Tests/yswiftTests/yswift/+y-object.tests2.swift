@@ -22,6 +22,32 @@ final class YObjectTests2: XCTestCase {
         NameContainer.Name.registerAuto()
     }
     
+    func testObjectAtRootOfDocument() throws {
+        class Object: YObject {
+            @Property var name: String = "default"
+            
+            required init() {
+                super.init()
+                self.register(_name, for: "name")
+            }
+            
+            convenience init(name: String) {
+                self.init()
+                self.name = name
+            }
+        }
+        Object.registerAuto()
+        
+        let test = try YTest<Any>(docs: 2)
+        let object0 = test.docs[0].getObject(Object.self), object1 = test.docs[1].getObject(Object.self)
+        try test.sync()
+        
+        object0.name = "second"
+        
+        print(object0.name)
+        print(object1.name)
+    }
+    
     func testArrayOrMapWithReferenceSmartCopy() throws {
         class Object: YObject, CustomStringConvertible {
             @Property private(set) var name: String = ""

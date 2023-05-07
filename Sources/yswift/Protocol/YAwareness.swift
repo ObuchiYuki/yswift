@@ -31,7 +31,7 @@ final public class YAwareness<State: Codable> {
     private var _objectBag = [AnyCancellable]()
     
     public init() {}
-    
+        
     public func register(_ document: YDocument) {
         self.opaque.register(document)
         self.opaque.changePublisher
@@ -149,7 +149,7 @@ final public class YOpaqueAwareness {
 
     public var localState: Any? {
         get {
-            assert(clientID != -1)
+            assert(clientID != -1, "Use of uninitialized awareness.")
             return self.states[self.clientID]
         }
         set { self._updateLocalState(newValue) }

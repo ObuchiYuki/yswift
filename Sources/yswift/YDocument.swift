@@ -154,6 +154,10 @@ public class YDocument: LZObservableObject, JSHashable {
         self.get(name) { YText() }
     }
     
+    public func getObject<T: YObject>(_: T.Type, _ name: String = "") -> T {
+        self.get(name) { T() }
+    }
+    
     public func toJSON() -> [String: Any] {
         var doc: [String: Any] = [:]
         self.share.forEach{ key, value in
