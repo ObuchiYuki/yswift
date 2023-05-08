@@ -100,6 +100,7 @@ public class YDocument: LZObservableObject, JSHashable {
 
     func get<T: YOpaqueObject>(_ name: String = "", _ make: () -> T) -> T {
         var thisSet = false
+        
         let object = self.share.setIfUndefined(name, {
             let object = make()
             thisSet = true
