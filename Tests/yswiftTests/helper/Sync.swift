@@ -57,7 +57,6 @@ enum Sync {
     static func readSyncMessage(decoder: LZDecoder, encoder: LZEncoder, doc: YDocument, origin: Any? = nil) throws -> MessageType {
         let messageType = MessageType(rawValue: try decoder.readUInt())!
         
-        
         switch messageType {
         case .syncStep1:
             try self.readSyncStep1(decoder: decoder, encoder: encoder, doc: doc)

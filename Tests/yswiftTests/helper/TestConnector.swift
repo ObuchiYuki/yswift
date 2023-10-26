@@ -23,20 +23,20 @@ class TestConnector: JSHashable {
     
     @discardableResult
     func flushRandomMessage() throws -> Bool {
-        let connections = self.onlineConnections.filter{ $0.receiving.count > 0 }
+        let connections = self.onlineConnections.filter{ $0.receivingMessages.count > 0 }
         
-        guard let receiver = connections.min(by: { $0.clientID < $1.clientID }) else {
+        guard let document = connections.min(by: { $0.clientID < $1.clientID }) else {
             return false
         }
                     
         // to remove randomness
-        let sender = receiver.receiving.keys.min(by: { $0.clientID < $1.clientID })!
-        let messages = receiver.receiving[sender]!
+        let senderDocument = document.receivingMessages.keys.min(by: { $0.clientID < $1.clientID })!
+        let messages = document.receivingMessages[senderDocument]!
                 
         let data = messages.isEmpty ? nil : messages.value.removeFirst()
         
         if messages.count == 0 {
-            receiver.receiving.removeValue(forKey: sender)
+            document.receivingMessages.removeValue(forKey: senderDocument)
         }
         
         guard let receivedData = data else { return try self.flushRandomMessage() }
@@ -45,10 +45,10 @@ class TestConnector: JSHashable {
                 
         try Sync.readSyncMessage(
             decoder: LZDecoder(receivedData),
-            encoder: encoder, doc: receiver, origin: receiver.connector
+            encoder: encoder, doc: document, origin: document.connector
         )
         
-        if encoder.count > 0 { sender._receive(encoder.data, remoteClient: receiver) }
+        if encoder.count > 0 { senderDocument._receive(encoder.data, remoteClient: document) }
         
         return true
     }

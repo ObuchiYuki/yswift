@@ -13,7 +13,7 @@ import lib0
 class TestDoc: YDocument {
     var connector: TestConnector
     var userID: Int
-    var receiving: [TestDoc: RefArray<Data>] = [:]
+    var receivingMessages: [TestDoc: RefArray<Data>] = [:]
     var updates: RefArray<YUpdate> = []
     
     init(userID: Int, connector: TestConnector, gc: Bool) throws {
@@ -36,7 +36,7 @@ class TestDoc: YDocument {
     }
 
     func disconnect() {
-        self.receiving = [:]
+        self.receivingMessages = [:]
         self.connector.onlineConnections.remove(self)
     }
 
@@ -60,7 +60,7 @@ class TestDoc: YDocument {
     }
 
     func _receive(_ message: Data, remoteClient: TestDoc) {
-        self.receiving.setIfUndefined(remoteClient, []).value.append(message)
+        self.receivingMessages.setIfUndefined(remoteClient, []).value.append(message)
     }
     
     private func broadcastMessage(_ m: Data) {
